@@ -1,10 +1,11 @@
 import type { ReactNode } from "react";
 import LogoutButton from "./LogoutButton";
 
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Administrator",
-  STAFF: "Staf",
-  CLIENT: "Klient",
+// Genitive form, so the header reads "Paneli i administratorit".
+const PANEL_LABEL: Record<string, string> = {
+  ADMIN: "administratorit",
+  STAFF: "stafit",
+  CLIENT: "klientit",
 };
 
 export default function DashboardShell({
@@ -21,7 +22,7 @@ export default function DashboardShell({
       <header className="flex items-center justify-between border-b border-neutral-200 bg-white px-6 py-3">
         <div>
           <p className="text-sm font-bold text-neutral-900">Glow By Diellza</p>
-          <p className="text-xs text-neutral-500">Paneli i {ROLE_LABEL[role] ?? role}</p>
+          <p className="text-xs text-neutral-500">Paneli i {PANEL_LABEL[role] ?? role}</p>
         </div>
         <div className="flex items-center gap-3">
           <span className="text-sm text-neutral-700">{name}</span>
