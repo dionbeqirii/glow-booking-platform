@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
 
 type Mode = "login" | "register";
 
@@ -11,6 +12,8 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  const isRegister = mode === "register";
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
@@ -18,7 +21,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
     const form = new FormData(e.currentTarget);
     const payload = Object.fromEntries(form.entries());
-    const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+    const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
 
     try {
       const res = await fetch(endpoint, {
@@ -40,59 +43,75 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     }
   }
 
-  const isRegister = mode === "register";
-
   return (
-    <main className="flex flex-1 items-center justify-center bg-neutral-50 p-6">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-sm ring-1 ring-neutral-200">
-        <h1 className="text-2xl font-bold text-neutral-900">
-          {isRegister ? "Regjistrohu" : "Hyr në llogari"}
-        </h1>
-        <p className="mt-1 text-sm text-neutral-600">Glow By Diellza</p>
+    <main className="flex flex-1 items-center justify-center px-6 py-12">
+      <div className="w-full max-w-md">
+        <div className="mb-7 text-center">
+          <Link href="/">
+            <Wordmark />
+          </Link>
+        </div>
 
-        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
-          {isRegister && (
-            <Field label="Emri dhe mbiemri" name="name" type="text" autoComplete="name" required />
-          )}
-          <Field label="Email" name="email" type="email" autoComplete="email" required />
-          {isRegister && (
-            <Field label="Telefoni (opsional)" name="phone" type="tel" autoComplete="tel" />
-          )}
-          <Field
-            label="Fjalëkalimi"
-            name="password"
-            type="password"
-            autoComplete={isRegister ? "new-password" : "current-password"}
-            required
-          />
+        <div className="rounded-2xl bg-surface p-8 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-20px_rgba(43,38,34,0.18)]">
+          <h1 className="text-2xl font-semibold text-ink">
+            {isRegister ? "Krijo llogari" : "Mirë se erdhe"}
+          </h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            {isRegister
+              ? "Regjistrohu për të rezervuar terminin tënd."
+              : "Hyr për të parë terminet dhe radhën."}
+          </p>
 
-          {error && (
-            <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
-              {error}
-            </p>
-          )}
+          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+            {isRegister && (
+              <Field label="Emri dhe mbiemri">
+                <input name="name" type="text" autoComplete="name" required className={inputStyles} />
+              </Field>
+            )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="mt-2 rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-neutral-800 disabled:opacity-60"
-          >
-            {loading ? "Duke procesuar…" : isRegister ? "Krijo llogarinë" : "Hyr"}
-          </button>
-        </form>
+            <Field label="Email">
+              <input name="email" type="email" autoComplete="email" required className={inputStyles} />
+            </Field>
 
-        <p className="mt-6 text-center text-sm text-neutral-600">
+            {isRegister && (
+              <Field label="Telefoni" hint="Opsional, për njoftime rreth terminit.">
+                <input name="phone" type="tel" autoComplete="tel" className={inputStyles} />
+              </Field>
+            )}
+
+            <Field
+              label="Fjalëkalimi"
+              hint={isRegister ? "Të paktën 8 karaktere." : undefined}
+            >
+              <input
+                name="password"
+                type="password"
+                autoComplete={isRegister ? "new-password" : "current-password"}
+                required
+                className={inputStyles}
+              />
+            </Field>
+
+            {error && <Alert message={error} />}
+
+            <button type="submit" disabled={loading} className={`mt-1 ${buttonStyles.primary}`}>
+              {loading ? "Duke procesuar…" : isRegister ? "Krijo llogarinë" : "Hyr"}
+            </button>
+          </form>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-ink-soft">
           {isRegister ? (
             <>
               Ke llogari?{" "}
-              <Link href="/login" className="font-semibold text-neutral-900 hover:underline">
+              <Link href="/login" className="font-medium text-accent hover:underline">
                 Hyr
               </Link>
             </>
           ) : (
             <>
               S&apos;ke llogari?{" "}
-              <Link href="/register" className="font-semibold text-neutral-900 hover:underline">
+              <Link href="/register" className="font-medium text-accent hover:underline">
                 Regjistrohu
               </Link>
             </>
@@ -100,32 +119,5 @@ export default function AuthForm({ mode }: { mode: Mode }) {
         </p>
       </div>
     </main>
-  );
-}
-
-function Field({
-  label,
-  name,
-  type,
-  autoComplete,
-  required,
-}: {
-  label: string;
-  name: string;
-  type: string;
-  autoComplete?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-medium text-neutral-700">{label}</span>
-      <input
-        name={name}
-        type={type}
-        autoComplete={autoComplete}
-        required={required}
-        className="rounded-lg border border-neutral-300 px-3 py-2 text-sm outline-none focus:border-neutral-900 focus:ring-1 focus:ring-neutral-900"
-      />
-    </label>
   );
 }

@@ -70,7 +70,7 @@ export default function StaffManager({ initial }: { initial: StaffRow[] }) {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-200 text-left text-neutral-600">
+                <tr className="border-b border-line text-left text-ink-soft">
                   <th className="py-2 pr-3 font-medium">Emri</th>
                   <th className="py-2 pr-3 font-medium">Email</th>
                   <th className="py-2 pr-3 font-medium">Aftësi</th>
@@ -80,28 +80,28 @@ export default function StaffManager({ initial }: { initial: StaffRow[] }) {
               </thead>
               <tbody>
                 {initial.map((m) => (
-                  <tr key={m.id} className="border-b border-neutral-100 last:border-0">
-                    <td className="py-2.5 pr-3 font-medium text-neutral-900">{m.name}</td>
-                    <td className="py-2.5 pr-3 text-neutral-600">{m.email}</td>
+                  <tr key={m.id} className="border-b border-line last:border-0">
+                    <td className="py-2.5 pr-3 font-medium text-ink">{m.name}</td>
+                    <td className="py-2.5 pr-3 text-ink-soft">{m.email}</td>
                     <td className="py-2.5 pr-3">{m.skillCount} shërbime</td>
                     <td className="py-2.5 pr-3">
                       {m.hoursCount > 0 ? (
                         `${m.hoursCount} intervale`
                       ) : (
-                        <span className="text-amber-700">pa orar</span>
+                        <span className="text-warn">pa orar</span>
                       )}
                     </td>
                     <td className="py-2.5 text-right whitespace-nowrap">
                       <Link
                         href={`/admin/stafi/${m.id}`}
-                        className="mr-2 text-sm font-medium text-neutral-700 hover:underline"
+                        className="mr-2 text-sm font-medium text-ink hover:underline"
                       >
                         Konfiguro
                       </Link>
                       <button
                         onClick={() => remove(m)}
                         disabled={busy}
-                        className="text-sm font-medium text-red-700 hover:underline"
+                        className="text-sm font-medium text-danger hover:underline"
                       >
                         Fshi
                       </button>

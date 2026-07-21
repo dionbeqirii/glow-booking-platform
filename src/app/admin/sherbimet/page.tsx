@@ -21,10 +21,10 @@ export default async function ServicesPage() {
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-6xl">
-        <Link href="/admin" className="text-sm text-neutral-600 hover:underline">
+        <Link href="/admin" className="text-sm text-ink-soft hover:underline">
           ← Paneli
         </Link>
-        <h1 className="mt-2 mb-5 text-xl font-bold text-neutral-900">Shërbimet</h1>
+        <h1 className="mt-2 mb-5 text-xl font-bold text-ink">Shërbimet</h1>
         <ServicesManager initial={rows} />
       </div>
     </DashboardShell>

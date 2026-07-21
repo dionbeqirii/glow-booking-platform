@@ -35,11 +35,11 @@ export default async function StaffDetailPage({
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-4xl">
-        <Link href="/admin/stafi" className="text-sm text-neutral-600 hover:underline">
+        <Link href="/admin/stafi" className="text-sm text-ink-soft hover:underline">
           ← Stafi
         </Link>
-        <h1 className="mt-2 text-xl font-bold text-neutral-900">{member.name}</h1>
-        <p className="mb-5 text-sm text-neutral-600">{member.email}</p>
+        <h1 className="mt-2 text-xl font-bold text-ink">{member.name}</h1>
+        <p className="mb-5 text-sm text-ink-soft">{member.email}</p>
 
         <StaffDetail
           staffId={member.id}

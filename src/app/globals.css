@@ -1,26 +1,95 @@
 @import "tailwindcss";
 
+/*
+  Design tokens for "Glow By Diellza".
+  The palette is warm and quiet, closer to a skincare studio than to a
+  generic dashboard. Every colour used across the app is defined here, so
+  retheming the product means editing this block and nothing else.
+*/
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Surfaces */
+  --gbd-canvas: #faf7f4; /* page background, warm cream */
+  --gbd-surface: #ffffff; /* cards */
+  --gbd-surface-muted: #f4efea; /* subtle fills, table headers */
+
+  /* Text */
+  --gbd-ink: #2b2622; /* headings and body */
+  --gbd-ink-soft: #6f645c; /* secondary text */
+  --gbd-ink-faint: #a3968c; /* hints, placeholders */
+
+  /* Lines */
+  --gbd-line: #e7ded6;
+  --gbd-line-strong: #d6c9be;
+
+  /* Brand accent: muted rose */
+  --gbd-accent: #b76e79;
+  --gbd-accent-hover: #a25c67;
+  --gbd-accent-soft: #f6ecee;
+
+  /* Secondary accent: warm gold, used sparingly */
+  --gbd-gold: #c9a227;
+  --gbd-gold-soft: #faf3de;
+
+  /* Status */
+  --gbd-ok: #4b7d68;
+  --gbd-ok-soft: #eaf2ee;
+  --gbd-warn: #9a6b28;
+  --gbd-warn-soft: #fbf1e2;
+  --gbd-danger: #a4453f;
+  --gbd-danger-soft: #f9ecea;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-canvas: var(--gbd-canvas);
+  --color-surface: var(--gbd-surface);
+  --color-surface-muted: var(--gbd-surface-muted);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-ink: var(--gbd-ink);
+  --color-ink-soft: var(--gbd-ink-soft);
+  --color-ink-faint: var(--gbd-ink-faint);
+
+  --color-line: var(--gbd-line);
+  --color-line-strong: var(--gbd-line-strong);
+
+  --color-accent: var(--gbd-accent);
+  --color-accent-hover: var(--gbd-accent-hover);
+  --color-accent-soft: var(--gbd-accent-soft);
+
+  --color-gold: var(--gbd-gold);
+  --color-gold-soft: var(--gbd-gold-soft);
+
+  --color-ok: var(--gbd-ok);
+  --color-ok-soft: var(--gbd-ok-soft);
+  --color-warn: var(--gbd-warn);
+  --color-warn-soft: var(--gbd-warn-soft);
+  --color-danger: var(--gbd-danger);
+  --color-danger-soft: var(--gbd-danger-soft);
+
+  --font-sans: var(--font-body);
+  --font-display: var(--font-display);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--gbd-canvas);
+  color: var(--gbd-ink);
+}
+
+/* Headings carry the brand voice; body text stays in the sans face. */
+h1,
+h2,
+h3 {
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.01em;
+}
+
+/* Inputs inherit the warm palette instead of the browser default. */
+input,
+select,
+textarea {
+  color: var(--gbd-ink);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--gbd-ink-faint);
 }

@@ -105,7 +105,7 @@ export default function StaffDetail({
               {services.map((s) => (
                 <label
                   key={s.id}
-                  className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-neutral-200 px-3 py-2 text-sm hover:bg-neutral-50"
+                  className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-sm hover:bg-surface-muted"
                 >
                   <input
                     type="checkbox"
@@ -113,8 +113,8 @@ export default function StaffDetail({
                     onChange={() => toggleSkill(s.id)}
                     className="h-4 w-4"
                   />
-                  <span className="text-neutral-900">{s.name}</span>
-                  <span className="ml-auto text-xs text-neutral-500">{s.durationMin} min</span>
+                  <span className="text-ink">{s.name}</span>
+                  <span className="ml-auto text-xs text-ink-faint">{s.durationMin} min</span>
                 </label>
               ))}
             </div>
@@ -149,11 +149,11 @@ export default function StaffDetail({
               .filter(({ h }) => h.weekday === weekday);
 
             return (
-              <div key={weekday} className="flex flex-wrap items-center gap-2 border-b border-neutral-100 pb-3 last:border-0">
-                <span className="w-24 text-sm font-medium text-neutral-700">{label}</span>
+              <div key={weekday} className="flex flex-wrap items-center gap-2 border-b border-line pb-3 last:border-0">
+                <span className="w-24 text-sm font-medium text-ink">{label}</span>
 
                 {dayRows.length === 0 && (
-                  <span className="text-sm text-neutral-400">i lirë</span>
+                  <span className="text-sm text-ink-faint">i lirë</span>
                 )}
 
                 {dayRows.map(({ h, index }) => (
@@ -162,18 +162,18 @@ export default function StaffDetail({
                       type="time"
                       value={h.startTime}
                       onChange={(e) => updateInterval(index, { startTime: e.target.value })}
-                      className="rounded-lg border border-neutral-300 px-2 py-1 text-sm"
+                      className="rounded-lg border border-line-strong px-2 py-1 text-sm"
                     />
-                    <span className="text-neutral-400">–</span>
+                    <span className="text-ink-faint">–</span>
                     <input
                       type="time"
                       value={h.endTime}
                       onChange={(e) => updateInterval(index, { endTime: e.target.value })}
-                      className="rounded-lg border border-neutral-300 px-2 py-1 text-sm"
+                      className="rounded-lg border border-line-strong px-2 py-1 text-sm"
                     />
                     <button
                       onClick={() => removeInterval(index)}
-                      className="px-1 text-sm text-red-700 hover:underline"
+                      className="px-1 text-sm text-danger hover:underline"
                       title="Hiq intervalin"
                     >
                       ×
@@ -183,7 +183,7 @@ export default function StaffDetail({
 
                 <button
                   onClick={() => addInterval(weekday)}
-                  className="ml-auto text-sm font-medium text-neutral-700 hover:underline"
+                  className="ml-auto text-sm font-medium text-ink hover:underline"
                 >
                   + interval
                 </button>
@@ -211,18 +211,18 @@ export default function StaffDetail({
             {timeOff.map((t) => (
               <li
                 key={t.id}
-                className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm"
               >
                 <span>
-                  <span className="font-medium text-neutral-900">
+                  <span className="font-medium text-ink">
                     {new Date(t.from).toLocaleDateString("sq")} – {new Date(t.until).toLocaleDateString("sq")}
                   </span>
-                  {t.reason && <span className="ml-2 text-neutral-500">{t.reason}</span>}
+                  {t.reason && <span className="ml-2 text-ink-faint">{t.reason}</span>}
                 </span>
                 <button
                   onClick={() => send(`/api/timeoff/${t.id}`, "DELETE", undefined, "Mungesa u hoq.")}
                   disabled={busy}
-                  className="text-sm font-medium text-red-700 hover:underline"
+                  className="text-sm font-medium text-danger hover:underline"
                 >
                   Hiq
                 </button>

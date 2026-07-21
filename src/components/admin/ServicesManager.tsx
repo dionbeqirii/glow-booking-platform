@@ -97,7 +97,7 @@ export default function ServicesManager({ initial }: { initial: ServiceRow[] }) 
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-neutral-200 text-left text-neutral-600">
+                <tr className="border-b border-line text-left text-ink-soft">
                   <th className="py-2 pr-3 font-medium">Shërbimi</th>
                   <th className="py-2 pr-3 font-medium">Kohëzgjatja</th>
                   <th className="py-2 pr-3 font-medium">Çmimi</th>
@@ -107,11 +107,11 @@ export default function ServicesManager({ initial }: { initial: ServiceRow[] }) 
               </thead>
               <tbody>
                 {initial.map((s) => (
-                  <tr key={s.id} className="border-b border-neutral-100 last:border-0">
+                  <tr key={s.id} className="border-b border-line last:border-0">
                     <td className="py-2.5 pr-3">
-                      <span className="font-medium text-neutral-900">{s.name}</span>
+                      <span className="font-medium text-ink">{s.name}</span>
                       {s.description && (
-                        <span className="block text-xs text-neutral-500">{s.description}</span>
+                        <span className="block text-xs text-ink-faint">{s.description}</span>
                       )}
                     </td>
                     <td className="py-2.5 pr-3 whitespace-nowrap">{s.durationMin} min</td>
@@ -122,8 +122,8 @@ export default function ServicesManager({ initial }: { initial: ServiceRow[] }) 
                         disabled={busy}
                         className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
                           s.active
-                            ? "bg-emerald-50 text-emerald-700"
-                            : "bg-neutral-100 text-neutral-500"
+                            ? "bg-ok-soft text-ok"
+                            : "bg-surface-muted text-ink-faint"
                         }`}
                       >
                         {s.active ? "aktiv" : "joaktiv"}
@@ -132,14 +132,14 @@ export default function ServicesManager({ initial }: { initial: ServiceRow[] }) 
                     <td className="py-2.5 text-right whitespace-nowrap">
                       <button
                         onClick={() => startEdit(s)}
-                        className="mr-2 text-sm font-medium text-neutral-700 hover:underline"
+                        className="mr-2 text-sm font-medium text-ink hover:underline"
                       >
                         Ndrysho
                       </button>
                       <button
                         onClick={() => remove(s)}
                         disabled={busy}
-                        className="text-sm font-medium text-red-700 hover:underline"
+                        className="text-sm font-medium text-danger hover:underline"
                       >
                         Fshi
                       </button>
