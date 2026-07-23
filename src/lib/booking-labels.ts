@@ -25,3 +25,11 @@ export const QUEUE_STATUS_LABEL: Record<QueueStatus, string> = {
   COMPLETED: "Përfunduar",
   NO_SHOW: "Nuk u paraqit",
 };
+
+export const QUEUE_STATUS_TONE: Record<QueueStatus, "neutral" | "ok" | "warn"> = {
+  WAITING: "neutral",
+  CALLED: "ok",
+  IN_SERVICE: "ok",
+  COMPLETED: "neutral",
+  NO_SHOW: "warn",
+};

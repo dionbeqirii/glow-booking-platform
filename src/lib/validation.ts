@@ -138,3 +138,19 @@ export const bookingUpdateSchema = z
   });
 
 export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
+
+// ---------- Sprint 4: walk-in queue ----------
+
+// FR-08 — check-in. A client checks in for themselves; staff/admin may
+// register a walk-in without an account, giving a name instead.
+export const queueCheckinSchema = z.object({
+  serviceId: z.string().min(1, "Zgjidh një shërbim"),
+  clientName: optionalText(100),
+});
+
+// FR-11 — move a queue entry through its lifecycle, or leave the queue.
+export const queueUpdateSchema = z.object({
+  action: z.enum(["call", "start", "complete", "no_show", "leave"]),
+});
+
+export type QueueCheckinInput = z.infer<typeof queueCheckinSchema>;

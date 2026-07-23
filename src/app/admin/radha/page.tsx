@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -5,8 +6,8 @@ import { PageTitle } from "@/components/ui";
 import StaffQueue from "@/components/staff/StaffQueue";
 import { DISPLAY_QUEUE_STATUSES } from "@/lib/queue";
 
-export default async function StaffPage() {
-  const session = await requireRole("STAFF");
+export default async function AdminQueuePage() {
+  const session = await requireRole("ADMIN");
 
   const entries = await prisma.queueEntry.findMany({
     where: { status: { in: DISPLAY_QUEUE_STATUSES } },
@@ -29,8 +30,13 @@ export default async function StaffPage() {
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-3xl">
-        <PageTitle title="Radha e sotme" hint="Thirr klientin e radhës dhe menaxho shërbimet në vazhdim." />
-        <StaffQueue meId={session.userId} isAdmin={false} initial={rows} />
+        <Link href="/admin" className="text-sm text-ink-soft hover:underline">
+          ← Paneli
+        </Link>
+        <div className="mt-2">
+          <PageTitle title="Radha e sotme" hint="Pamje e gjithë radhës, sipas roleve të stafit." />
+        </div>
+        <StaffQueue meId={session.userId} isAdmin initial={rows} />
       </div>
     </DashboardShell>
   );

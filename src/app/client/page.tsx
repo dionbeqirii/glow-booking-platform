@@ -44,9 +44,14 @@ export default async function ClientPage() {
       <div className="mx-auto max-w-3xl">
         <div className="flex items-end justify-between">
           <PageTitle title={`Mirë se erdhe, ${session.name.split(" ")[0]}`} hint="Terminet e tua te studioja." />
-          <Link href="/client/rezervo" className={`mb-6 ${buttonStyles.primary}`}>
-            Rezervo një termin
-          </Link>
+          <div className="mb-6 flex gap-2">
+            <Link href="/client/radha" className={buttonStyles.secondary}>
+              Radha pa termin
+            </Link>
+            <Link href="/client/rezervo" className={buttonStyles.primary}>
+              Rezervo një termin
+            </Link>
+          </div>
         </div>
 
         <MyBookings serviceIdByBooking={serviceIdByBooking} bookings={rows} />
