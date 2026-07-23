@@ -106,3 +106,35 @@ export const timeOffSchema = z
 
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
+
+// ---------- Sprint 3: bookings ----------
+
+const isoDateTime = z
+  .string()
+  .refine((s) => !Number.isNaN(Date.parse(s)), "Data/ora nuk është e vlefshme");
+
+// FR-04/05 — a client creates a booking for a concrete service, staff and time.
+export const bookingCreateSchema = z.object({
+  serviceId: z.string().min(1, "Zgjidh një shërbim"),
+  staffId: z.string().min(1, "Zgjidh një punonjës"),
+  startTime: isoDateTime,
+});
+
+// FR-06/07 — cancel, reschedule, or move the booking to another status.
+export const bookingUpdateSchema = z
+  .object({
+    action: z.enum(["cancel", "reschedule", "status"]),
+    // for reschedule
+    staffId: z.string().min(1).optional(),
+    startTime: isoDateTime.optional(),
+    // for status change
+    status: z.enum(["CHECKED_IN", "IN_SERVICE", "COMPLETED", "NO_SHOW"]).optional(),
+  })
+  .refine((v) => v.action !== "reschedule" || (v.staffId && v.startTime), {
+    message: "Riplanifikimi kërkon punonjësin dhe orarin e ri",
+  })
+  .refine((v) => v.action !== "status" || v.status, {
+    message: "Ndryshimi i statusit kërkon statusin e ri",
+  });
+
+export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
