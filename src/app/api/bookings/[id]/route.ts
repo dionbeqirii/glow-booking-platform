@@ -5,6 +5,7 @@ import { isSlotBookable } from "@/lib/availability";
 import { handle, readJson, ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -107,6 +108,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
       action: `BOOKING_${next}`,
       entity: "Booking",
       entityId: id,
+    });
+    // Keep the client informed of every lifecycle move on their booking (FR-13).
+    await notify({
+      userId: booking.clientId,
+      type: "STATUS_CHANGE",
+      message: `Rezervimi për ${booking.service.name}: ${BOOKING_STATUS_LABEL[next].toLowerCase()}.`,
     });
     return { ok: true };
   });

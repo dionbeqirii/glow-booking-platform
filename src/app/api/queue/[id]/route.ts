@@ -77,12 +77,26 @@ export async function PATCH(req: Request, { params }: Ctx) {
       entityId: id,
     });
 
-    if (action === "call" && entry.clientId) {
-      await notify({
-        userId: entry.clientId,
-        type: "QUEUE_CALL",
-        message: `Radha jote erdhi për ${entry.service.name}. Paraqitu te studioja.`,
-      });
+    if (entry.clientId) {
+      if (action === "call") {
+        await notify({
+          userId: entry.clientId,
+          type: "QUEUE_CALL",
+          message: `Radha jote erdhi për ${entry.service.name}. Paraqitu te studioja.`,
+        });
+      } else if (action === "complete") {
+        await notify({
+          userId: entry.clientId,
+          type: "STATUS_CHANGE",
+          message: `Shërbimi ${entry.service.name} përfundoi. Faleminderit që zgjodhe Glow By Diellza!`,
+        });
+      } else if (action === "no_show") {
+        await notify({
+          userId: entry.clientId,
+          type: "STATUS_CHANGE",
+          message: `Hyrja jote në radhë për ${entry.service.name} u shënua si "nuk u paraqit".`,
+        });
+      }
     }
 
     // Freeing this staff member (complete/no_show) or committing them

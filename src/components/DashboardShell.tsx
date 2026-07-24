@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import LogoutButton from "./LogoutButton";
+import NotificationBell from "./NotificationBell";
 import { Wordmark } from "./ui";
 
 // Genitive form, so the header reads "Paneli i administratorit".
@@ -38,6 +39,7 @@ export default function DashboardShell({
           </div>
 
           <div className="flex items-center gap-3">
+            <NotificationBell />
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
               {initials}
             </span>
