@@ -20,6 +20,16 @@ export const loginSchema = z.object({
   remember: z.boolean().optional(),
 });
 
+// Password reset (self-service).
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().toLowerCase().email("Email i pavlefshëm"),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token i pavlefshëm"),
+  password: z.string().min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere").max(200),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 

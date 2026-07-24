@@ -32,7 +32,6 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [remember, setRemember] = useState(true);
-  const [showForgot, setShowForgot] = useState(false);
 
   const isRegister = mode === "register";
 
@@ -136,21 +135,13 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                   />
                   Më mba mend
                 </label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgot((v) => !v)}
+                <Link
+                  href="/forgot-password"
                   className="text-sm font-medium text-accent hover:underline"
                 >
                   Keni harruar fjalëkalimin?
-                </button>
+                </Link>
               </div>
-            )}
-
-            {!isRegister && showForgot && (
-              <p className="-mt-1 rounded-xl bg-surface-muted px-4 py-2.5 text-xs text-ink-soft">
-                Kontakto studion për ta rivendosur fjalëkalimin — do të të ndihmojmë të
-                vendosësh një të ri.
-              </p>
             )}
 
             {error && <Alert message={error} />}

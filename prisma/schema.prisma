@@ -64,6 +64,7 @@ model User {
 
   notifications Notification[]
   auditLogs     AuditLog[]
+  passwordResets PasswordResetToken[]
 
   @@index([role])
 }
@@ -166,6 +167,21 @@ model Notification {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+}
+
+// Password reset (self-service). Only the SHA-256 hash of the token is stored,
+// so a database leak never exposes a usable reset link.
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model AuditLog {
