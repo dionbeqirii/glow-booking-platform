@@ -77,11 +77,33 @@ export default async function AdminPage() {
           </Card>
         </div>
 
-        <div className="mt-4">
-          <Card className="opacity-60">
-            <p className="font-semibold text-ink">Statistikat</p>
-            <p className="mt-1 text-xs text-ink-faint">Sprint 5</p>
-          </Card>
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Link href="/admin/statistika" className="block">
+            <Card className="h-full transition-shadow hover:shadow-md">
+              <p className="font-semibold text-ink">Statistikat</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                Rezervime, anulime, pritja mesatare, shfrytëzimi.
+              </p>
+            </Card>
+          </Link>
+
+          <Link href="/admin/historiku" className="block">
+            <Card className="h-full transition-shadow hover:shadow-md">
+              <p className="font-semibold text-ink">Historiku</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                Të gjitha rezervimet dhe radhët, me caktim stafi.
+              </p>
+            </Card>
+          </Link>
+
+          <Link href="/admin/audit" className="block">
+            <Card className="h-full transition-shadow hover:shadow-md">
+              <p className="font-semibold text-ink">Regjistri</p>
+              <p className="mt-1 text-sm text-ink-soft">
+                Gjurma e veprimeve kritike në sistem.
+              </p>
+            </Card>
+          </Link>
         </div>
       </div>
     </DashboardShell>

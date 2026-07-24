@@ -17,6 +17,7 @@ export default async function StaffPage() {
       status: true,
       estimatedWaitMin: true,
       checkinAt: true,
+      serviceId: true,
       service: { select: { name: true, durationMin: true } },
       staff: { select: { id: true, name: true } },
       client: { select: { name: true } },

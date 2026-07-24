@@ -11,20 +11,25 @@ type Entry = {
   status: "WAITING" | "CALLED" | "IN_SERVICE" | "COMPLETED" | "NO_SHOW";
   estimatedWaitMin: number;
   checkinAt: string;
+  serviceId: string;
   service: { name: string; durationMin: number };
   staff: { id: string; name: string } | null;
   client: { name: string } | null;
   clientName: string | null;
 };
 
+export type StaffOption = { id: string; name: string; serviceIds: string[] };
+
 export default function StaffQueue({
   meId,
   isAdmin,
   initial,
+  staffOptions = [],
 }: {
   meId: string;
   isAdmin: boolean;
   initial: Entry[];
+  staffOptions?: StaffOption[];
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -41,6 +46,25 @@ export default function StaffQueue({
       });
       const data = await res.json();
       if (!res.ok) setError(data.error ?? "Veprimi dështoi");
+      else router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  // FR-12 — admin pins a specific staff member to a waiting entry.
+  async function assign(id: string, staffId: string) {
+    if (!staffId) return;
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/queue/${id}/assign`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ staffId }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error ?? "Caktimi dështoi");
       else router.refresh();
     } finally {
       setBusyId(null);
@@ -124,6 +148,24 @@ export default function StaffQueue({
           <div className="flex flex-col gap-2">
             {waiting.map((e, i) => (
               <Row key={e.id} e={e} busy={busyId === e.id} position={i + 1}>
+                {isAdmin && staffOptions.length > 0 && (
+                  <select
+                    value={e.staff?.id ?? ""}
+                    disabled={busyId === e.id}
+                    onChange={(ev) => assign(e.id, ev.target.value)}
+                    aria-label="Cakto punonjësin"
+                    className="rounded-lg border border-line-strong bg-surface px-2 py-1.5 text-sm text-ink disabled:opacity-50"
+                  >
+                    <option value="">Auto</option>
+                    {staffOptions
+                      .filter((s) => s.serviceIds.includes(e.serviceId))
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </select>
+                )}
                 <button
                   onClick={() => act(e.id, "call")}
                   disabled={busyId === e.id}
