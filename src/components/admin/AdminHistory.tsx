@@ -15,7 +15,7 @@ export type StaffOption = { id: string; name: string; serviceIds: string[] };
 
 export type BookingHistoryRow = {
   id: string;
-  startTime: string;
+  when: string; // preformatted server-side to avoid a hydration mismatch
   status: BookingStatus;
   serviceId: string;
   serviceName: string;
@@ -28,23 +28,13 @@ export type QueueHistoryRow = {
   id: string;
   queueNumber: number;
   status: QueueStatus;
-  checkinAt: string;
+  when: string; // preformatted server-side
   serviceName: string;
   staffName: string | null;
   clientName: string;
 };
 
 const ACTIVE_BOOKING: BookingStatus[] = ["CONFIRMED", "CHECKED_IN"];
-
-function fmt(iso: string): string {
-  return new Date(iso).toLocaleString("sq", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
 
 export default function AdminHistory({
   bookings,
@@ -150,7 +140,7 @@ export default function AdminHistory({
                     const canReassign = ACTIVE_BOOKING.includes(b.status);
                     return (
                       <tr key={b.id} className="bg-surface">
-                        <td className="whitespace-nowrap px-4 py-3 text-ink">{fmt(b.startTime)}</td>
+                        <td className="whitespace-nowrap px-4 py-3 text-ink">{b.when}</td>
                         <td className="px-4 py-3 text-ink">{b.clientName}</td>
                         <td className="px-4 py-3 text-ink-soft">{b.serviceName}</td>
                         <td className="px-4 py-3">
@@ -219,7 +209,7 @@ export default function AdminHistory({
                 <tbody className="divide-y divide-line">
                   {shownQueue.map((q) => (
                     <tr key={q.id} className="bg-surface">
-                      <td className="whitespace-nowrap px-4 py-3 text-ink">{fmt(q.checkinAt)}</td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink">{q.when}</td>
                       <td className="px-4 py-3 text-ink-soft">{q.queueNumber}</td>
                       <td className="px-4 py-3 text-ink">{q.clientName}</td>
                       <td className="px-4 py-3 text-ink-soft">{q.serviceName}</td>

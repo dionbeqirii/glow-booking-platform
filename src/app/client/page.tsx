@@ -27,6 +27,14 @@ export default async function ClientPage() {
   const rows: BookingRow[] = bookings.map((b) => ({
     id: b.id,
     startTime: b.startTime.toISOString(),
+    when: b.startTime.toLocaleString("sq", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }),
     status: b.status,
     serviceName: b.service.name,
     serviceDuration: b.service.durationMin,

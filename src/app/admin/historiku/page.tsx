@@ -9,6 +9,16 @@ import AdminHistory, {
   type StaffOption,
 } from "@/components/admin/AdminHistory";
 
+function fmt(d: Date): string {
+  return d.toLocaleString("sq", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 // FR-14 — full studio history: every booking and every queue entry, with
 // staff reassignment (FR-12) available on the still-active bookings.
 export default async function AdminHistoryPage() {
@@ -51,7 +61,7 @@ export default async function AdminHistoryPage() {
 
   const bookingRows: BookingHistoryRow[] = bookings.map((b) => ({
     id: b.id,
-    startTime: b.startTime.toISOString(),
+    when: fmt(b.startTime),
     status: b.status,
     serviceId: b.serviceId,
     serviceName: b.service.name,
@@ -64,7 +74,7 @@ export default async function AdminHistoryPage() {
     id: q.id,
     queueNumber: q.queueNumber,
     status: q.status,
-    checkinAt: q.checkinAt.toISOString(),
+    when: fmt(q.checkinAt),
     serviceName: q.service.name,
     staffName: q.staff?.name ?? null,
     clientName: q.client?.name ?? q.clientName ?? "Walk-in",

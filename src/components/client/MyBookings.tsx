@@ -9,6 +9,7 @@ import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from "@/lib/booking-labels"
 export type BookingRow = {
   id: string;
   startTime: string;
+  when: string; // preformatted server-side to avoid a hydration mismatch
   status: BookingStatus;
   serviceName: string;
   serviceDuration: number;
@@ -116,14 +117,7 @@ export default function MyBookings({
       {error && <Alert message={error} />}
 
       {bookings.map((b) => {
-        const when = new Date(b.startTime).toLocaleString("sq", {
-          weekday: "long",
-          day: "numeric",
-          month: "long",
-          hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-        });
+        const when = b.when;
         return (
           <Card key={b.id}>
             <div className="flex flex-wrap items-start justify-between gap-3">
