@@ -45,6 +45,9 @@ export default async function ClientPage() {
         <div className="flex items-end justify-between">
           <PageTitle title={`Mirë se erdhe, ${session.name.split(" ")[0]}`} hint="Terminet e tua te studioja." />
           <div className="mb-6 flex gap-2">
+            <Link href="/client/historiku" className={buttonStyles.quiet}>
+              Historiku
+            </Link>
             <Link href="/client/radha" className={buttonStyles.secondary}>
               Radha pa termin
             </Link>
