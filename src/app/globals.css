@@ -93,3 +93,20 @@ input::placeholder,
 textarea::placeholder {
   color: var(--gbd-ink-faint);
 }
+
+/*
+  Browsers (Chrome/Edge) paint autofilled fields with a pale blue wash that
+  breaks the warm palette. There is no property to set the background of an
+  autofilled input directly, so we paint over it with a large inset box-shadow
+  in the surface colour and freeze the transition so it never flashes blue.
+*/
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--gbd-ink);
+  -webkit-box-shadow: 0 0 0 1000px var(--gbd-surface) inset;
+  box-shadow: 0 0 0 1000px var(--gbd-surface) inset;
+  caret-color: var(--gbd-ink);
+  transition: background-color 100000s ease-in-out 0s;
+}

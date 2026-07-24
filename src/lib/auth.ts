@@ -50,14 +50,16 @@ export async function verifySessionToken(token: string): Promise<SessionPayload 
 }
 
 // ---------- Cookie helpers (server components / route handlers) ----------
-export async function setSessionCookie(token: string): Promise<void> {
+// When `remember` is false the cookie is a session cookie (dropped when the
+// browser closes); otherwise it persists for MAX_AGE_SECONDS.
+export async function setSessionCookie(token: string, remember = true): Promise<void> {
   const store = await cookies();
   store.set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: MAX_AGE_SECONDS,
+    ...(remember ? { maxAge: MAX_AGE_SECONDS } : {}),
   });
 }
 

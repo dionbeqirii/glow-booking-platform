@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const { email, password } = parsed.data;
+  const { email, password, remember } = parsed.data;
   const user = await prisma.user.findUnique({ where: { email } });
 
   // Same generic message whether the email is unknown or the password is wrong.
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   await audit({ userId: user.id, action: "LOGIN", entity: "User", entityId: user.id });
 
   const token = await createSessionToken({ userId: user.id, role: user.role, name: user.name });
-  await setSessionCookie(token);
+  await setSessionCookie(token, remember ?? true);
 
   return NextResponse.json({ redirect: homeForRole(user.role) });
 }

@@ -16,6 +16,8 @@ export const registerSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().trim().toLowerCase().email("Email i pavlefshëm"),
   password: z.string().min(1, "Fjalëkalimi është i detyrueshëm").max(200),
+  // "Më mba mend": persist the session for 7 days, otherwise a session cookie.
+  remember: z.boolean().optional(),
 });
 
 export type RegisterInput = z.infer<typeof registerSchema>;

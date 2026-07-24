@@ -7,10 +7,32 @@ import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
 
 type Mode = "login" | "register";
 
+function EyeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a13.2 13.2 0 0 1-1.67 2.4M6.6 6.6C3.6 8.4 2 11 2 11s3.5 7 10 7a9.3 9.3 0 0 0 5.4-1.6" />
+      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+      <path d="m2 2 20 20" />
+    </svg>
+  );
+}
+
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [remember, setRemember] = useState(true);
+  const [showForgot, setShowForgot] = useState(false);
 
   const isRegister = mode === "register";
 
@@ -20,7 +42,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     setLoading(true);
 
     const form = new FormData(e.currentTarget);
-    const payload = Object.fromEntries(form.entries());
+    const payload = { ...Object.fromEntries(form.entries()), remember };
     const endpoint = isRegister ? "/api/auth/register" : "/api/auth/login";
 
     try {
@@ -48,7 +70,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       <div className="w-full max-w-md">
         <div className="mb-7 text-center">
           <Link href="/">
-            <Wordmark />
+            <Wordmark size="lg" />
           </Link>
         </div>
 
@@ -83,14 +105,53 @@ export default function AuthForm({ mode }: { mode: Mode }) {
               label="Fjalëkalimi"
               hint={isRegister ? "Të paktën 8 karaktere." : undefined}
             >
-              <input
-                name="password"
-                type="password"
-                autoComplete={isRegister ? "new-password" : "current-password"}
-                required
-                className={inputStyles}
-              />
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete={isRegister ? "new-password" : "current-password"}
+                  required
+                  className={`${inputStyles} pr-11`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Fshih fjalëkalimin" : "Shfaq fjalëkalimin"}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-ink-faint transition-colors hover:text-ink-soft"
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
             </Field>
+
+            {!isRegister && (
+              <div className="-mt-1 flex items-center justify-between gap-3">
+                <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-ink-soft">
+                  <input
+                    type="checkbox"
+                    checked={remember}
+                    onChange={(e) => setRemember(e.target.checked)}
+                    className="h-4 w-4 rounded border-line-strong accent-[var(--gbd-accent)]"
+                  />
+                  Më mba mend
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowForgot((v) => !v)}
+                  className="text-sm font-medium text-accent hover:underline"
+                >
+                  Keni harruar fjalëkalimin?
+                </button>
+              </div>
+            )}
+
+            {!isRegister && showForgot && (
+              <p className="-mt-1 rounded-xl bg-surface-muted px-4 py-2.5 text-xs text-ink-soft">
+                Kontakto studion për ta rivendosur fjalëkalimin — do të të ndihmojmë të
+                vendosësh një të ri.
+              </p>
+            )}
 
             {error && <Alert message={error} />}
 

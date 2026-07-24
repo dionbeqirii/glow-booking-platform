@@ -100,9 +100,11 @@ export function Badge({
 
 /** Small wordmark used in the header and on the public pages. */
 export function Wordmark({ size = "md" }: { size?: "md" | "lg" }) {
-  const cls = size === "lg" ? "text-4xl" : "text-lg";
+  // The large size doubles as the central brand logo on the auth and landing
+  // screens, so it is both bigger and heavier than the compact header mark.
+  const cls = size === "lg" ? "text-4xl font-bold" : "text-lg font-semibold";
   return (
-    <span className={`font-display font-semibold tracking-tight text-ink ${cls}`}>
+    <span className={`font-display tracking-tight text-ink ${cls}`}>
       Glow <span className="text-accent">By Diellza</span>
     </span>
   );
