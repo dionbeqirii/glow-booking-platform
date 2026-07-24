@@ -213,7 +213,7 @@ export const DISPLAY_QUEUE_STATUSES: QueueStatus[] = ["WAITING", "CALLED", "IN_S
 export async function refreshQueueEstimates(now: Date = new Date()): Promise<void> {
   const active = await prisma.queueEntry.findMany({
     where: { status: { in: ACTIVE_QUEUE_STATUSES } },
-    select: { id: true, serviceId: true, staffId: true, status: true, checkinAt: true, service: { select: { durationMin: true } } },
+    select: { id: true, serviceId: true, staffId: true, staffLocked: true, status: true, checkinAt: true, service: { select: { durationMin: true } } },
   });
   if (active.length === 0) return;
 
@@ -222,9 +222,9 @@ export async function refreshQueueEstimates(now: Date = new Date()): Promise<voi
       id: e.id,
       serviceId: e.serviceId,
       durationMin: e.service.durationMin,
-      // A client already called has a committed staff member; still-waiting
-      // entries stay open to whoever ends up free first.
-      staffId: e.status === "CALLED" ? e.staffId : null,
+      // A called client, or one the admin has pinned, has a committed staff
+      // member; other still-waiting entries stay open to whoever is free first.
+      staffId: e.status === "CALLED" || e.staffLocked ? e.staffId : null,
       checkinAt: e.checkinAt,
     })),
     now
@@ -237,8 +237,8 @@ export async function refreshQueueEstimates(now: Date = new Date()): Promise<voi
         where: { id: e.id },
         data: {
           estimatedWaitMin: r ? r.waitMin : 0,
-          // Only re-suggest the staff member while still waiting.
-          ...(e.status === "WAITING" && r ? { staffId: r.staffId } : {}),
+          // Re-suggest the staff member only while waiting AND not pinned.
+          ...(e.status === "WAITING" && !e.staffLocked && r ? { staffId: r.staffId } : {}),
         },
       });
     })

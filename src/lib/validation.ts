@@ -120,11 +120,11 @@ export const bookingCreateSchema = z.object({
   startTime: isoDateTime,
 });
 
-// FR-06/07 — cancel, reschedule, or move the booking to another status.
+// FR-06/07/12 — cancel, reschedule, reassign staff, or change status.
 export const bookingUpdateSchema = z
   .object({
-    action: z.enum(["cancel", "reschedule", "status"]),
-    // for reschedule
+    action: z.enum(["cancel", "reschedule", "assign", "status"]),
+    // for reschedule and assign
     staffId: z.string().min(1).optional(),
     startTime: isoDateTime.optional(),
     // for status change
@@ -132,6 +132,9 @@ export const bookingUpdateSchema = z
   })
   .refine((v) => v.action !== "reschedule" || (v.staffId && v.startTime), {
     message: "Riplanifikimi kërkon punonjësin dhe orarin e ri",
+  })
+  .refine((v) => v.action !== "assign" || v.staffId, {
+    message: "Caktimi kërkon punonjësin e ri",
   })
   .refine((v) => v.action !== "status" || v.status, {
     message: "Ndryshimi i statusit kërkon statusin e ri",
@@ -151,6 +154,11 @@ export const queueCheckinSchema = z.object({
 // FR-11 — move a queue entry through its lifecycle, or leave the queue.
 export const queueUpdateSchema = z.object({
   action: z.enum(["call", "start", "complete", "no_show", "leave"]),
+});
+
+// FR-12 — the administrator manually assigns a staff member to a waiting entry.
+export const queueAssignSchema = z.object({
+  staffId: z.string().min(1, "Zgjidh një punonjës"),
 });
 
 export type QueueCheckinInput = z.infer<typeof queueCheckinSchema>;

@@ -144,6 +144,9 @@ model QueueEntry {
   estimatedWaitMin  Int         @default(0)
   status            QueueStatus @default(WAITING)
   calledAt          DateTime?
+  // Set when the administrator pins a staff member manually (FR-12); the
+  // auto-refresh then stops re-suggesting a different one for this entry.
+  staffLocked       Boolean     @default(false)
 
   client  User?   @relation("ClientQueue", fields: [clientId], references: [id])
   service Service @relation(fields: [serviceId], references: [id])

@@ -95,6 +95,59 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return { ok: true };
     }
 
+    // ---------- Manual staff reassignment (FR-12) ----------
+    // Only the administrator overrides who serves a booking. The new staff
+    // member passes the same conflict check, so a manual move can never
+    // create a double-booking either.
+    if (data.action === "assign") {
+      if (!isAdmin) throw new ApiError(403, "Vetëm administratori cakton punonjësin");
+      if (!["CONFIRMED", "CHECKED_IN"].includes(booking.status)) {
+        throw new ApiError(400, "Vetëm rezervimet aktive mund të ri-caktohen");
+      }
+      const newStaffId = data.staffId!;
+      if (newStaffId === booking.staffId) return { ok: true };
+
+      const check = await isSlotBookable({
+        serviceId: booking.serviceId,
+        staffId: newStaffId,
+        start: booking.startTime,
+        end: booking.endTime,
+        ignoreBookingId: id,
+      });
+      if (!check.ok) throw new ApiError(409, check.reason ?? "Punonjësi i ri nuk është i lirë");
+
+      try {
+        await prisma.booking.update({ where: { id }, data: { staffId: newStaffId } });
+      } catch (err) {
+        const code = (err as { code?: string }).code;
+        if (code === "23P01") throw new ApiError(409, "Termini u zu ndërkohë");
+        throw err;
+      }
+
+      const newStaff = await prisma.user.findUnique({
+        where: { id: newStaffId },
+        select: { name: true },
+      });
+      await audit({
+        userId: session.userId,
+        action: "BOOKING_ASSIGN",
+        entity: "Booking",
+        entityId: id,
+        details: `→ ${newStaff?.name ?? newStaffId}`,
+      });
+      await notify({
+        userId: booking.clientId,
+        type: "STATUS_CHANGE",
+        message: `Rezervimi për ${booking.service.name} u caktua te ${newStaff?.name ?? "një punonjës tjetër"}.`,
+      });
+      await notify({
+        userId: newStaffId,
+        type: "STATUS_CHANGE",
+        message: `Ju u caktua rezervimi për ${booking.service.name}, ${booking.startTime.toLocaleString("sq")}.`,
+      });
+      return { ok: true };
+    }
+
     // ---------- Status change (FR-07) ----------
     // Only staff and admin move a booking through its service lifecycle.
     if (session.role === "CLIENT") throw new ApiError(403, "Klienti nuk e ndryshon statusin");
