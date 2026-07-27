@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { forgotPasswordSchema } from "@/lib/validation";
 import { generateResetToken } from "@/lib/reset-token";
+import { isMailConfigured, sendMail, resetPasswordEmail } from "@/lib/mailer";
 import { audit } from "@/lib/audit";
 
 const EXPIRY_MIN = 60;
@@ -41,11 +42,22 @@ export async function POST(req: Request) {
 
     const link = `${new URL(req.url).origin}/update-password?token=${raw}`;
 
-    // No email provider is configured. In development we surface the link so
-    // the flow is testable end-to-end; in production this is where an email
-    // service would be handed the link, and it is never returned to the client.
-    console.log(`[reset] ${email} → ${link}`);
-    if (process.env.NODE_ENV !== "production") devLink = link;
+    if (isMailConfigured()) {
+      // Real delivery. A send failure must not 500 the request, so on error we
+      // still fall back to the on-screen link in development.
+      try {
+        const { subject, html } = resetPasswordEmail(link);
+        await sendMail({ to: email, subject, html });
+      } catch (err) {
+        console.error("[reset] email failed", err);
+        if (process.env.NODE_ENV !== "production") devLink = link;
+      }
+    } else {
+      // No SMTP configured: demo mode — surface the link on screen (dev only)
+      // and log it, so the flow is testable end-to-end without a provider.
+      console.log(`[reset] ${email} → ${link}`);
+      if (process.env.NODE_ENV !== "production") devLink = link;
+    }
 
     await audit({
       userId: user.id,
