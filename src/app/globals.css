@@ -118,6 +118,22 @@ input:-webkit-autofill:active {
   transition: background-color 100000s ease-in-out 0s;
 }
 
+/* Glass inputs (auth screens): stay see-through even when autofilled. Clipping
+   the autofill background to the text leaves the field itself transparent, so
+   its own translucent background shows instead of a solid white fill. */
+input.glass-input:-webkit-autofill,
+input.glass-input:-webkit-autofill:hover,
+input.glass-input:-webkit-autofill:focus,
+input.glass-input:-webkit-autofill:active {
+  -webkit-box-shadow: none;
+  box-shadow: none;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: var(--gbd-ink);
+  caret-color: var(--gbd-ink);
+  transition: background-color 100000s ease-in-out 0s;
+}
+
 /* Slow, warm animated gradient behind the authentication screens. Serves as
    the background on its own and as the fallback when no video is set. */
 @keyframes authGradient {
