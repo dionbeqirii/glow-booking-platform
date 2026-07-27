@@ -21,10 +21,10 @@
   --gbd-line: #e7ded6;
   --gbd-line-strong: #d6c9be;
 
-  /* Brand accent: muted rose */
-  --gbd-accent: #b76e79;
-  --gbd-accent-hover: #a25c67;
-  --gbd-accent-soft: #f6ecee;
+  /* Brand accent: rose */
+  --gbd-accent: #c1546c;
+  --gbd-accent-hover: #a84259;
+  --gbd-accent-soft: #f7e7eb;
 
   /* Secondary accent: warm gold, used sparingly */
   --gbd-gold: #c9a227;
