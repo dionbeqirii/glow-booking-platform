@@ -3,8 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
-import AuthBackground from "./AuthBackground";
+import { Alert, Field, buttonStyles, Wordmark } from "./ui";
+import AuthBackground, { authInput } from "./AuthBackground";
 
 type Mode = "login" | "register";
 
@@ -89,17 +89,17 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
             {isRegister && (
               <Field label="Emri dhe mbiemri">
-                <input name="name" type="text" autoComplete="name" required className={inputStyles} />
+                <input name="name" type="text" autoComplete="name" required className={authInput} />
               </Field>
             )}
 
             <Field label="Email">
-              <input name="email" type="email" autoComplete="email" required className={inputStyles} />
+              <input name="email" type="email" autoComplete="email" required className={authInput} />
             </Field>
 
             {isRegister && (
               <Field label="Telefoni" hint="Opsional, për njoftime rreth terminit.">
-                <input name="phone" type="tel" autoComplete="tel" className={inputStyles} />
+                <input name="phone" type="tel" autoComplete="tel" className={authInput} />
               </Field>
             )}
 
@@ -113,7 +113,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                   type={showPassword ? "text" : "password"}
                   autoComplete={isRegister ? "new-password" : "current-password"}
                   required
-                  className={`${inputStyles} pr-11`}
+                  className={`${authInput} pr-11`}
                 />
                 <button
                   type="button"
@@ -136,7 +136,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
                     onChange={(e) => setRemember(e.target.checked)}
                     className="h-4 w-4 rounded border-line-strong accent-[var(--gbd-accent)]"
                   />
-                  Më mba mend
+                  Më mbajë mend
                 </label>
                 <Link
                   href="/forgot-password"

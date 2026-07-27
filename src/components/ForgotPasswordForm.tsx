@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
-import AuthBackground from "./AuthBackground";
+import { Alert, Field, buttonStyles, Wordmark } from "./ui";
+import AuthBackground, { authInput } from "./AuthBackground";
 
 export default function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
@@ -74,7 +74,7 @@ export default function ForgotPasswordForm() {
                 autoComplete="email"
                 required
                 disabled={sent}
-                className={inputStyles}
+                className={authInput}
               />
             </Field>
 

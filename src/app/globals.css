@@ -94,6 +94,13 @@ textarea::placeholder {
   color: var(--gbd-ink-faint);
 }
 
+/* Hide the browser's built-in password reveal/clear controls — the app
+   provides its own show/hide toggle. */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 /*
   Browsers (Chrome/Edge) paint autofilled fields with a pale blue wash that
   breaks the warm palette. There is no property to set the background of an
@@ -129,13 +136,12 @@ input:-webkit-autofill:active {
   animation: authGradient 20s ease-in-out infinite;
 }
 
-/* Legibility halo for text that sits directly on the video background (the
-   wordmark and the sign-up line), so it reads over both light and dark frames. */
+/* Soft, neutral shadow for text that sits directly on the video background (the
+   wordmark and the sign-up line), for legibility without a white haze. */
 .on-video {
   text-shadow:
-    0 1px 3px rgba(255, 255, 255, 1),
-    0 0 10px rgba(255, 255, 255, 0.9),
-    0 0 22px rgba(255, 255, 255, 0.7);
+    0 1px 3px rgba(43, 38, 34, 0.45),
+    0 2px 12px rgba(43, 38, 34, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

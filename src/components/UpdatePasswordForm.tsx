@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
-import AuthBackground from "./AuthBackground";
+import { Alert, Field, buttonStyles, Wordmark } from "./ui";
+import AuthBackground, { authInput } from "./AuthBackground";
 
 function EyeIcon() {
   return (
@@ -106,7 +106,7 @@ export default function UpdatePasswordForm() {
                     autoComplete="new-password"
                     required
                     minLength={8}
-                    className={`${inputStyles} pr-11`}
+                    className={`${authInput} pr-11`}
                   />
                   <button
                     type="button"

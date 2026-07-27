@@ -7,6 +7,12 @@
 // to enable the video. Leave empty to use the animated gradient only.
 const VIDEO_SRC: string = "/login-bg.mp4";
 
+// Translucent "glass" input for the auth screens (the app's solid inputStyles
+// would look out of place on the frosted card). A light border keeps the field
+// legible even though it is see-through.
+export const authInput =
+  "w-full rounded-xl border border-white/50 bg-white/25 px-3.5 py-2.5 text-sm text-ink outline-none backdrop-blur-sm transition-colors placeholder:text-ink-soft focus:border-white/80 focus:bg-white/35 focus:ring-2 focus:ring-white/30";
+
 export default function AuthBackground() {
   return (
     <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden="true">
