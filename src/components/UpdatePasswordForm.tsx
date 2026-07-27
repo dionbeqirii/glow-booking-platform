@@ -116,11 +116,18 @@ export default function UpdatePasswordForm() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-sm text-ink-soft">
-          <Link href="/login" className="font-medium text-accent hover:underline">
-            Kthehu tek hyrja
+        <div className="mt-6 flex justify-center">
+          <Link
+            href="/login"
+            aria-label="Kthehu tek hyrja"
+            className="flex h-10 w-10 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted hover:text-ink"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 19V5" />
+              <path d="m5 12 7-7 7 7" />
+            </svg>
           </Link>
-        </p>
+        </div>
       </div>
     </main>
   );
