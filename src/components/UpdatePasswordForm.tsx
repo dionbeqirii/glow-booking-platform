@@ -58,19 +58,19 @@ export default function UpdatePasswordForm() {
   }
 
   return (
-    <main className="relative flex flex-1 items-center justify-center px-6 py-12">
-      <Link
-        href="/login"
-        aria-label="Kthehu tek hyrja"
-        className="absolute left-5 top-5 flex h-9 w-9 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted hover:text-ink"
-      >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <path d="M19 12H5" />
-          <path d="m12 19-7-7 7-7" />
-        </svg>
-      </Link>
+    <main className="flex flex-1 items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <div className="mb-7 text-center">
+        <div className="relative mb-7 flex items-center justify-center">
+          <Link
+            href="/login"
+            aria-label="Kthehu tek hyrja"
+            className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted hover:text-ink"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M19 12H5" />
+              <path d="m12 19-7-7 7-7" />
+            </svg>
+          </Link>
           <Link href="/">
             <Wordmark size="lg" />
           </Link>
