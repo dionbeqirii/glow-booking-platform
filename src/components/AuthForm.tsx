@@ -70,7 +70,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       <AuthBackground />
       <main className="flex flex-1 items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <div className="mb-7 text-center">
+        <div className="on-video mb-7 text-center">
           <Link href="/">
             <Wordmark size="lg" />
           </Link>
@@ -80,7 +80,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           <h1 className="text-2xl font-semibold text-ink">
             {isRegister ? "Krijo llogari" : "Mirë se erdhe"}
           </h1>
-          <p className="mt-1 text-sm text-ink-soft">
+          <p className="mt-1 text-sm text-ink">
             {isRegister
               ? "Regjistrohu për të rezervuar terminin tënd."
               : "Hyr për të parë terminet dhe radhën."}
@@ -129,7 +129,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
 
             {!isRegister && (
               <div className="-mt-1 flex items-center justify-between gap-3">
-                <label className="flex cursor-pointer select-none items-center gap-2 text-sm text-ink-soft">
+                <label className="flex cursor-pointer select-none items-center gap-2 text-sm font-medium text-ink">
                   <input
                     type="checkbox"
                     checked={remember}
@@ -155,7 +155,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           </form>
         </div>
 
-        <p className="mt-6 text-center text-sm text-ink-soft">
+        <p className="on-video mt-6 text-center text-sm font-medium text-ink">
           {isRegister ? (
             <>
               Ke llogari?{" "}

@@ -63,7 +63,7 @@ export default function UpdatePasswordForm() {
       <AuthBackground />
       <main className="flex flex-1 items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
-        <div className="relative mb-7 flex items-center justify-center">
+        <div className="on-video relative mb-7 flex items-center justify-center">
           <Link
             href="/login"
             aria-label="Kthehu tek hyrja"

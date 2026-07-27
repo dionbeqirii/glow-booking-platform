@@ -129,6 +129,15 @@ input:-webkit-autofill:active {
   animation: authGradient 20s ease-in-out infinite;
 }
 
+/* Legibility halo for text that sits directly on the video background (the
+   wordmark and the sign-up line), so it reads over both light and dark frames. */
+.on-video {
+  text-shadow:
+    0 1px 3px rgba(255, 255, 255, 1),
+    0 0 10px rgba(255, 255, 255, 0.9),
+    0 0 22px rgba(255, 255, 255, 0.7);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-gradient {
     animation: none;
