@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
+import AuthBackground from "./AuthBackground";
 
 type Mode = "login" | "register";
 
@@ -65,7 +66,9 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-12">
+    <>
+      <AuthBackground />
+      <main className="flex flex-1 items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="mb-7 text-center">
           <Link href="/">
@@ -73,7 +76,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           </Link>
         </div>
 
-        <div className="rounded-2xl bg-surface p-8 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-20px_rgba(43,38,34,0.18)]">
+        <div className="rounded-2xl bg-white/60 p-8 ring-1 ring-white/50 shadow-[0_8px_40px_-12px_rgba(43,38,34,0.28)] backdrop-blur-2xl">
           <h1 className="text-2xl font-semibold text-ink">
             {isRegister ? "Krijo llogari" : "Mirë se erdhe"}
           </h1>
@@ -170,6 +173,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
           )}
         </p>
       </div>
-    </main>
+      </main>
+    </>
   );
 }

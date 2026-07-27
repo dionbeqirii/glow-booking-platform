@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Alert, Field, buttonStyles, inputStyles, Wordmark } from "./ui";
+import AuthBackground from "./AuthBackground";
 
 export default function ForgotPasswordForm() {
   const [loading, setLoading] = useState(false);
@@ -39,7 +40,9 @@ export default function ForgotPasswordForm() {
   }
 
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-12">
+    <>
+      <AuthBackground />
+      <main className="flex flex-1 items-center justify-center px-6 py-12">
       <div className="w-full max-w-md">
         <div className="relative mb-7 flex items-center justify-center">
           <Link
@@ -57,7 +60,7 @@ export default function ForgotPasswordForm() {
           </Link>
         </div>
 
-        <div className="rounded-2xl bg-surface p-8 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-20px_rgba(43,38,34,0.18)]">
+        <div className="rounded-2xl bg-white/60 p-8 ring-1 ring-white/50 shadow-[0_8px_40px_-12px_rgba(43,38,34,0.28)] backdrop-blur-2xl">
           <h1 className="text-2xl font-semibold text-ink">Rikthe Fjalëkalimin</h1>
           <p className="mt-1 text-sm text-ink-soft">
             Shëno emailin tënd dhe ne do të dërgojmë një link për të krijuar një fjalëkalim të ri.
@@ -98,8 +101,8 @@ export default function ForgotPasswordForm() {
             )}
           </form>
         </div>
-
       </div>
-    </main>
+      </main>
+    </>
   );
 }

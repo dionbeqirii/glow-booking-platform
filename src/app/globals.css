@@ -110,3 +110,27 @@ input:-webkit-autofill:active {
   caret-color: var(--gbd-ink);
   transition: background-color 100000s ease-in-out 0s;
 }
+
+/* Slow, warm animated gradient behind the authentication screens. Serves as
+   the background on its own and as the fallback when no video is set. */
+@keyframes authGradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+.auth-gradient {
+  background-image: linear-gradient(120deg, #faf7f4, #f6ecee, #faf3de, #f6ecee, #faf7f4);
+  background-size: 300% 300%;
+  animation: authGradient 20s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .auth-gradient {
+    animation: none;
+  }
+}
