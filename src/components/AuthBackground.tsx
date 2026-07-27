@@ -5,7 +5,7 @@
 
 // Point this at a local file in /public (e.g. "/login-bg.mp4") or a hosted URL
 // to enable the video. Leave empty to use the animated gradient only.
-const VIDEO_SRC: string = "";
+const VIDEO_SRC: string = "/login-bg.mp4";
 
 export default function AuthBackground() {
   return (
@@ -26,8 +26,9 @@ export default function AuthBackground() {
         </video>
       ) : null}
 
-      {/* Warm overlay: preserves the cream/rosé palette and lifts text contrast. */}
-      <div className="absolute inset-0 bg-gradient-to-b from-canvas/40 via-canvas/30 to-canvas/60" />
+      {/* Light overlay: just enough to lift text sitting directly on the video,
+          while letting it show through the glass clearly. */}
+      <div className="absolute inset-0 bg-gradient-to-b from-canvas/25 via-transparent to-canvas/35" />
     </div>
   );
 }
