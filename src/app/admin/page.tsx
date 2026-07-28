@@ -74,7 +74,7 @@ function IcBookings() {
 function IconChip({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
     <span
-      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${toneClass[tone]}`}
+      className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${toneClass[tone]}`}
     >
       {children}
     </span>
@@ -99,16 +99,16 @@ function StatCard({
   return (
     <Link href={href} className="group block">
       <div
-        className={`h-full rounded-2xl ${cardBg[tone]} p-4 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(43,38,34,0.3)] hover:ring-line-strong`}
+        className={`h-full rounded-2xl ${cardBg[tone]} p-3.5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(43,38,34,0.3)] hover:ring-line-strong`}
       >
-        <div className="flex items-start justify-between">
+        <div className="flex items-center justify-between">
           <IconChip tone={tone}>{icon}</IconChip>
           <span className="text-ink-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">
             <Arrow />
           </span>
         </div>
-        <p className="mt-3 text-2xl font-bold leading-none text-ink">{value}</p>
-        <p className="mt-1.5 text-sm font-semibold text-ink">{label}</p>
+        <p className="mt-2.5 text-2xl font-bold leading-none text-ink">{value}</p>
+        <p className="mt-1 text-sm font-semibold text-ink">{label}</p>
         <p className="text-xs text-ink-faint">{sub}</p>
       </div>
     </Link>
@@ -129,15 +129,15 @@ function Panel({
   action?: ReactNode;
 }) {
   return (
-    <div className={`rounded-2xl bg-surface p-4 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] ${className}`}>
-      <div className="mb-3 flex items-start justify-between gap-2">
+    <div className={`flex min-h-0 flex-col overflow-hidden rounded-2xl bg-surface p-3.5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] ${className}`}>
+      <div className="mb-2 flex shrink-0 items-start justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-ink">{title}</p>
           {hint && <p className="text-xs text-ink-faint">{hint}</p>}
         </div>
         {action}
       </div>
-      {children}
+      <div className="min-h-0 flex-1">{children}</div>
     </div>
   );
 }
@@ -155,7 +155,7 @@ function AreaChart({ data }: { data: number[] }) {
   const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ");
   const area = `${line} L${w},${h} L0,${h} Z`;
   return (
-    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-20 w-full" aria-hidden>
+    <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className="h-full w-full" aria-hidden>
       <defs>
         <linearGradient id="gbdArea" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor="var(--gbd-accent)" stopOpacity="0.22" />
@@ -235,21 +235,22 @@ export default async function AdminPage() {
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <div className="flex w-full flex-col gap-3">
+      {/* Fixed to the viewport height so the dashboard never scrolls. */}
+      <div className="flex h-[calc(100dvh-6.75rem)] w-full flex-col gap-2.5 overflow-hidden">
         {/* Hero */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-5 ring-1 ring-line">
+        <div className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-4 ring-1 ring-line">
           <svg
             aria-hidden
             viewBox="0 0 24 24"
             fill="currentColor"
-            className="pointer-events-none absolute -right-6 -top-8 h-32 w-32 text-accent/10"
+            className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 text-accent/10"
           >
             <path d="M12 2c.6 4.6 3 7 7.6 7.6C15 10.2 12.6 12.6 12 17.2 11.4 12.6 9 10.2 4.4 9.6 9 9 11.4 6.6 12 2Z" />
           </svg>
           <div className="relative">
             <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
-            <h1 className="mt-1 font-display text-2xl font-semibold text-ink">Mirësevjen, {firstName}</h1>
-            <p className="mt-1 max-w-md text-sm text-ink-soft">
+            <h1 className="mt-0.5 font-display text-xl font-semibold text-ink">Mirësevjen, {firstName}</h1>
+            <p className="mt-0.5 max-w-md text-sm text-ink-soft">
               Sot ke <strong className="font-semibold text-ink">{bookingsToday}</strong>{" "}
               {bookingsToday === 1 ? "rezervim aktiv" : "rezervime aktive"} dhe{" "}
               <strong className="font-semibold text-ink">{queueWaiting}</strong>{" "}
@@ -259,38 +260,42 @@ export default async function AdminPage() {
         </div>
 
         {/* KPI tiles */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid shrink-0 gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           <StatCard href="/admin/sherbimet" tone="accent" icon={<IcServices />} value={serviceCount} label="Shërbime" sub={`${activeServices} aktive`} />
           <StatCard href="/admin/stafi" tone="gold" icon={<IcStaff />} value={staffCount} label="Staf" sub={staffWithoutHours > 0 ? `${staffWithoutHours} pa orar` : "të gjithë me orar"} />
           <StatCard href="/admin/radha" tone="ok" icon={<IcQueue />} value={queueWaiting} label="Në radhë sot" sub="në pritje / thirrur" />
           <StatCard href="/admin/historiku" tone="warn" icon={<IcBookings />} value={bookingsToday} label="Rezervime sot" sub="aktive" />
         </div>
 
-        {/* Trend + summary */}
-        <div className="grid gap-3 lg:grid-cols-3">
+        {/* Panels fill the rest of the screen */}
+        <div className="grid min-h-0 flex-1 gap-2.5 lg:grid-cols-3 lg:grid-rows-2">
           <Panel
             title="Rezervimet — 14 ditët e fundit"
             hint="Aktiviteti ditor i studios"
-            className="lg:col-span-2"
+            className="lg:col-span-2 lg:row-start-1"
             action={
               <Link href="/admin/statistika" className="text-xs font-medium text-accent hover:underline">
                 Statistikat →
               </Link>
             }
           >
-            <div className="mb-1 flex items-end gap-2">
-              <p className="text-2xl font-bold leading-none text-ink">{trendTotal}</p>
-              <p className="text-xs text-ink-faint">rezervime gjithsej</p>
-            </div>
-            <AreaChart data={trend} />
-            <div className="mt-1 flex justify-between text-[11px] text-ink-faint">
-              <span>{short(from14)}</span>
-              <span>{short(now)}</span>
+            <div className="flex h-full flex-col">
+              <div className="mb-1 flex shrink-0 items-end gap-2">
+                <p className="text-2xl font-bold leading-none text-ink">{trendTotal}</p>
+                <p className="text-xs text-ink-faint">rezervime gjithsej</p>
+              </div>
+              <div className="min-h-0 flex-1">
+                <AreaChart data={trend} />
+              </div>
+              <div className="mt-1 flex shrink-0 justify-between text-[11px] text-ink-faint">
+                <span>{short(from14)}</span>
+                <span>{short(now)}</span>
+              </div>
             </div>
           </Panel>
 
-          <Panel title="Përmbledhje" hint="30 ditët e fundit">
-            <ul className="space-y-2.5">
+          <Panel title="Përmbledhje" hint="30 ditët e fundit" className="lg:col-start-3 lg:row-start-1">
+            <ul className="flex h-full flex-col justify-around">
               <li className="flex items-center justify-between">
                 <span className="text-sm text-ink-soft">Rezervime gjithsej</span>
                 <span className="font-semibold text-ink">{stats.bookings.total}</span>
@@ -309,15 +314,12 @@ export default async function AdminPage() {
               </li>
             </ul>
           </Panel>
-        </div>
 
-        {/* Utilization + top services */}
-        <div className="grid gap-3 lg:grid-cols-2">
-          <Panel title="Shfrytëzimi i stafit" hint="Minuta të rezervuara ndaj orarit">
+          <Panel title="Shfrytëzimi i stafit" hint="Minuta ndaj orarit" className="lg:row-start-2">
             {utilization.length === 0 ? (
               <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex h-full flex-col justify-around">
                 {utilization.map((u) => {
                   const p = utilMax > 0 ? Math.round((u.utilization / utilMax) * 100) : 0;
                   return (
@@ -336,11 +338,11 @@ export default async function AdminPage() {
             )}
           </Panel>
 
-          <Panel title="Shërbimet më të kërkuara" hint="30 ditët e fundit">
+          <Panel title="Shërbimet më të kërkuara" hint="30 ditët e fundit" className="lg:col-span-2 lg:col-start-2 lg:row-start-2">
             {topServices.length === 0 ? (
               <p className="text-sm text-ink-faint">Ende pa rezervime.</p>
             ) : (
-              <ul className="space-y-2.5">
+              <ul className="flex h-full flex-col justify-around">
                 {topServices.map((s, i) => (
                   <li key={s.name}>
                     <div className="mb-1 flex justify-between text-sm">
