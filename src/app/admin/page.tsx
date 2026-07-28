@@ -14,6 +14,14 @@ const toneClass: Record<Tone, string> = {
   warn: "bg-warn-soft text-warn",
 };
 
+// Soft tinted gradient per tone, echoing the reference's pastel cards.
+const cardBg: Record<Tone, string> = {
+  accent: "bg-gradient-to-br from-accent-soft/70 to-surface",
+  gold: "bg-gradient-to-br from-gold-soft/70 to-surface",
+  ok: "bg-gradient-to-br from-ok-soft/70 to-surface",
+  warn: "bg-gradient-to-br from-warn-soft/70 to-surface",
+};
+
 const stroke = {
   fill: "none",
   stroke: "currentColor",
@@ -64,36 +72,12 @@ function IcBookings() {
     </svg>
   );
 }
-function IcStats() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" {...stroke} aria-hidden>
-      <path d="M3 3v18h18" />
-      <path d="M7 16v-4M12 16v-7M17 16v-2" />
-    </svg>
-  );
-}
-function IcHistory() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" {...stroke} aria-hidden>
-      <path d="M3 3v5h5" />
-      <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-function IcAudit() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" {...stroke} aria-hidden>
-      <path d="M12 2 4 5v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V5l-8-3Z" />
-      <path d="m9 12 2 2 4-4" />
-    </svg>
-  );
-}
-
 // ---------- Building blocks ----------
 function IconChip({ tone, children }: { tone: Tone; children: ReactNode }) {
   return (
-    <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${toneClass[tone]}`}>
+    <span
+      className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${toneClass[tone]}`}
+    >
       {children}
     </span>
   );
@@ -116,7 +100,7 @@ function StatCard({
 }) {
   return (
     <Link href={href} className="group block">
-      <div className="h-full rounded-2xl bg-surface p-5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-14px_rgba(43,38,34,0.25)] hover:ring-line-strong">
+      <div className={`h-full rounded-2xl ${cardBg[tone]} p-5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(43,38,34,0.3)] hover:ring-line-strong`}>
         <div className="flex items-start justify-between">
           <IconChip tone={tone}>{icon}</IconChip>
           <span className="text-ink-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">
@@ -207,37 +191,6 @@ function Bar({ label, value, max, valueLabel }: { label: string; value: number; 
         <div className="h-full rounded-full bg-accent" style={{ width: `${pct}%` }} />
       </div>
     </li>
-  );
-}
-
-function NavCard({
-  href,
-  tone,
-  icon,
-  title,
-  desc,
-}: {
-  href: string;
-  tone: Tone;
-  icon: ReactNode;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <Link href={href} className="group block">
-      <div className="flex h-full items-start gap-4 rounded-2xl bg-surface p-5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_-14px_rgba(43,38,34,0.25)] hover:ring-line-strong">
-        <IconChip tone={tone}>{icon}</IconChip>
-        <div className="min-w-0">
-          <div className="flex items-center gap-1.5">
-            <p className="font-semibold text-ink">{title}</p>
-            <span className="text-ink-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">
-              <Arrow />
-            </span>
-          </div>
-          <p className="mt-1 text-sm leading-relaxed text-ink-soft">{desc}</p>
-        </div>
-      </div>
-    </Link>
   );
 }
 
@@ -437,13 +390,6 @@ export default async function AdminPage() {
           </Panel>
         </div>
 
-        {/* Tools */}
-        <h2 className="mb-3 mt-9 text-xs font-semibold uppercase tracking-wider text-ink-soft">Menaxhimi & analiza</h2>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <NavCard href="/admin/statistika" tone="accent" icon={<IcStats />} title="Statistikat" desc="Rezervime, anulime, pritja mesatare dhe shfrytëzimi i stafit." />
-          <NavCard href="/admin/historiku" tone="gold" icon={<IcHistory />} title="Historiku" desc="Të gjitha rezervimet dhe radhët, me caktim stafi." />
-          <NavCard href="/admin/audit" tone="ok" icon={<IcAudit />} title="Regjistri" desc="Gjurma e veprimeve kritike në sistem." />
-        </div>
       </div>
     </DashboardShell>
   );
