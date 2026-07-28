@@ -32,7 +32,7 @@ export default function DashboardShell({
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+        <div className="flex items-center gap-6 px-8 py-3">
           <Link href={homeFor(role)} className="shrink-0">
             <Wordmark />
           </Link>
@@ -53,7 +53,7 @@ export default function DashboardShell({
         </div>
       </header>
 
-      <main className="flex-1 px-6 py-8">{children}</main>
+      <main className="flex-1 px-8 py-8">{children}</main>
     </div>
   );
 }

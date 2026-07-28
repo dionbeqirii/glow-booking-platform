@@ -274,7 +274,7 @@ export default async function AdminPage() {
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <div className="mx-auto max-w-6xl">
+      <div className="w-full">
         {/* Hero */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-8 ring-1 ring-line">
           <svg
