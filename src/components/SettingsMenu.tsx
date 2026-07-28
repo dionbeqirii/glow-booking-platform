@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrator",
@@ -8,9 +9,31 @@ const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Klient",
 };
 
+type Account = { name: string; email: string | null; phone: string | null; role: string };
+
 export default function SettingsMenu({ name, role }: { name: string; role: string }) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [account, setAccount] = useState<Account>({ name, email: null, phone: null, role });
+  const [showPw, setShowPw] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  // Load the fuller account (email/phone) when the menu opens.
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => {
+        if (alive && d.user) setAccount((a) => ({ ...a, ...d.user }));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -20,6 +43,44 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
+
+  async function changePassword(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    const form = new FormData(e.currentTarget);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          currentPassword: form.get("currentPassword"),
+          newPassword: form.get("newPassword"),
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ tone: "err", text: data.error ?? "Ndryshimi dështoi" });
+      } else {
+        setMsg({ tone: "ok", text: "Fjalëkalimi u ndryshua." });
+        (e.target as HTMLFormElement).reset();
+        setShowPw(false);
+      }
+    } catch {
+      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" }).catch(() => {});
+    router.push("/login");
+    router.refresh();
+  }
+
+  const inputCls =
+    "w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15";
 
   return (
     <div className="relative" ref={boxRef}>
@@ -36,20 +97,78 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-20 w-64 overflow-hidden rounded-2xl bg-surface shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-line">
-          <div className="border-b border-line px-4 py-3">
-            <p className="text-sm font-semibold text-ink">Cilësimet e llogarisë</p>
-          </div>
-          <dl className="px-4 py-3 text-sm">
-            <div className="flex justify-between py-1">
-              <dt className="text-ink-soft">Emri</dt>
-              <dd className="text-ink">{name}</dd>
+        <div className="absolute right-0 top-11 z-30 w-80 overflow-hidden rounded-2xl bg-surface shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-line">
+          {/* Account */}
+          <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">
+              {account.name.split(/\s+/).map((w) => w.replace(/[^\p{L}]/gu, "")).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?"}
+            </span>
+            <div className="min-w-0">
+              <p className="truncate text-sm font-semibold text-ink">{account.name}</p>
+              <p className="text-xs text-ink-faint">{ROLE_LABEL[account.role] ?? account.role}</p>
             </div>
-            <div className="flex justify-between py-1">
-              <dt className="text-ink-soft">Roli</dt>
-              <dd className="text-ink">{ROLE_LABEL[role] ?? role}</dd>
+          </div>
+
+          {/* Details */}
+          <dl className="space-y-1.5 px-4 py-3 text-sm">
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink-soft">Email</dt>
+              <dd className="truncate text-ink">{account.email ?? "—"}</dd>
+            </div>
+            <div className="flex justify-between gap-3">
+              <dt className="text-ink-soft">Telefoni</dt>
+              <dd className="text-ink">{account.phone ?? "—"}</dd>
             </div>
           </dl>
+
+          {/* Change password */}
+          <div className="border-t border-line px-4 py-3">
+            {!showPw ? (
+              <button
+                type="button"
+                onClick={() => { setShowPw(true); setMsg(null); }}
+                className="flex w-full items-center justify-between text-sm font-medium text-ink hover:text-accent"
+              >
+                Ndrysho fjalëkalimin
+                <span className="text-ink-faint">›</span>
+              </button>
+            ) : (
+              <form onSubmit={changePassword} className="flex flex-col gap-2">
+                <p className="text-sm font-medium text-ink">Ndrysho fjalëkalimin</p>
+                <input name="currentPassword" type="password" required placeholder="Fjalëkalimi aktual" autoComplete="current-password" className={inputCls} />
+                <input name="newPassword" type="password" required minLength={8} placeholder="Fjalëkalimi i ri (min. 8)" autoComplete="new-password" className={inputCls} />
+                <div className="flex gap-2">
+                  <button type="submit" disabled={busy} className="flex-1 rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
+                    {busy ? "Duke ruajtur…" : "Ruaj"}
+                  </button>
+                  <button type="button" onClick={() => { setShowPw(false); setMsg(null); }} className="rounded-lg px-3 py-2 text-sm text-ink-soft hover:bg-surface-muted">
+                    Anulo
+                  </button>
+                </div>
+              </form>
+            )}
+            {msg && (
+              <p className={`mt-2 rounded-lg px-3 py-1.5 text-xs ${msg.tone === "ok" ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>
+                {msg.text}
+              </p>
+            )}
+          </div>
+
+          {/* Logout */}
+          <div className="border-t border-line p-2">
+            <button
+              type="button"
+              onClick={logout}
+              className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-danger hover:bg-danger-soft"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="m16 17 5-5-5-5" />
+                <path d="M21 12H9" />
+              </svg>
+              Dil nga llogaria
+            </button>
+          </div>
         </div>
       )}
     </div>

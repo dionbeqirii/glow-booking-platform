@@ -30,6 +30,12 @@ export const resetPasswordSchema = z.object({
   password: z.string().min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere").max(200),
 });
 
+// Change password while logged in.
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Fjalëkalimi aktual është i detyrueshëm").max(200),
+  newPassword: z.string().min(8, "Fjalëkalimi i ri duhet të ketë të paktën 8 karaktere").max(200),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
