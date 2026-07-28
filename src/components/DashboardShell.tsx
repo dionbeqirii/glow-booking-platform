@@ -1,14 +1,14 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 import LogoutButton from "./LogoutButton";
 import NotificationBell from "./NotificationBell";
+import HeaderNav from "./HeaderNav";
+import SettingsMenu from "./SettingsMenu";
 import { Wordmark } from "./ui";
 
-// Genitive form, so the header reads "Paneli i administratorit".
-const PANEL_LABEL: Record<string, string> = {
-  ADMIN: "administratorit",
-  STAFF: "stafit",
-  CLIENT: "klientit",
-};
+function homeFor(role: string): string {
+  return role === "ADMIN" ? "/admin" : role === "STAFF" ? "/staff" : "/client";
+}
 
 export default function DashboardShell({
   name,
@@ -31,20 +31,24 @@ export default function DashboardShell({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="border-b border-line bg-surface/80 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-          <div>
+      <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center gap-6 px-6 py-3">
+          <Link href={homeFor(role)} className="shrink-0">
             <Wordmark />
-            <p className="text-xs text-ink-faint">Paneli i {PANEL_LABEL[role] ?? role}</p>
-          </div>
+          </Link>
 
-          <div className="flex items-center gap-3">
+          <HeaderNav role={role} />
+
+          <div className="ml-auto flex items-center gap-1.5">
             <NotificationBell />
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+            <SettingsMenu name={name} role={role} />
+            <span className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
               {initials}
             </span>
             <span className="hidden text-sm text-ink sm:inline">{name}</span>
-            <LogoutButton />
+            <div className="ml-1">
+              <LogoutButton />
+            </div>
           </div>
         </div>
       </header>
