@@ -1,5 +1,15 @@
 import { z } from "zod";
 
+// Optional trimmed text: treats "" as undefined. Declared first so every
+// schema below can use it.
+const optionalText = (max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max)
+    .optional()
+    .or(z.literal("").transform(() => undefined));
+
 // Server-side validation of all inputs (FR-17).
 export const registerSchema = z.object({
   name: z.string().trim().min(2, "Emri duhet të ketë të paktën 2 shkronja").max(100),
@@ -36,18 +46,25 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8, "Fjalëkalimi i ri duhet të ketë të paktën 8 karaktere").max(200),
 });
 
+// Business/company profile (admin-editable).
+export const businessSettingsSchema = z.object({
+  name: z.string().trim().min(1, "Emri i biznesit është i detyrueshëm").max(120),
+  address: optionalText(200),
+  phone: optionalText(30),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Email i pavlefshëm")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  description: optionalText(500),
+});
+
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
 
 // ---------- Sprint 2: services, staff, schedules ----------
-
-const optionalText = (max: number) =>
-  z
-    .string()
-    .trim()
-    .max(max)
-    .optional()
-    .or(z.literal("").transform(() => undefined));
 
 // FR-01 — service catalog
 export const serviceSchema = z.object({

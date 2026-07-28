@@ -184,6 +184,18 @@ model PasswordResetToken {
   @@index([userId])
 }
 
+// Business/company profile — a single configurable row (FR-03/NFR-03), edited
+// by the administrator and stored in the database.
+model BusinessSettings {
+  id          String   @id @default("business")
+  name        String   @default("Glow By Diellza")
+  address     String?
+  phone       String?
+  email       String?
+  description String?
+  updatedAt   DateTime @updatedAt
+}
+
 model AuditLog {
   id        String   @id @default(cuid())
   userId    String?
