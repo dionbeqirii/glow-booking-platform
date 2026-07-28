@@ -53,7 +53,7 @@ export default function DashboardShell({
         </div>
       </header>
 
-      <main className="flex-1 px-8 py-8">{children}</main>
+      <main className="flex-1 px-8 py-5">{children}</main>
     </div>
   );
 }
