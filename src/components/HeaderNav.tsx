@@ -14,7 +14,6 @@ const TABS: Record<string, Tab[]> = {
     { label: "Radha", href: "/admin/radha" },
     { label: "Statistikat", href: "/admin/statistika" },
     { label: "Historiku", href: "/admin/historiku" },
-    { label: "Regjistri", href: "/admin/audit" },
   ],
   STAFF: [{ label: "Radha e sotme", href: "/staff" }],
   CLIENT: [
