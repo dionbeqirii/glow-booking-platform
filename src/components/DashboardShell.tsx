@@ -1,10 +1,16 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import LogoutButton from "./LogoutButton";
 import NotificationBell from "./NotificationBell";
 import HeaderNav from "./HeaderNav";
+import MobileNav from "./MobileNav";
 import SettingsMenu from "./SettingsMenu";
 import { Wordmark } from "./ui";
+
+const ROLE_LABEL: Record<string, string> = {
+  ADMIN: "Administrator",
+  STAFF: "Staf",
+  CLIENT: "Klient",
+};
 
 function homeFor(role: string): string {
   return role === "ADMIN" ? "/admin" : role === "STAFF" ? "/staff" : "/client";
@@ -29,31 +35,42 @@ export default function DashboardShell({
       .map((w) => w[0].toUpperCase())
       .join("") || "?";
 
+  // Strip a trailing role note like "(Administratore)" so the name shows once,
+  // with the role rendered separately below it (#3).
+  const displayName = name.replace(/\s*\([^)]*\)\s*/g, " ").trim() || name;
+  const roleLabel = ROLE_LABEL[role] ?? role;
+
   return (
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur">
-        <div className="flex items-center gap-6 px-8 py-3">
-          <Link href={homeFor(role)} className="shrink-0">
-            <Wordmark />
-          </Link>
+        <div className="relative flex items-center justify-between px-4 py-3 sm:px-8">
+          {/* Left: hamburger (mobile/tablet) + logo */}
+          <div className="flex items-center gap-2">
+            <MobileNav role={role} />
+            <Link href={homeFor(role)} className="shrink-0">
+              <Wordmark />
+            </Link>
+          </div>
 
+          {/* Center: navigation, centered on large screens */}
           <HeaderNav role={role} />
 
-          <div className="ml-auto flex items-center gap-1.5">
+          {/* Right: notifications, settings (with logout), profile */}
+          <div className="flex items-center gap-1.5">
             <NotificationBell />
             <SettingsMenu name={name} role={role} />
             <span className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
               {initials}
             </span>
-            <span className="hidden text-sm text-ink sm:inline">{name}</span>
-            <div className="ml-1">
-              <LogoutButton />
+            <div className="ml-0.5 hidden leading-tight sm:block">
+              <p className="text-sm font-medium text-ink">{displayName}</p>
+              <p className="text-xs font-medium text-accent">{roleLabel}</p>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 px-8 py-5">{children}</main>
+      <main className="flex-1 px-4 py-5 sm:px-8">{children}</main>
     </div>
   );
 }

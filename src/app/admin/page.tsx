@@ -39,8 +39,11 @@ function Arrow() {
 }
 function IcServices() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
-      <path d="M12 2c.6 4.6 3 7 7.6 7.6C15 10.2 12.6 12.6 12 17.2 11.4 12.6 9 10.2 4.4 9.6 9 9 11.4 6.6 12 2Z" />
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <rect x="3" y="3" width="7" height="7" rx="1.5" />
+      <rect x="14" y="3" width="7" height="7" rx="1.5" />
+      <rect x="3" y="14" width="7" height="7" rx="1.5" />
+      <rect x="14" y="14" width="7" height="7" rx="1.5" />
     </svg>
   );
 }
@@ -137,7 +140,7 @@ function Panel({
         </div>
         {action}
       </div>
-      <div className="min-h-0 flex-1">{children}</div>
+      <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
     </div>
   );
 }
@@ -238,16 +241,8 @@ export default async function AdminPage() {
       {/* Fixed to the viewport height so the dashboard never scrolls. */}
       <div className="flex h-[calc(100dvh-6.75rem)] w-full flex-col gap-2.5 overflow-hidden">
         {/* Hero */}
-        <div className="relative shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-4 ring-1 ring-line">
-          <svg
-            aria-hidden
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            className="pointer-events-none absolute -right-6 -top-8 h-28 w-28 text-accent/10"
-          >
-            <path d="M12 2c.6 4.6 3 7 7.6 7.6C15 10.2 12.6 12.6 12 17.2 11.4 12.6 9 10.2 4.4 9.6 9 9 11.4 6.6 12 2Z" />
-          </svg>
-          <div className="relative">
+        <div className="shrink-0 overflow-hidden rounded-2xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-4 ring-1 ring-line">
+          <div>
             <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
             <h1 className="mt-0.5 font-display text-xl font-semibold text-ink">Mirësevjen, {firstName}</h1>
             <p className="mt-0.5 max-w-md text-sm text-ink-soft">
@@ -295,7 +290,7 @@ export default async function AdminPage() {
           </Panel>
 
           <Panel title="Përmbledhje" hint="30 ditët e fundit" className="lg:col-start-3 lg:row-start-1">
-            <ul className="flex h-full flex-col justify-around">
+            <ul className="space-y-3">
               <li className="flex items-center justify-between">
                 <span className="text-sm text-ink-soft">Rezervime gjithsej</span>
                 <span className="font-semibold text-ink">{stats.bookings.total}</span>
@@ -319,7 +314,7 @@ export default async function AdminPage() {
             {utilization.length === 0 ? (
               <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>
             ) : (
-              <ul className="flex h-full flex-col justify-around">
+              <ul className="space-y-3">
                 {utilization.map((u) => {
                   const p = utilMax > 0 ? Math.round((u.utilization / utilMax) * 100) : 0;
                   return (
@@ -342,7 +337,7 @@ export default async function AdminPage() {
             {topServices.length === 0 ? (
               <p className="text-sm text-ink-faint">Ende pa rezervime.</p>
             ) : (
-              <ul className="flex h-full flex-col justify-around">
+              <ul className="space-y-3">
                 {topServices.map((s, i) => (
                   <li key={s.name}>
                     <div className="mb-1 flex justify-between text-sm">

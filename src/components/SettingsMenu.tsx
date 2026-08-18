@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 const ROLE_LABEL: Record<string, string> = {
   ADMIN: "Administrator",
@@ -14,6 +16,7 @@ type Business = { name: string; address: string; phone: string; email: string; d
 const EMPTY_BUSINESS: Business = { name: "", address: "", phone: "", email: "", description: "" };
 
 export default function SettingsMenu({ name, role }: { name: string; role: string }) {
+  const router = useRouter();
   const isAdmin = role === "ADMIN";
   const [open, setOpen] = useState(false);
   const [account, setAccount] = useState<Account>({ name, email: null, phone: null, role });
@@ -21,7 +24,16 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
   const [section, setSection] = useState<null | "password" | "business">(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
+  const [confirmLogout, setConfirmLogout] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  async function logout() {
+    setLoggingOut(true);
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -196,8 +208,73 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
               <p className={`rounded-lg px-3 py-1.5 text-xs ${msg.tone === "ok" ? "bg-ok-soft text-ok" : "bg-danger-soft text-danger"}`}>{msg.text}</p>
             </div>
           )}
+
+          {/* Logout — opens a confirmation modal before signing out. */}
+          <div className="border-t border-line px-4 py-3">
+            <button
+              type="button"
+              onClick={() => {
+                setOpen(false);
+                setConfirmLogout(true);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-1 py-1 text-sm font-medium text-danger transition-colors hover:bg-danger-soft"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5M21 12H9" />
+              </svg>
+              Dil nga llogaria
+            </button>
+          </div>
         </div>
       )}
+
+      {/* Logout confirmation modal — portalled to <body> so the header's
+          backdrop-blur containing block doesn't trap the fixed overlay. */}
+      {confirmLogout &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !loggingOut) setConfirmLogout(false);
+            }}
+          >
+          <div className="w-full max-w-sm rounded-2xl bg-surface p-6 text-center shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-line">
+            <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <path d="M16 17l5-5-5-5M21 12H9" />
+              </svg>
+            </span>
+            <h2 className="mt-4 text-lg font-semibold text-ink">Dil nga llogaria?</h2>
+            <p className="mt-1.5 text-sm text-ink-soft">
+              A je i sigurt që dëshiron të dalësh? Do të të duhet të kyçesh sërish për të vazhduar.
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmLogout(false)}
+                disabled={loggingOut}
+                className="flex-1 rounded-xl bg-surface px-4 py-2.5 text-sm font-medium text-ink ring-1 ring-line-strong transition-colors hover:bg-surface-muted disabled:opacity-50"
+              >
+                Anulo
+              </button>
+              <button
+                type="button"
+                onClick={logout}
+                disabled={loggingOut}
+                className="flex-1 rounded-xl bg-danger px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                {loggingOut ? "Duke dalë…" : "Po, dil"}
+              </button>
+            </div>
+          </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

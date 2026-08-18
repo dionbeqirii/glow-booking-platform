@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-type Tab = { label: string; href: string };
+export type Tab = { label: string; href: string };
 
-// Categories per role — the top-bar navigation.
-const TABS: Record<string, Tab[]> = {
+// Categories per role — the top-bar navigation (shared with the mobile menu).
+export const TABS: Record<string, Tab[]> = {
   ADMIN: [
     { label: "Paneli", href: "/admin" },
     { label: "Shërbimet", href: "/admin/sherbimet" },
@@ -30,7 +30,7 @@ export default function HeaderNav({ role }: { role: string }) {
   const home = tabs[0]?.href;
 
   return (
-    <nav className="hidden items-center gap-1 md:flex">
+    <nav className="absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-1 lg:flex">
       {tabs.map((t) => {
         // The home tab matches exactly; the others also match their subpages.
         const active = pathname === t.href || (t.href !== home && pathname.startsWith(t.href));
