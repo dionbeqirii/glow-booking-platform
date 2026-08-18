@@ -86,15 +86,56 @@ export default function AdminHistory({
       active ? "bg-accent text-white" : "text-ink-soft hover:bg-surface-muted"
     }`;
 
+  const selectCls =
+    "rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors hover:border-line-strong focus:border-accent focus:ring-2 focus:ring-accent/15";
+
   return (
     <div>
-      <div className="mb-5 flex gap-2">
-        <button type="button" className={tabBtn(tab === "bookings")} onClick={() => setTab("bookings")}>
-          Rezervimet ({bookings.length})
-        </button>
-        <button type="button" className={tabBtn(tab === "queue")} onClick={() => setTab("queue")}>
-          Radha ({queue.length})
-        </button>
+      {/* Toolbar: tabs and the status filter live in one row so they read
+          as a single "what am I looking at" control, not two disconnected
+          blocks. */}
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface p-2 ring-1 ring-line">
+        <div className="flex gap-2">
+          <button type="button" className={tabBtn(tab === "bookings")} onClick={() => setTab("bookings")}>
+            Rezervimet ({bookings.length})
+          </button>
+          <button type="button" className={tabBtn(tab === "queue")} onClick={() => setTab("queue")}>
+            Radha ({queue.length})
+          </button>
+        </div>
+
+        <div className="flex items-center gap-2 pr-1">
+          <span className="hidden rounded-full bg-surface-muted px-3 py-1 text-xs font-medium text-ink-soft sm:inline">
+            {tab === "bookings" ? shownBookings.length : shownQueue.length} rezultate
+          </span>
+          {tab === "bookings" ? (
+            <select
+              value={bookingFilter}
+              onChange={(e) => setBookingFilter(e.target.value as BookingStatus | "ALL")}
+              className={selectCls}
+            >
+              <option value="ALL">Të gjitha statuset</option>
+              {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map((s) => (
+                <option key={s} value={s}>
+                  {BOOKING_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <select
+              value={queueFilter}
+              onChange={(e) => setQueueFilter(e.target.value as QueueStatus | "ALL")}
+              className={selectCls}
+            >
+              <option value="ALL">Të gjitha statuset</option>
+              {(Object.keys(QUEUE_STATUS_LABEL) as QueueStatus[]).map((s) => (
+                <option key={s} value={s}>
+                  {QUEUE_STATUS_LABEL[s]}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -105,21 +146,6 @@ export default function AdminHistory({
 
       {tab === "bookings" ? (
         <div>
-          <div className="mb-4">
-            <select
-              value={bookingFilter}
-              onChange={(e) => setBookingFilter(e.target.value as BookingStatus | "ALL")}
-              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-ink"
-            >
-              <option value="ALL">Të gjitha statuset</option>
-              {(Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map((s) => (
-                <option key={s} value={s}>
-                  {BOOKING_STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {shownBookings.length === 0 ? (
             <EmptyState text="Asnjë rezervim për këtë filtër." />
           ) : (
@@ -176,21 +202,6 @@ export default function AdminHistory({
         </div>
       ) : (
         <div>
-          <div className="mb-4">
-            <select
-              value={queueFilter}
-              onChange={(e) => setQueueFilter(e.target.value as QueueStatus | "ALL")}
-              className="rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm text-ink"
-            >
-              <option value="ALL">Të gjitha statuset</option>
-              {(Object.keys(QUEUE_STATUS_LABEL) as QueueStatus[]).map((s) => (
-                <option key={s} value={s}>
-                  {QUEUE_STATUS_LABEL[s]}
-                </option>
-              ))}
-            </select>
-          </div>
-
           {shownQueue.length === 0 ? (
             <EmptyState text="Asnjë hyrje radhe për këtë filtër." />
           ) : (
