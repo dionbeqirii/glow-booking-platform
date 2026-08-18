@@ -47,7 +47,7 @@ export default function MobileNav({ role }: { role: string }) {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-11 z-40 w-56 overflow-hidden rounded-2xl bg-surface p-1.5 shadow-[0_18px_45px_-18px_rgba(43,38,34,0.5)] ring-1 ring-line">
+        <div className="absolute right-0 top-11 z-40 w-56 overflow-hidden rounded-2xl bg-surface p-1.5 shadow-[0_18px_45px_-18px_rgba(43,38,34,0.5)] ring-1 ring-line">
           {tabs.map((t) => {
             const active = pathname === t.href || (t.href !== home && pathname.startsWith(t.href));
             return (

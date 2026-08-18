@@ -44,28 +44,26 @@ export default function DashboardShell({
     <div className="flex flex-1 flex-col">
       <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur">
         <div className="relative flex items-center justify-between px-4 py-3 sm:px-8">
-          {/* Left: hamburger (mobile/tablet) + logo */}
-          <div className="flex items-center gap-2">
-            <MobileNav role={role} />
-            <Link href={homeFor(role)} className="shrink-0">
-              <Wordmark />
-            </Link>
-          </div>
+          {/* Left: brand only */}
+          <Link href={homeFor(role)} className="shrink-0">
+            <Wordmark />
+          </Link>
 
           {/* Center: navigation, centered on large screens */}
           <HeaderNav role={role} />
 
-          {/* Right: notifications, settings (with logout), profile */}
+          {/* Right: notifications, settings, profile, hamburger (mobile/tablet) */}
           <div className="flex items-center gap-1.5">
             <NotificationBell />
             <SettingsMenu name={name} role={role} />
-            <span className="ml-1 flex h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+            <span className="ml-1 hidden h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent sm:flex">
               {initials}
             </span>
             <div className="ml-0.5 hidden leading-tight sm:block">
               <p className="text-sm font-medium text-ink">{displayName}</p>
               <p className="text-xs font-medium text-accent">{roleLabel}</p>
             </div>
+            <MobileNav role={role} />
           </div>
         </div>
       </header>
