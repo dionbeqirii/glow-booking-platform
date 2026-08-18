@@ -15,7 +15,10 @@ export const TABS: Record<string, Tab[]> = {
     { label: "Radha", href: "/admin/radha" },
     { label: "Historiku", href: "/admin/historiku" },
   ],
-  STAFF: [{ label: "Radha e sotme", href: "/staff" }],
+  STAFF: [
+    { label: "Radha e sotme", href: "/staff" },
+    { label: "Klientët", href: "/staff/klientet" },
+  ],
   CLIENT: [
     { label: "Terminet", href: "/client" },
     { label: "Rezervo", href: "/client/rezervo" },
