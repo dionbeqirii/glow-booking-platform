@@ -10,6 +10,7 @@ export const TABS: Record<string, Tab[]> = {
   ADMIN: [
     { label: "Paneli", href: "/admin" },
     { label: "Shërbimet", href: "/admin/sherbimet" },
+    { label: "Ofertat", href: "/admin/ofertat" },
     { label: "Stafi", href: "/admin/stafi" },
     { label: "Klientët", href: "/admin/klientet" },
     { label: "Radha", href: "/admin/radha" },
@@ -18,10 +19,12 @@ export const TABS: Record<string, Tab[]> = {
   STAFF: [
     { label: "Radha e sotme", href: "/staff" },
     { label: "Klientët", href: "/staff/klientet" },
+    { label: "Ofertat", href: "/staff/ofertat" },
   ],
   CLIENT: [
     { label: "Terminet", href: "/client" },
     { label: "Rezervo", href: "/client/rezervo" },
+    { label: "Ofertat", href: "/client/ofertat" },
     { label: "Radha", href: "/client/radha" },
     { label: "Historiku", href: "/client/historiku" },
   ],

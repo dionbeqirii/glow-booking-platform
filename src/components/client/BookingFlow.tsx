@@ -18,13 +18,15 @@ function todayISO(): string {
 export default function BookingFlow({
   services,
   staff,
+  initialServiceId,
 }: {
   services: Service[];
   staff: Staff[];
+  initialServiceId?: string;
 }) {
   const router = useRouter();
 
-  const [serviceId, setServiceId] = useState<string>("");
+  const [serviceId, setServiceId] = useState<string>(initialServiceId ?? "");
   const [staffId, setStaffId] = useState<string>(""); // "" = no preference
   const [date, setDate] = useState<string>(todayISO());
   const [slots, setSlots] = useState<Slot[]>([]);

@@ -5,8 +5,11 @@ import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, EmptyState } from "@/components/ui";
 import BookingFlow from "@/components/client/BookingFlow";
 
-export default async function BookPage() {
+type Search = { searchParams: Promise<{ service?: string }> };
+
+export default async function BookPage({ searchParams }: Search) {
   const session = await requireRole("CLIENT");
+  const sp = await searchParams;
 
   const [services, staff] = await Promise.all([
     prisma.service.findMany({
@@ -41,7 +44,11 @@ export default async function BookPage() {
         {serviceRows.length === 0 ? (
           <EmptyState text="Studioja nuk ka ende shërbime të disponueshme." />
         ) : (
-          <BookingFlow services={serviceRows} staff={staffRows} />
+          <BookingFlow
+            services={serviceRows}
+            staff={staffRows}
+            initialServiceId={serviceRows.some((s) => s.id === sp.service) ? sp.service : undefined}
+          />
         )}
       </div>
     </DashboardShell>

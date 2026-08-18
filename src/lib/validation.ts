@@ -84,6 +84,21 @@ export const serviceSchema = z.object({
 
 export const serviceUpdateSchema = serviceSchema.partial();
 
+// Offers — a promoted deal built on top of an existing service.
+export const offerSchema = z.object({
+  title: z.string().trim().min(2, "Titulli është shumë i shkurtër").max(120),
+  description: optionalText(500),
+  serviceId: z.string().min(1, "Zgjidh një shërbim"),
+  imageUrl: optionalText(500),
+  price: z
+    .number({ message: "Çmimi duhet të jetë numër" })
+    .min(0, "Çmimi nuk mund të jetë negativ")
+    .max(100000),
+  active: z.boolean().optional(),
+});
+
+export const offerUpdateSchema = offerSchema.partial();
+
 // FR-02 — staff accounts
 export const staffCreateSchema = z.object({
   name: z.string().trim().min(2, "Emri duhet të ketë të paktën 2 shkronja").max(100),
