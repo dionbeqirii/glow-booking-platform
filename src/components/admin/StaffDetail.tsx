@@ -36,6 +36,7 @@ export default function StaffDetail({
   const [skills, setSkills] = useState<string[]>(initialSkills);
   const [hours, setHours] = useState<HourRow[]>(initialHours);
   const [off, setOff] = useState({ from: "", until: "", reason: "" });
+  const [newPassword, setNewPassword] = useState("");
 
   const [msg, setMsg] = useState<{ text: string; tone: "error" | "success" } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -85,6 +86,17 @@ export default function StaffDetail({
     e.preventDefault();
     const ok = await send(`/api/staff/${staffId}/timeoff`, "POST", off, "Mungesa u shtua.");
     if (ok) setOff({ from: "", until: "", reason: "" });
+  }
+
+  async function changePassword(e: React.FormEvent) {
+    e.preventDefault();
+    const ok = await send(
+      `/api/staff/${staffId}`,
+      "PATCH",
+      { password: newPassword },
+      "Fjalëkalimi u ndryshua."
+    );
+    if (ok) setNewPassword("");
   }
 
   return (
@@ -259,6 +271,30 @@ export default function StaffDetail({
           </Field>
           <button type="submit" disabled={busy} className={buttonStyles.secondary}>
             Shto
+          </button>
+        </form>
+      </Card>
+
+      {/* ---- Password reset (2.4) ---- */}
+      <Card>
+        <SectionTitle
+          title="Fjalëkalimi"
+          hint={`Vendos një fjalëkalim të ri për ${staffName}. Do t'i duhet ta përdorë këtë herën tjetër që kyçet.`}
+        />
+        <form onSubmit={changePassword} className="flex flex-col gap-3 sm:max-w-sm">
+          <Field label="Fjalëkalimi i ri" hint="Të paktën 8 karaktere.">
+            <input
+              type="password"
+              autoComplete="new-password"
+              minLength={8}
+              required
+              className={inputStyles}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+            />
+          </Field>
+          <button type="submit" disabled={busy} className={`${buttonStyles.primary} self-start`}>
+            Ndrysho fjalëkalimin
           </button>
         </form>
       </Card>
