@@ -129,6 +129,31 @@ export default function SettingsMenu({
     }
   }
 
+  async function saveProfile(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setBusy(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/account/profile", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: account.name, phone: account.phone }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ tone: "err", text: data.error ?? "Ruajtja dështoi" });
+        return;
+      }
+      setAccount((a) => ({ ...a, ...data.user }));
+      setMsg({ tone: "ok", text: "Të dhënat u ruajtën." });
+      router.refresh();
+    } catch {
+      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function changePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -261,16 +286,40 @@ export default function SettingsMenu({
             </div>
           </div>
 
-          <dl className="space-y-1.5 px-4 py-3 text-sm">
-            <div className="flex justify-between gap-3">
-              <dt className="text-ink-soft">Email</dt>
-              <dd className="truncate text-ink">{account.email ?? "—"}</dd>
-            </div>
-            <div className="flex justify-between gap-3">
-              <dt className="text-ink-soft">Telefoni</dt>
-              <dd className="text-ink">{account.phone ?? "—"}</dd>
-            </div>
-          </dl>
+          <form onSubmit={saveProfile} className="space-y-2 px-4 py-3 text-sm">
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-ink-soft">Emri</span>
+              <input
+                value={account.name}
+                onChange={(e) => setAccount((a) => ({ ...a, name: e.target.value }))}
+                required
+                minLength={2}
+                maxLength={100}
+                className={inputCls}
+              />
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-medium text-ink-soft">Telefoni</span>
+              <input
+                value={account.phone ?? ""}
+                onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))}
+                placeholder="+383…"
+                maxLength={30}
+                className={inputCls}
+              />
+            </label>
+            <p className="flex justify-between gap-3 pt-0.5 text-xs text-ink-faint">
+              <span>Email</span>
+              <span className="truncate">{account.email ?? "—"}</span>
+            </p>
+            <button
+              type="submit"
+              disabled={busy}
+              className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
+            >
+              {busy ? "Duke ruajtur…" : "Ruaj ndryshimet"}
+            </button>
+          </form>
 
           {/* Change password */}
           <div className="border-t border-line px-4 py-3">

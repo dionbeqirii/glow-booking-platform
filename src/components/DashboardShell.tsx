@@ -22,14 +22,16 @@ export default async function DashboardShell({
   role: string;
   children: ReactNode;
 }) {
-  // The JWT session carries only name/role; the avatar can change on its
-  // own schedule, so it's read fresh here rather than baked into the
-  // cookie. Cheap: getSession() is just a cookie read, and this is one
-  // indexed lookup per page render.
+  // The JWT session carries the name at login time, but name/avatar can
+  // change on their own schedule, so both are read fresh here rather than
+  // trusting the cookie. Cheap: getSession() is just a cookie read, and
+  // this is one indexed lookup per page render.
   const session = await getSession();
-  const avatarUrl = session
-    ? (await prisma.user.findUnique({ where: { id: session.userId }, select: { avatarUrl: true } }))?.avatarUrl ?? null
+  const profile = session
+    ? await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true, avatarUrl: true } })
     : null;
+  const displayName = profile?.name ?? name;
+  const avatarUrl = profile?.avatarUrl ?? null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -48,7 +50,7 @@ export default async function DashboardShell({
           <div className="flex items-center gap-1.5">
             {role === "ADMIN" && <CommandPalette />}
             <NotificationBell />
-            <SettingsMenu name={name} role={role} avatarUrl={avatarUrl} />
+            <SettingsMenu name={displayName} role={role} avatarUrl={avatarUrl} />
             <MobileNav role={role} />
           </div>
         </div>

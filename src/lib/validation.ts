@@ -46,6 +46,12 @@ export const changePasswordSchema = z.object({
   newPassword: z.string().min(8, "Fjalëkalimi i ri duhet të ketë të paktën 8 karaktere").max(200),
 });
 
+// Self-service profile edit (name + phone; email/role stay fixed here).
+export const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2, "Emri duhet të ketë të paktën 2 shkronja").max(100),
+  phone: optionalText(30),
+});
+
 // Business/company profile (admin-editable).
 export const businessSettingsSchema = z.object({
   name: z.string().trim().min(1, "Emri i biznesit është i detyrueshëm").max(120),
