@@ -35,7 +35,7 @@ export default async function DashboardShell({
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="sticky top-0 z-30 border-b border-line bg-surface/80 backdrop-blur">
+      <header className="sticky top-0 z-30 border-b border-white/50 bg-surface/55 shadow-[0_8px_30px_-20px_rgba(43,38,34,0.3)] backdrop-blur-2xl">
         <div className="relative flex items-center justify-between px-4 py-3 sm:px-8">
           {/* Left: brand only */}
           <Link href={homeFor(role)} className="shrink-0">

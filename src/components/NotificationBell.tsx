@@ -181,7 +181,7 @@ export default function NotificationBell() {
         type="button"
         onClick={toggle}
         aria-label="Njoftimet"
-        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
+        className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-white/50 hover:text-ink"
       >
         {/* Transparent, stroked bell — matches the rest of the header icons. */}
         <svg width="19" height="19" viewBox="0 0 24 24" {...stroke} aria-hidden>
@@ -196,7 +196,7 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-20 w-80 overflow-hidden rounded-2xl bg-surface shadow-[0_1px_2px_rgba(43,38,34,0.04),0_18px_45px_-14px_rgba(43,38,34,0.28)] ring-1 ring-line">
+        <div className="absolute right-0 top-11 z-20 w-80 overflow-hidden rounded-2xl bg-surface/80 shadow-[0_1px_2px_rgba(43,38,34,0.04),0_18px_45px_-14px_rgba(43,38,34,0.28)] ring-1 ring-white/60 backdrop-blur-2xl">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <p className="text-sm font-semibold text-ink">Njoftimet</p>
             <div className="flex items-center gap-2">

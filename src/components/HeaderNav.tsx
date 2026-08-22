@@ -45,8 +45,10 @@ export default function HeaderNav({ role }: { role: string }) {
           <Link
             key={t.href}
             href={t.href}
-            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-colors ${
-              active ? "bg-accent text-white" : "text-ink-soft hover:bg-surface-muted hover:text-ink"
+            className={`rounded-full px-3.5 py-1.5 text-sm font-medium transition-all ${
+              active
+                ? "bg-accent text-white shadow-[0_6px_18px_-6px_rgba(193,84,108,0.6)]"
+                : "text-ink-soft hover:bg-white/50 hover:text-ink hover:backdrop-blur-sm"
             }`}
           >
             {t.label}
