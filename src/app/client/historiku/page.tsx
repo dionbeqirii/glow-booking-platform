@@ -3,12 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, Badge, Card, EmptyState } from "@/components/ui";
-import {
-  BOOKING_STATUS_LABEL,
-  BOOKING_STATUS_TONE,
-  QUEUE_STATUS_LABEL,
-  QUEUE_STATUS_TONE,
-} from "@/lib/booking-labels";
+import { QUEUE_STATUS_LABEL, QUEUE_STATUS_TONE } from "@/lib/booking-labels";
+import BookingFeedbackList, { type FeedbackBookingRow } from "@/components/client/BookingFeedback";
 
 const FINISHED_BOOKING = ["COMPLETED", "CANCELLED", "NO_SHOW"] as const;
 const FINISHED_QUEUE = ["COMPLETED", "NO_SHOW"] as const;
@@ -38,6 +34,7 @@ export default async function ClientHistoryPage() {
         status: true,
         service: { select: { name: true } },
         staff: { select: { name: true } },
+        feedback: { select: { rating: true, comment: true } },
       },
     }),
     prisma.queueEntry.findMany({
@@ -54,6 +51,15 @@ export default async function ClientHistoryPage() {
     }),
   ]);
 
+  const feedbackRows: FeedbackBookingRow[] = bookings.map((b) => ({
+    id: b.id,
+    when: fmt(b.startTime),
+    status: b.status,
+    serviceName: b.service.name,
+    staffName: b.staff.name,
+    feedback: b.feedback,
+  }));
+
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-3xl">
@@ -69,19 +75,7 @@ export default async function ClientHistoryPage() {
           {bookings.length === 0 ? (
             <EmptyState text="Nuk ke rezervime të përfunduara ende." />
           ) : (
-            <ul className="divide-y divide-line">
-              {bookings.map((b) => (
-                <li key={b.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{b.service.name}</p>
-                    <p className="text-xs text-ink-faint">
-                      {fmt(b.startTime)} · {b.staff.name}
-                    </p>
-                  </div>
-                  <Badge tone={BOOKING_STATUS_TONE[b.status]}>{BOOKING_STATUS_LABEL[b.status]}</Badge>
-                </li>
-              ))}
-            </ul>
+            <BookingFeedbackList bookings={feedbackRows} />
           )}
         </Card>
 

@@ -212,3 +212,14 @@ export const queueAssignSchema = z.object({
 });
 
 export type QueueCheckinInput = z.infer<typeof queueCheckinSchema>;
+
+// ---------- Sprint 6: feedback (2.6) ----------
+
+// A client rates and comments on a finished booking. The comment is where a
+// complaint would go — there is no separate ticket system.
+export const feedbackSchema = z.object({
+  rating: z.number().int().min(1, "Zgjidh një vlerësim").max(5),
+  comment: optionalText(1000),
+});
+
+export type FeedbackInput = z.infer<typeof feedbackSchema>;

@@ -61,6 +61,7 @@ model User {
   // client-side relations
   bookingsAsClient Booking[]     @relation("ClientBookings")
   queueAsClient    QueueEntry[]  @relation("ClientQueue")
+  feedbackGiven    Feedback[]
 
   notifications Notification[]
   auditLogs     AuditLog[]
@@ -147,9 +148,27 @@ model Booking {
   client  User    @relation("ClientBookings", fields: [clientId], references: [id])
   service Service @relation(fields: [serviceId], references: [id])
   staff   User    @relation("StaffBookings", fields: [staffId], references: [id])
+  feedback Feedback?
 
   // Fast lookup + first line of defense against overlaps for the same staff.
   @@index([staffId, startTime])
+  @@index([clientId])
+}
+
+// A client's rating + comment on a finished booking (2.6). Low ratings double
+// as the studio's complaint channel — there is no separate ticket system, so
+// the comment field carries that weight and the admin view flags them.
+model Feedback {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  clientId  String
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  client  User    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
   @@index([clientId])
 }
 
