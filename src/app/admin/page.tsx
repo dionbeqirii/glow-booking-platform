@@ -493,6 +493,25 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </ul>
           )}
         </Panel>
+
+        {/* ---- PDF export (3.4) ---- */}
+        <Panel title="Eksporto raport" hint="Shkarko një raport PDF me statistikat e studios për periudhën e zgjedhur.">
+          <div className="flex flex-wrap gap-2">
+            {[1, 2, 3, 6].map((m) => (
+              <a
+                key={m}
+                href={`/api/reports/pdf?months=${m}`}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+                </svg>
+                {m} muaj
+              </a>
+            ))}
+          </div>
+        </Panel>
       </div>
     </DashboardShell>
   );
