@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Alert, Field, buttonStyles, Wordmark } from "./ui";
-import AuthBackground, { authInput } from "./AuthBackground";
+import { authInput } from "./AuthBackground";
 
 function EyeIcon() {
   return (
@@ -60,76 +60,71 @@ export default function UpdatePasswordForm() {
 
   return (
     <>
-      <AuthBackground />
-      <main className="flex flex-1 items-center justify-center px-6 py-12">
-      <div className="w-full max-w-md">
-        <div className="on-video relative mb-7 flex items-center justify-center">
-          <Link
-            href="/login"
-            aria-label="Kthehu tek hyrja"
-            className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted hover:text-ink"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-              <path d="M19 12H5" />
-              <path d="m12 19-7-7 7-7" />
-            </svg>
-          </Link>
-          <Link href="/">
-            <Wordmark size="lg" />
-          </Link>
-        </div>
-
-        <div className="rounded-2xl bg-white/25 p-8 ring-1 ring-white/40 shadow-[0_8px_40px_-8px_rgba(43,38,34,0.35),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-lg">
-          <h1 className="text-2xl font-semibold text-ink">Vendos një fjalëkalim të ri</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            Zgjidh një fjalëkalim të ri për llogarinë tënde.
-          </p>
-
-          {!token ? (
-            <div className="mt-6">
-              <Alert message="Link i pavlefshëm. Kërko një link të ri të rivendosjes." tone="error" />
-            </div>
-          ) : done ? (
-            <div className="mt-6 flex flex-col gap-4">
-              <Alert message="Fjalëkalimi u ndryshua! Tani mund të hysh." tone="success" />
-              <Link href="/login" className={buttonStyles.primary}>
-                Shko te hyrja
-              </Link>
-            </div>
-          ) : (
-            <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
-              <Field label="Fjalëkalimi i ri" hint="Të paktën 8 karaktere.">
-                <div className="relative">
-                  <input
-                    name="password"
-                    type={showPassword ? "text" : "password"}
-                    autoComplete="new-password"
-                    required
-                    minLength={8}
-                    className={`${authInput} pr-11`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-label={showPassword ? "Fshih fjalëkalimin" : "Shfaq fjalëkalimin"}
-                    aria-pressed={showPassword}
-                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-ink-faint transition-colors hover:text-ink-soft"
-                  >
-                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                </div>
-              </Field>
-
-              <button type="submit" disabled={loading} className={`mt-1 ${buttonStyles.primary}`}>
-                {loading ? "Duke ruajtur…" : "Ruaj fjalëkalimin"}
-              </button>
-
-              {error && <Alert message={error} tone="error" />}
-            </form>
-          )}
-        </div>
+      <div className="on-video relative mb-7 flex items-center justify-center">
+        <Link
+          href="/login"
+          aria-label="Kthehu tek hyrja"
+          className="absolute left-0 flex h-9 w-9 items-center justify-center rounded-full text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted hover:text-ink"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5" />
+            <path d="m12 19-7-7 7-7" />
+          </svg>
+        </Link>
+        <Link href="/">
+          <Wordmark size="lg" />
+        </Link>
       </div>
-      </main>
+
+      <div className="rounded-2xl bg-white/25 p-8 ring-1 ring-white/40 shadow-[0_8px_40px_-8px_rgba(43,38,34,0.35),inset_0_1px_0_rgba(255,255,255,0.55)] backdrop-blur-lg">
+        <h1 className="text-2xl font-semibold text-ink">Vendos një fjalëkalim të ri</h1>
+        <p className="mt-1 text-sm text-ink-soft">
+          Zgjidh një fjalëkalim të ri për llogarinë tënde.
+        </p>
+
+        {!token ? (
+          <div className="mt-6">
+            <Alert message="Link i pavlefshëm. Kërko një link të ri të rivendosjes." tone="error" />
+          </div>
+        ) : done ? (
+          <div className="mt-6 flex flex-col gap-4">
+            <Alert message="Fjalëkalimi u ndryshua! Tani mund të hysh." tone="success" />
+            <Link href="/login" className={buttonStyles.primary}>
+              Shko te hyrja
+            </Link>
+          </div>
+        ) : (
+          <form onSubmit={onSubmit} className="mt-7 flex flex-col gap-4">
+            <Field label="Fjalëkalimi i ri" hint="Të paktën 8 karaktere.">
+              <div className="relative">
+                <input
+                  name="password"
+                  type={showPassword ? "text" : "password"}
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  className={`${authInput} pr-11`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-label={showPassword ? "Fshih fjalëkalimin" : "Shfaq fjalëkalimin"}
+                  aria-pressed={showPassword}
+                  className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-ink-faint transition-colors hover:text-ink-soft"
+                >
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                </button>
+              </div>
+            </Field>
+
+            <button type="submit" disabled={loading} className={`mt-1 ${buttonStyles.primary}`}>
+              {loading ? "Duke ruajtur…" : "Ruaj fjalëkalimin"}
+            </button>
+
+            {error && <Alert message={error} tone="error" />}
+          </form>
+        )}
+      </div>
     </>
   );
 }
