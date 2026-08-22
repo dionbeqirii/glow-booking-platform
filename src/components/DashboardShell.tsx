@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth";
 import NotificationBell from "./NotificationBell";
 import HeaderNav from "./HeaderNav";
 import MobileNav from "./MobileNav";
@@ -7,17 +9,11 @@ import SettingsMenu from "./SettingsMenu";
 import CommandPalette from "./admin/CommandPalette";
 import { Wordmark } from "./ui";
 
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Administrator",
-  STAFF: "Staf",
-  CLIENT: "Klient",
-};
-
 function homeFor(role: string): string {
   return role === "ADMIN" ? "/admin" : role === "STAFF" ? "/staff" : "/client";
 }
 
-export default function DashboardShell({
+export default async function DashboardShell({
   name,
   role,
   children,
@@ -26,20 +22,14 @@ export default function DashboardShell({
   role: string;
   children: ReactNode;
 }) {
-  // Only real words count, so "Diellza (Administratore)" yields "DA", not "D(".
-  const initials =
-    name
-      .split(/\s+/)
-      .map((w) => w.replace(/[^\p{L}]/gu, ""))
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join("") || "?";
-
-  // Strip a trailing role note like "(Administratore)" so the name shows once,
-  // with the role rendered separately below it (#3).
-  const displayName = name.replace(/\s*\([^)]*\)\s*/g, " ").trim() || name;
-  const roleLabel = ROLE_LABEL[role] ?? role;
+  // The JWT session carries only name/role; the avatar can change on its
+  // own schedule, so it's read fresh here rather than baked into the
+  // cookie. Cheap: getSession() is just a cookie read, and this is one
+  // indexed lookup per page render.
+  const session = await getSession();
+  const avatarUrl = session
+    ? (await prisma.user.findUnique({ where: { id: session.userId }, select: { avatarUrl: true } }))?.avatarUrl ?? null
+    : null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -53,18 +43,12 @@ export default function DashboardShell({
           {/* Center: navigation, centered on large screens */}
           <HeaderNav role={role} />
 
-          {/* Right: command palette (admin), notifications, settings, profile, hamburger */}
+          {/* Right: command palette (admin), notifications, profile
+              (avatar + name + settings, all one trigger), hamburger */}
           <div className="flex items-center gap-1.5">
             {role === "ADMIN" && <CommandPalette />}
             <NotificationBell />
-            <SettingsMenu name={name} role={role} />
-            <span className="ml-1 hidden h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent sm:flex">
-              {initials}
-            </span>
-            <div className="ml-0.5 hidden leading-tight sm:block">
-              <p className="text-sm font-medium text-ink">{displayName}</p>
-              <p className="text-xs font-medium text-accent">{roleLabel}</p>
-            </div>
+            <SettingsMenu name={name} role={role} avatarUrl={avatarUrl} />
             <MobileNav role={role} />
           </div>
         </div>

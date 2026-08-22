@@ -47,6 +47,7 @@ model User {
   name         String
   email        String   @unique
   phone        String?
+  avatarUrl    String?
   passwordHash String
   role         Role     @default(CLIENT)
   createdAt    DateTime @default(now())

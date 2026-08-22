@@ -10,23 +10,33 @@ const ROLE_LABEL: Record<string, string> = {
   CLIENT: "Klient",
 };
 
-type Account = { name: string; email: string | null; phone: string | null; role: string };
+type Account = { name: string; email: string | null; phone: string | null; role: string; avatarUrl: string | null };
 type Business = { name: string; address: string; phone: string; email: string; description: string };
 
 const EMPTY_BUSINESS: Business = { name: "", address: "", phone: "", email: "", description: "" };
 
-export default function SettingsMenu({ name, role }: { name: string; role: string }) {
+export default function SettingsMenu({
+  name,
+  role,
+  avatarUrl,
+}: {
+  name: string;
+  role: string;
+  avatarUrl: string | null;
+}) {
   const router = useRouter();
   const isAdmin = role === "ADMIN";
   const [open, setOpen] = useState(false);
-  const [account, setAccount] = useState<Account>({ name, email: null, phone: null, role });
+  const [account, setAccount] = useState<Account>({ name, email: null, phone: null, role, avatarUrl });
   const [business, setBusiness] = useState<Business>(EMPTY_BUSINESS);
   const [section, setSection] = useState<null | "password" | "business">(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [msg, setMsg] = useState<{ tone: "ok" | "err"; text: string } | null>(null);
   const [confirmLogout, setConfirmLogout] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   async function logout() {
     setLoggingOut(true);
@@ -78,6 +88,47 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
     setMsg(null);
   }
 
+  async function uploadAvatar(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/account/avatar", { method: "POST", body: fd });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMsg({ tone: "err", text: data.error ?? "Ngarkimi i fotos dështoi" });
+        return;
+      }
+      setAccount((a) => ({ ...a, avatarUrl: data.url }));
+      router.refresh();
+    } catch {
+      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+    }
+  }
+
+  async function removeAvatar() {
+    setUploadingAvatar(true);
+    setMsg(null);
+    try {
+      const res = await fetch("/api/account/avatar", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setMsg({ tone: "err", text: data.error ?? "Heqja e fotos dështoi" });
+        return;
+      }
+      setAccount((a) => ({ ...a, avatarUrl: null }));
+      router.refresh();
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function changePassword(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setBusy(true);
@@ -125,31 +176,88 @@ export default function SettingsMenu({ name, role }: { name: string; role: strin
 
   const inputCls =
     "w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none focus:border-accent focus:ring-2 focus:ring-accent/15";
+  // Only real words count, so "Diellza (Administratore)" yields "DA", not "D(".
   const initials =
     account.name.split(/\s+/).map((w) => w.replace(/[^\p{L}]/gu, "")).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "?";
+  // Strip a trailing role note like "(Administratore)" so the trigger shows
+  // the name once, with the role rendered separately beneath it.
+  const displayName = account.name.replace(/\s*\([^)]*\)\s*/g, " ").trim() || account.name;
+  const roleLabel = ROLE_LABEL[account.role] ?? account.role;
 
   return (
     <div className="relative" ref={boxRef}>
+      {/* Unified trigger: avatar + name/role + chevron. Clicking anywhere on
+          the profile — not a separate gear icon — opens Settings. */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Cilësimet"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
+        aria-label="Cilësimet e llogarisë"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-surface-muted sm:pr-2.5"
       >
-        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-          <circle cx="12" cy="12" r="3" />
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z" />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-xs font-semibold text-accent">
+          {account.avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={account.avatarUrl} alt="" className="h-full w-full object-cover" />
+          ) : (
+            initials
+          )}
+        </span>
+        <span className="hidden leading-tight sm:block">
+          <span className="block text-sm font-medium text-ink">{displayName}</span>
+          <span className="block text-xs font-medium text-accent">{roleLabel}</span>
+        </span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="hidden text-ink-faint sm:block">
+          <path d="m6 9 6 6 6-6" />
         </svg>
       </button>
 
       {open && (
         <div className="absolute right-0 top-11 z-30 max-h-[80vh] w-80 overflow-y-auto rounded-2xl bg-surface shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-line">
-          {/* Account */}
+          {/* Account + avatar upload */}
           <div className="flex items-center gap-3 border-b border-line px-4 py-3">
-            <span className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-soft text-sm font-semibold text-accent">{initials}</span>
+            <div className="relative shrink-0">
+              <span className="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-lg font-semibold text-accent">
+                {account.avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={account.avatarUrl} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  initials
+                )}
+              </span>
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                aria-label="Ndrysho foton e profilit"
+                title="Ndrysho foton"
+                className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white ring-2 ring-surface transition-opacity hover:opacity-90 disabled:opacity-50"
+              >
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z" />
+                  <circle cx="12" cy="13" r="4" />
+                </svg>
+              </button>
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                onChange={uploadAvatar}
+                className="hidden"
+              />
+            </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">{account.name}</p>
               <p className="text-xs text-ink-faint">{ROLE_LABEL[account.role] ?? account.role}</p>
+              {account.avatarUrl && (
+                <button
+                  type="button"
+                  onClick={removeAvatar}
+                  disabled={uploadingAvatar}
+                  className="mt-1 text-xs font-medium text-danger hover:underline disabled:opacity-50"
+                >
+                  Hiq foton
+                </button>
+              )}
             </div>
           </div>
 
