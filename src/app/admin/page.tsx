@@ -3,8 +3,10 @@ import type { ReactNode } from "react";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
+import DashboardWidgetGrid from "@/components/admin/DashboardWidgetGrid";
 import { computeStudioStats } from "@/lib/stats";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
+import { normalizeDashboardLayout, type DashboardWidgetId } from "@/lib/dashboard-widgets";
 import type { BookingStatus } from "@prisma/client";
 
 type Tone = "accent" | "gold" | "ok" | "warn";
@@ -245,6 +247,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     svcRows,
     topClientRows,
     stats,
+    savedLayout,
   ] = await Promise.all([
     prisma.user.count({ where: { role: "CLIENT" } }),
     prisma.user.count({ where: { role: "CLIENT", createdAt: { gte: from } } }),
@@ -269,7 +272,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       take: 5,
     }),
     computeStudioStats(days, now),
+    prisma.dashboardLayout.findUnique({ where: { userId: session.userId }, select: { layout: true } }),
   ]);
+  const widgetLayout = normalizeDashboardLayout(savedLayout?.layout);
 
   // Daily booking trend across the selected window.
   const trend = new Array(days).fill(0) as number[];
@@ -308,6 +313,173 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const dateStr = now.toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   const short = (d: Date) => d.toLocaleDateString("sq", { day: "numeric", month: "short" });
 
+  const widgets: Partial<Record<DashboardWidgetId, ReactNode>> = {
+    kpi: (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Kpi href="/admin/klientet" tone="accent" icon={<IcClients />} value={clientCount} label="Klientë" sub={newClients > 0 ? `+${newClients} të rinj` : "gjithsej"} />
+        <Kpi href="/admin/sherbimet" tone="gold" icon={<IcServices />} value={serviceCount} label="Shërbime" sub={`${activeServices} aktive`} />
+        <Kpi href="/admin/stafi" tone="ok" icon={<IcStaff />} value={staffCount} label="Staf" sub={staffWithoutHours > 0 ? `${staffWithoutHours} pa orar` : "të gjithë me orar"} />
+        <Kpi href="/admin/historiku" tone="accent" icon={<IcBookings />} value={bookingsToday} label="Rezervime sot" sub="aktive" />
+        <Kpi href="/admin/radha" tone="warn" icon={<IcQueue />} value={queueWaiting} label="Në radhë sot" sub="në pritje / thirrur" />
+      </div>
+    ),
+    trend: (
+      <Panel title="Trendi i rezervimeve" hint={`${days} ditët e fundit`}>
+        <div className="mb-2 flex items-end gap-2">
+          <p className="text-3xl font-bold leading-none text-ink">{trendTotal}</p>
+          <p className="pb-0.5 text-xs text-ink-faint">rezervime gjithsej</p>
+        </div>
+        <div className="h-48">
+          <AreaChart data={trend} />
+        </div>
+        <div className="mt-1 flex justify-between text-[11px] text-ink-faint">
+          <span>{short(fromDayStart)}</span>
+          <span>{short(now)}</span>
+        </div>
+      </Panel>
+    ),
+    periodStats: (
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <MiniStat label="Rezervime gjithsej" value={String(stats.bookings.total)} hint="në periudhë" tone="accent" />
+        <MiniStat
+          label="Të përfunduara"
+          value={String(stats.bookings.byStatus.COMPLETED)}
+          hint={stats.bookings.total > 0 ? pct(stats.bookings.byStatus.COMPLETED / stats.bookings.total) + " e rezervimeve" : "—"}
+          tone="ok"
+        />
+        <MiniStat label="Norma e anulimeve" value={pct(stats.bookings.cancellationRate)} hint={`${stats.bookings.byStatus.CANCELLED} anulime`} tone="warn" />
+        <MiniStat label="Norma e no-show" value={pct(stats.bookings.noShowRate)} hint={`${stats.bookings.byStatus.NO_SHOW} raste`} tone="warn" />
+      </div>
+    ),
+    statusBreakdown: (
+      <Panel title="Rezervimet sipas statusit" hint={`${days} ditët e fundit`}>
+        {stats.bookings.total === 0 ? (
+          <p className="text-sm text-ink-faint">Nuk ka rezervime në këtë periudhë.</p>
+        ) : (
+          <ul className="space-y-3">
+            {statusOrder.map((s) => {
+              const count = stats.bookings.byStatus[s];
+              const share = stats.bookings.total > 0 ? count / stats.bookings.total : 0;
+              return (
+                <Bar key={s} label={BOOKING_STATUS_LABEL[s]} right={`${count} · ${pct(share)}`} share={share} tone={STATUS_TONE[s]} />
+              );
+            })}
+          </ul>
+        )}
+      </Panel>
+    ),
+    queue: (
+      <Panel title="Radha pa termin" hint={`${days} ditët e fundit`}>
+        <div className="grid grid-cols-2 gap-3">
+          <MiniStat label="Check-in gjithsej" value={String(stats.queue.checkins)} tone="accent" />
+          <MiniStat label="Të shërbyer" value={String(stats.queue.completed)} tone="ok" />
+          <MiniStat label="No-show" value={String(stats.queue.noShow)} tone="warn" />
+          <MiniStat
+            label="Pritja mesatare"
+            value={stats.queue.avgWaitMin === null ? "—" : `${stats.queue.avgWaitMin} min`}
+            hint="deri te thirrja"
+            tone="gold"
+          />
+        </div>
+      </Panel>
+    ),
+    staffUtilization: (
+      <Panel title="Shfrytëzimi i stafit" hint="Minuta të rezervuara ndaj orarit">
+        {utilization.length === 0 ? (
+          <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>
+        ) : (
+          <ul className="space-y-3">
+            {utilization.map((u) => (
+              <Bar
+                key={u.staffId}
+                label={u.name}
+                right={
+                  <>
+                    {pct(u.utilization)}
+                    <span className="text-ink-faint"> ({Math.round(u.bookedMin / 60)}h/{Math.round(u.availableMin / 60)}h)</span>
+                  </>
+                }
+                share={u.utilization / utilMax}
+                tone="accent"
+              />
+            ))}
+          </ul>
+        )}
+      </Panel>
+    ),
+    topServices: (
+      <Panel title="Shërbimet më të kërkuara" hint={`${days} ditët e fundit`} action={<Link href="/admin/sherbimet" className="text-xs font-medium text-accent hover:underline">Shërbimet →</Link>}>
+        {topServices.length === 0 ? (
+          <p className="text-sm text-ink-faint">Ende pa rezervime në këtë periudhë.</p>
+        ) : (
+          <ul className="space-y-3">
+            {topServices.map((s, i) => (
+              <Bar
+                key={s.name}
+                label={
+                  <>
+                    <span className="mr-2 text-ink-faint">{i + 1}.</span>
+                    {s.name}
+                  </>
+                }
+                right={String(s.count)}
+                share={s.count / topMax}
+                tone="gold"
+              />
+            ))}
+          </ul>
+        )}
+      </Panel>
+    ),
+    topClients: (
+      <Panel
+        title="Klientët më aktivë"
+        hint={`${days} ditët e fundit`}
+        action={<Link href="/admin/klientet" className="text-xs font-medium text-accent hover:underline">Të gjithë klientët →</Link>}
+      >
+        {topClients.length === 0 ? (
+          <p className="text-sm text-ink-faint">Ende pa aktivitet klientësh në këtë periudhë.</p>
+        ) : (
+          <ul className="space-y-3">
+            {topClients.map((c, i) => (
+              <Bar
+                key={c.name + i}
+                label={
+                  <>
+                    <span className="mr-2 text-ink-faint">{i + 1}.</span>
+                    {c.name}
+                  </>
+                }
+                right={`${c.count} ${c.count === 1 ? "rezervim" : "rezervime"}`}
+                share={c.count / clientMax}
+                tone="accent"
+              />
+            ))}
+          </ul>
+        )}
+      </Panel>
+    ),
+    pdfExport: (
+      <Panel title="Eksporto raport" hint="Shkarko një raport PDF me statistikat e studios për periudhën e zgjedhur.">
+        <div className="flex flex-wrap gap-2">
+          {[1, 2, 3, 6].map((m) => (
+            <a
+              key={m}
+              href={`/api/reports/pdf?months=${m}`}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+                <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+              </svg>
+              {m} muaj
+            </a>
+          ))}
+        </div>
+      </Panel>
+    ),
+  };
+
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-6xl space-y-6 pb-6">
@@ -341,177 +513,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </section>
 
-        {/* ---- KPI snapshot ---- */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <Kpi href="/admin/klientet" tone="accent" icon={<IcClients />} value={clientCount} label="Klientë" sub={newClients > 0 ? `+${newClients} të rinj` : "gjithsej"} />
-          <Kpi href="/admin/sherbimet" tone="gold" icon={<IcServices />} value={serviceCount} label="Shërbime" sub={`${activeServices} aktive`} />
-          <Kpi href="/admin/stafi" tone="ok" icon={<IcStaff />} value={staffCount} label="Staf" sub={staffWithoutHours > 0 ? `${staffWithoutHours} pa orar` : "të gjithë me orar"} />
-          <Kpi href="/admin/historiku" tone="accent" icon={<IcBookings />} value={bookingsToday} label="Rezervime sot" sub="aktive" />
-          <Kpi href="/admin/radha" tone="warn" icon={<IcQueue />} value={queueWaiting} label="Në radhë sot" sub="në pritje / thirrur" />
-        </div>
-
-        {/* ---- Trend ---- */}
-        <Panel title="Trendi i rezervimeve" hint={`${days} ditët e fundit`}>
-          <div className="mb-2 flex items-end gap-2">
-            <p className="text-3xl font-bold leading-none text-ink">{trendTotal}</p>
-            <p className="pb-0.5 text-xs text-ink-faint">rezervime gjithsej</p>
-          </div>
-          <div className="h-48">
-            <AreaChart data={trend} />
-          </div>
-          <div className="mt-1 flex justify-between text-[11px] text-ink-faint">
-            <span>{short(fromDayStart)}</span>
-            <span>{short(now)}</span>
-          </div>
-        </Panel>
-
-        {/* ---- Period performance ---- */}
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniStat label="Rezervime gjithsej" value={String(stats.bookings.total)} hint="në periudhë" tone="accent" />
-          <MiniStat
-            label="Të përfunduara"
-            value={String(stats.bookings.byStatus.COMPLETED)}
-            hint={stats.bookings.total > 0 ? pct(stats.bookings.byStatus.COMPLETED / stats.bookings.total) + " e rezervimeve" : "—"}
-            tone="ok"
-          />
-          <MiniStat label="Norma e anulimeve" value={pct(stats.bookings.cancellationRate)} hint={`${stats.bookings.byStatus.CANCELLED} anulime`} tone="warn" />
-          <MiniStat label="Norma e no-show" value={pct(stats.bookings.noShowRate)} hint={`${stats.bookings.byStatus.NO_SHOW} raste`} tone="warn" />
-        </div>
-
-        {/* ---- Status breakdown + Queue ---- */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Rezervimet sipas statusit" hint={`${days} ditët e fundit`}>
-            {stats.bookings.total === 0 ? (
-              <p className="text-sm text-ink-faint">Nuk ka rezervime në këtë periudhë.</p>
-            ) : (
-              <ul className="space-y-3">
-                {statusOrder.map((s) => {
-                  const count = stats.bookings.byStatus[s];
-                  const share = stats.bookings.total > 0 ? count / stats.bookings.total : 0;
-                  return (
-                    <Bar
-                      key={s}
-                      label={BOOKING_STATUS_LABEL[s]}
-                      right={`${count} · ${pct(share)}`}
-                      share={share}
-                      tone={STATUS_TONE[s]}
-                    />
-                  );
-                })}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Radha pa termin" hint={`${days} ditët e fundit`}>
-            <div className="grid grid-cols-2 gap-3">
-              <MiniStat label="Check-in gjithsej" value={String(stats.queue.checkins)} tone="accent" />
-              <MiniStat label="Të shërbyer" value={String(stats.queue.completed)} tone="ok" />
-              <MiniStat label="No-show" value={String(stats.queue.noShow)} tone="warn" />
-              <MiniStat
-                label="Pritja mesatare"
-                value={stats.queue.avgWaitMin === null ? "—" : `${stats.queue.avgWaitMin} min`}
-                hint="deri te thirrja"
-                tone="gold"
-              />
-            </div>
-          </Panel>
-        </div>
-
-        {/* ---- Staff + Services ---- */}
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Shfrytëzimi i stafit" hint="Minuta të rezervuara ndaj orarit">
-            {utilization.length === 0 ? (
-              <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>
-            ) : (
-              <ul className="space-y-3">
-                {utilization.map((u) => (
-                  <Bar
-                    key={u.staffId}
-                    label={u.name}
-                    right={
-                      <>
-                        {pct(u.utilization)}
-                        <span className="text-ink-faint"> ({Math.round(u.bookedMin / 60)}h/{Math.round(u.availableMin / 60)}h)</span>
-                      </>
-                    }
-                    share={u.utilization / utilMax}
-                    tone="accent"
-                  />
-                ))}
-              </ul>
-            )}
-          </Panel>
-
-          <Panel title="Shërbimet më të kërkuara" hint={`${days} ditët e fundit`} action={<Link href="/admin/sherbimet" className="text-xs font-medium text-accent hover:underline">Shërbimet →</Link>}>
-            {topServices.length === 0 ? (
-              <p className="text-sm text-ink-faint">Ende pa rezervime në këtë periudhë.</p>
-            ) : (
-              <ul className="space-y-3">
-                {topServices.map((s, i) => (
-                  <Bar
-                    key={s.name}
-                    label={
-                      <>
-                        <span className="mr-2 text-ink-faint">{i + 1}.</span>
-                        {s.name}
-                      </>
-                    }
-                    right={String(s.count)}
-                    share={s.count / topMax}
-                    tone="gold"
-                  />
-                ))}
-              </ul>
-            )}
-          </Panel>
-        </div>
-
-        {/* ---- Most active clients ---- */}
-        <Panel
-          title="Klientët më aktivë"
-          hint={`${days} ditët e fundit`}
-          action={<Link href="/admin/klientet" className="text-xs font-medium text-accent hover:underline">Të gjithë klientët →</Link>}
-        >
-          {topClients.length === 0 ? (
-            <p className="text-sm text-ink-faint">Ende pa aktivitet klientësh në këtë periudhë.</p>
-          ) : (
-            <ul className="space-y-3">
-              {topClients.map((c, i) => (
-                <Bar
-                  key={c.name + i}
-                  label={
-                    <>
-                      <span className="mr-2 text-ink-faint">{i + 1}.</span>
-                      {c.name}
-                    </>
-                  }
-                  right={`${c.count} ${c.count === 1 ? "rezervim" : "rezervime"}`}
-                  share={c.count / clientMax}
-                  tone="accent"
-                />
-              ))}
-            </ul>
-          )}
-        </Panel>
-
-        {/* ---- PDF export (3.4) ---- */}
-        <Panel title="Eksporto raport" hint="Shkarko një raport PDF me statistikat e studios për periudhën e zgjedhur.">
-          <div className="flex flex-wrap gap-2">
-            {[1, 2, 3, 6].map((m) => (
-              <a
-                key={m}
-                href={`/api/reports/pdf?months=${m}`}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-accent px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-              >
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
-                  <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-                </svg>
-                {m} muaj
-              </a>
-            ))}
-          </div>
-        </Panel>
+        <DashboardWidgetGrid widgets={widgets} initialLayout={widgetLayout} />
       </div>
     </DashboardShell>
   );

@@ -52,6 +52,15 @@ export const profileUpdateSchema = z.object({
   phone: optionalText(30),
 });
 
+// Admin dashboard customization (3.7): ordered list of widget visibility.
+// Ids are validated loosely here — unknown/stale ids are filtered out by
+// normalizeDashboardLayout() against the actual widget registry.
+export const dashboardLayoutSchema = z.object({
+  layout: z
+    .array(z.object({ id: z.string().min(1).max(60), hidden: z.boolean() }))
+    .max(30),
+});
+
 // Business/company profile (admin-editable).
 export const businessSettingsSchema = z.object({
   name: z.string().trim().min(1, "Emri i biznesit është i detyrueshëm").max(120),
