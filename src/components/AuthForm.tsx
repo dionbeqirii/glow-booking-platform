@@ -150,25 +150,25 @@ export default function AuthForm({ mode }: { mode: Mode }) {
             {loading ? "Duke procesuar…" : isRegister ? "Krijo llogarinë" : "Hyr"}
           </button>
         </form>
-      </div>
 
-      <p className="on-video mt-6 text-center text-sm font-medium text-ink">
-        {isRegister ? (
-          <>
-            Ke llogari?{" "}
-            <Link href="/login" className="font-medium text-accent hover:underline">
-              Hyr
-            </Link>
-          </>
-        ) : (
-          <>
-            S&apos;ke llogari?{" "}
-            <Link href="/register" className="font-medium text-accent hover:underline">
-              Regjistrohu
-            </Link>
-          </>
-        )}
-      </p>
+        <p className="mt-6 border-t border-white/40 pt-5 text-center text-sm font-medium text-ink">
+          {isRegister ? (
+            <>
+              Ke llogari?{" "}
+              <Link href="/login" className="font-medium text-accent hover:underline">
+                Hyr
+              </Link>
+            </>
+          ) : (
+            <>
+              S&apos;ke llogari?{" "}
+              <Link href="/register" className="font-medium text-accent hover:underline">
+                Regjistrohu
+              </Link>
+            </>
+          )}
+        </p>
+      </div>
     </>
   );
 }
