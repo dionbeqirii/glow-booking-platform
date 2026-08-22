@@ -211,6 +211,12 @@ export const queueAssignSchema = z.object({
   staffId: z.string().min(1, "Zgjidh një punonjës"),
 });
 
+// 3.1 — the full set of services performed during an in-progress visit
+// (replaces the previous set; empty means "nothing confirmed yet").
+export const queueServicesSchema = z.object({
+  serviceIds: z.array(z.string().min(1)).max(20),
+});
+
 export type QueueCheckinInput = z.infer<typeof queueCheckinSchema>;
 
 // ---------- Sprint 6: feedback (2.6) ----------

@@ -83,6 +83,7 @@ model Service {
   bookings      Booking[]
   queueEntries  QueueEntry[]
   offers        Offer[]
+  queueVisits   QueueEntryService[]
 }
 
 // A promoted deal built on top of an existing service (its own title, photo
@@ -183,6 +184,10 @@ model QueueEntry {
   estimatedWaitMin  Int         @default(0)
   status            QueueStatus @default(WAITING)
   calledAt          DateTime?
+  // Visit lifecycle timestamps (3.1): when service actually began and ended,
+  // distinct from calledAt (when the client was summoned).
+  startedAt         DateTime?
+  completedAt       DateTime?
   // Set when the administrator pins a staff member manually (FR-12); the
   // auto-refresh then stops re-suggesting a different one for this entry.
   staffLocked       Boolean     @default(false)
@@ -191,7 +196,24 @@ model QueueEntry {
   service Service @relation(fields: [serviceId], references: [id])
   staff   User?   @relation("StaffQueue", fields: [staffId], references: [id])
 
+  // Services actually performed during the visit (staff checks these off
+  // before completing) — may include upsells beyond the one checked in for.
+  visitServices QueueEntryService[]
+
   @@index([status])
+}
+
+// Which services were actually rendered during one walk-in visit. Checked
+// off by staff between "Fillo Vizitën" and "Përfundo"; feeds the invoice.
+model QueueEntryService {
+  id           String @id @default(cuid())
+  queueEntryId String
+  serviceId    String
+
+  queueEntry QueueEntry @relation(fields: [queueEntryId], references: [id], onDelete: Cascade)
+  service    Service    @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([queueEntryId, serviceId])
 }
 
 model Notification {

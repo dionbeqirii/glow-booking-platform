@@ -23,7 +23,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
     const session = await requireSession();
     const { id } = await params;
 
-    const entry = await prisma.queueEntry.findUnique({ where: { id }, include: { service: true } });
+    const entry = await prisma.queueEntry.findUnique({
+      where: { id },
+      include: { service: true, client: true, staff: true },
+    });
     if (!entry) throw new ApiError(404, "Klienti nuk u gjet në radhë");
 
     const { action } = queueUpdateSchema.parse(await readJson(req));
@@ -62,13 +65,59 @@ export async function PATCH(req: Request, { params }: Ctx) {
       throw new ApiError(400, "Ky rekord s'ka punonjës të caktuar; thirreni si staf i identifikuar");
     }
 
+    // Completing requires at least one confirmed service — nothing to
+    // invoice otherwise (3.1). "start" pre-checks the originally booked one.
+    if (action === "complete") {
+      const checked = await prisma.queueEntryService.count({ where: { queueEntryId: id } });
+      if (checked === 0) {
+        throw new ApiError(400, "Shëno të paktën një shërbim të kryer para se të përfundosh");
+      }
+    }
+
     await prisma.queueEntry.update({
       where: { id },
       data: {
         status: next,
         ...(action === "call" ? { staffId, calledAt: new Date() } : {}),
+        ...(action === "start" ? { startedAt: new Date() } : {}),
+        ...(action === "complete" ? { completedAt: new Date() } : {}),
       },
     });
+
+    if (action === "start") {
+      // Pre-check the originally booked service so staff isn't forced to
+      // re-tick something the client already checked in for.
+      await prisma.queueEntryService.upsert({
+        where: { queueEntryId_serviceId: { queueEntryId: id, serviceId: entry.serviceId } },
+        create: { queueEntryId: id, serviceId: entry.serviceId },
+        update: {},
+      });
+    }
+
+    let invoice: {
+      clientName: string;
+      staffName: string;
+      startedAt: string | null;
+      completedAt: string;
+      services: { name: string; price: number }[];
+      total: number;
+    } | null = null;
+
+    if (action === "complete") {
+      const visitServices = await prisma.queueEntryService.findMany({
+        where: { queueEntryId: id },
+        include: { service: { select: { name: true, price: true } } },
+      });
+      const services = visitServices.map((v) => ({ name: v.service.name, price: Number(v.service.price) }));
+      invoice = {
+        clientName: entry.client?.name ?? entry.clientName ?? "Klient pa emër",
+        staffName: entry.staff?.name ?? "—",
+        startedAt: entry.startedAt ? entry.startedAt.toISOString() : null,
+        completedAt: new Date().toISOString(),
+        services,
+        total: services.reduce((s, x) => s + x.price, 0),
+      };
+    }
 
     await audit({
       userId: session.userId,
@@ -103,6 +152,6 @@ export async function PATCH(req: Request, { params }: Ctx) {
     // (call) both change the picture for everyone still waiting.
     await refreshQueueEstimates();
 
-    return { ok: true };
+    return { ok: true, invoice };
   });
 }
