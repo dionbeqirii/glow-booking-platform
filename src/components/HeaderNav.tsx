@@ -20,6 +20,7 @@ export const TABS: Record<string, Tab[]> = {
     { label: "Radha e sotme", href: "/staff" },
     { label: "Klientët", href: "/staff/klientet" },
     { label: "Ofertat", href: "/staff/ofertat" },
+    { label: "Statistikat e mia", href: "/staff/statistikat" },
   ],
   CLIENT: [
     { label: "Terminet", href: "/client" },
