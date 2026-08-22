@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import DashboardWidgetGrid from "@/components/admin/DashboardWidgetGrid";
+import DashboardGlassBackground from "@/components/admin/DashboardGlassBackground";
 import { computeStudioStats } from "@/lib/stats";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import { normalizeDashboardLayout, type DashboardWidgetId } from "@/lib/dashboard-widgets";
@@ -19,10 +20,10 @@ const toneChip: Record<Tone, string> = {
 };
 
 const toneCard: Record<Tone, string> = {
-  accent: "bg-gradient-to-br from-accent-soft/70 to-surface",
-  gold: "bg-gradient-to-br from-gold-soft/70 to-surface",
-  ok: "bg-gradient-to-br from-ok-soft/70 to-surface",
-  warn: "bg-gradient-to-br from-warn-soft/60 to-surface",
+  accent: "bg-gradient-to-br from-accent-soft/55 to-surface/25",
+  gold: "bg-gradient-to-br from-gold-soft/55 to-surface/25",
+  ok: "bg-gradient-to-br from-ok-soft/55 to-surface/25",
+  warn: "bg-gradient-to-br from-warn-soft/50 to-surface/25",
 };
 
 const stroke = {
@@ -112,7 +113,7 @@ function Kpi({
   return (
     <Link href={href} className="group block">
       <div
-        className={`h-full rounded-2xl ${toneCard[tone]} p-4 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_18px_36px_-16px_rgba(43,38,34,0.3)] hover:ring-line-strong`}
+        className={`h-full rounded-2xl ${toneCard[tone]} p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-2xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_42px_-16px_rgba(43,38,34,0.32)] hover:ring-white/90`}
       >
         <div className="flex items-center justify-between">
           <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
@@ -144,7 +145,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl bg-surface p-5 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] ${className}`}>
+    <section className={`rounded-2xl bg-surface/40 p-5 shadow-[0_8px_32px_-16px_rgba(43,38,34,0.22)] ring-1 ring-white/70 backdrop-blur-2xl ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-ink">{title}</h2>
@@ -160,7 +161,7 @@ function Panel({
 function MiniStat({ label, value, hint, tone = "accent" }: { label: string; value: string; hint?: string; tone?: Tone }) {
   const dot: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn" };
   return (
-    <div className="rounded-2xl bg-surface p-4 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)]">
+    <div className="rounded-2xl bg-surface/40 p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-2xl">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
         <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</p>
@@ -482,9 +483,10 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <DashboardShell name={session.name} role={session.role}>
+      <DashboardGlassBackground />
       <div className="mx-auto max-w-6xl space-y-6 pb-6">
         {/* ---- Hero + period filter ---- */}
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft via-surface to-gold-soft p-6 ring-1 ring-line">
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft/60 via-surface/35 to-gold-soft/60 p-6 shadow-[0_16px_48px_-20px_rgba(43,38,34,0.25)] ring-1 ring-white/70 backdrop-blur-2xl">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
@@ -497,7 +499,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </p>
             </div>
             {/* Period segmented control */}
-            <div className="inline-flex rounded-xl bg-surface/70 p-1 ring-1 ring-line backdrop-blur">
+            <div className="inline-flex rounded-xl bg-surface/60 p-1 ring-1 ring-white/60 backdrop-blur-xl">
               {PERIODS.map((d) => (
                 <Link
                   key={d}
