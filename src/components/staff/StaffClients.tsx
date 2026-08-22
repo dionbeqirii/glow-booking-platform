@@ -1,7 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Alert, Badge, buttonStyles } from "@/components/ui";
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
 
@@ -45,7 +46,10 @@ function initials(name: string): string {
 }
 
 export default function StaffClients({ bookings }: { bookings: StaffClientBooking[] }) {
+  const router = useRouter();
   const [bucket, setBucket] = useState<Bucket>("ALL");
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const counts = useMemo(() => {
     const c: Record<Bucket, number> = { ALL: bookings.length, PENDING: 0, COMPLETED: 0, CANCELLED: 0 };
@@ -58,6 +62,41 @@ export default function StaffClients({ bookings }: { bookings: StaffClientBookin
   }, [bookings]);
 
   const shown = useMemo(() => bookings.filter((b) => inBucket(b.status, bucket)), [bookings, bucket]);
+
+  async function complete(id: string) {
+    setBusyId(id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", status: "COMPLETED" }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error ?? "Veprimi dështoi");
+      else router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function cancel(b: StaffClientBooking) {
+    if (!confirm(`Të anulohet rezervimi i "${b.clientName}" për "${b.serviceName}"?`)) return;
+    setBusyId(b.id);
+    setError(null);
+    try {
+      const res = await fetch(`/api/bookings/${b.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel" }),
+      });
+      const data = await res.json();
+      if (!res.ok) setError(data.error ?? "Anulimi dështoi");
+      else router.refresh();
+    } finally {
+      setBusyId(null);
+    }
+  }
 
   return (
     <div className="mt-5">
@@ -77,6 +116,12 @@ export default function StaffClients({ bookings }: { bookings: StaffClientBookin
         ))}
       </div>
 
+      {error && (
+        <div className="mb-4">
+          <Alert message={error} />
+        </div>
+      )}
+
       {shown.length === 0 ? (
         <div className="rounded-2xl bg-surface p-10 text-center ring-1 ring-line">
           <p className="text-sm text-ink-faint">
@@ -86,33 +131,57 @@ export default function StaffClients({ bookings }: { bookings: StaffClientBookin
       ) : (
         <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[560px] text-left text-sm">
+            <table className="w-full min-w-[640px] text-left text-sm">
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
                   <th className="px-4 py-3 font-medium">Klienti</th>
                   <th className="px-4 py-3 font-medium">Shërbimi</th>
                   <th className="px-4 py-3 font-medium">Data</th>
                   <th className="px-4 py-3 font-medium">Statusi</th>
+                  <th className="px-4 py-3 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
-                {shown.map((b) => (
-                  <tr key={b.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/60">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
-                          {initials(b.clientName)}
-                        </span>
-                        <span className="font-medium text-ink">{b.clientName}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-ink-soft">{b.serviceName}</td>
-                    <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{b.when}</td>
-                    <td className="px-4 py-3">
-                      <Badge tone={BOOKING_STATUS_TONE[b.status]}>{BOOKING_STATUS_LABEL[b.status]}</Badge>
-                    </td>
-                  </tr>
-                ))}
+                {shown.map((b) => {
+                  const pending = PENDING_STATUS.includes(b.status);
+                  return (
+                    <tr key={b.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/60">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
+                            {initials(b.clientName)}
+                          </span>
+                          <span className="font-medium text-ink">{b.clientName}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-ink-soft">{b.serviceName}</td>
+                      <td className="px-4 py-3 whitespace-nowrap text-ink-soft">{b.when}</td>
+                      <td className="px-4 py-3">
+                        <Badge tone={BOOKING_STATUS_TONE[b.status]}>{BOOKING_STATUS_LABEL[b.status]}</Badge>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        {pending && (
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => complete(b.id)}
+                              disabled={busyId === b.id}
+                              className={`${buttonStyles.primary} px-3 py-1.5`}
+                            >
+                              ✔ Përfundo
+                            </button>
+                            <button
+                              onClick={() => cancel(b)}
+                              disabled={busyId === b.id}
+                              className={`${buttonStyles.danger} px-3 py-1.5`}
+                            >
+                              Anulo
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

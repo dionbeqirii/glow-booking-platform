@@ -11,9 +11,12 @@ import type { BookingStatus } from "@prisma/client";
 type Ctx = { params: Promise<{ id: string }> };
 
 // Allowed status transitions (FR-07). Cancellation is handled separately.
+// COMPLETED is reachable directly from CONFIRMED/CHECKED_IN too — staff
+// marking a scheduled booking "done" from a summary list shouldn't have to
+// walk through check-in/in-service clicks it never bothered tracking.
 const NEXT: Record<BookingStatus, BookingStatus[]> = {
-  CONFIRMED: ["CHECKED_IN", "NO_SHOW"],
-  CHECKED_IN: ["IN_SERVICE", "NO_SHOW"],
+  CONFIRMED: ["CHECKED_IN", "COMPLETED", "NO_SHOW"],
+  CHECKED_IN: ["IN_SERVICE", "COMPLETED", "NO_SHOW"],
   IN_SERVICE: ["COMPLETED"],
   COMPLETED: [],
   CANCELLED: [],
