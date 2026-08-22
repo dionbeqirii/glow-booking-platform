@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 
 type Notification = {
   id: string;
@@ -66,6 +67,15 @@ function TypeIcon({ type }: { type: Notification["type"] }) {
   }
 }
 
+function TrashIcon({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M3 6h18" />
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6" />
+    </svg>
+  );
+}
+
 function timeAgo(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.round(diff / 60000);
@@ -81,6 +91,10 @@ export default function NotificationBell() {
   const [items, setItems] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmClearAll, setConfirmClearAll] = useState(false);
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(async () => {
@@ -127,6 +141,40 @@ export default function NotificationBell() {
     }
   }
 
+  async function deleteOne(n: Notification) {
+    setDeletingId(n.id);
+    // Optimistic: the row disappears immediately; resync on failure.
+    setItems((prev) => prev.filter((x) => x.id !== n.id));
+    if (!n.read) setUnread((u) => Math.max(0, u - 1));
+    try {
+      const res = await fetch(`/api/notifications/${n.id}`, { method: "DELETE" });
+      if (!res.ok) await load();
+    } catch {
+      await load();
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
+  async function clearAll() {
+    setClearing(true);
+    setClearError(null);
+    try {
+      const res = await fetch("/api/notifications", { method: "DELETE" });
+      if (!res.ok) {
+        setClearError("Fshirja dështoi. Provo sërish.");
+        return;
+      }
+      setItems([]);
+      setUnread(0);
+      setConfirmClearAll(false);
+    } catch {
+      setClearError("Nuk u lidh dot me serverin");
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <div className="relative" ref={boxRef}>
       <button
@@ -151,9 +199,24 @@ export default function NotificationBell() {
         <div className="absolute right-0 top-11 z-20 w-80 overflow-hidden rounded-2xl bg-surface shadow-[0_1px_2px_rgba(43,38,34,0.04),0_18px_45px_-14px_rgba(43,38,34,0.28)] ring-1 ring-line">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <p className="text-sm font-semibold text-ink">Njoftimet</p>
-            <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-ink-soft">
-              {items.length}
-            </span>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-ink-soft">
+                {items.length}
+              </span>
+              {items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setClearError(null);
+                    setConfirmClearAll(true);
+                  }}
+                  className="text-xs font-medium text-danger hover:underline"
+                >
+                  Fshi të gjitha
+                </button>
+              )}
+            </div>
           </div>
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
@@ -177,6 +240,15 @@ export default function NotificationBell() {
                       <p className="text-sm leading-snug text-ink">{n.message}</p>
                       <p className="mt-0.5 text-xs text-ink-faint">{timeAgo(n.createdAt)}</p>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => deleteOne(n)}
+                      disabled={deletingId === n.id}
+                      aria-label="Fshi njoftimin"
+                      className="shrink-0 self-start rounded-md p-1 text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
+                    >
+                      <TrashIcon />
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -184,6 +256,51 @@ export default function NotificationBell() {
           </div>
         </div>
       )}
+
+      {/* "Fshi të gjitha" confirmation — portalled to <body> so the header's
+          backdrop-blur containing block doesn't trap the fixed overlay. */}
+      {confirmClearAll &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget && !clearing) setConfirmClearAll(false);
+            }}
+          >
+            <div className="w-full max-w-sm rounded-2xl bg-surface p-6 text-center shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-line">
+              <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
+                <TrashIcon size={22} />
+              </span>
+              <h2 className="mt-4 text-lg font-semibold text-ink">Fshi të gjitha njoftimet?</h2>
+              <p className="mt-1.5 text-sm text-ink-soft">
+                Të gjitha njoftimet e tua do të fshihen. Ky veprim nuk mund të kthehet mbrapsht.
+              </p>
+              {clearError && <p className="mt-3 text-sm text-danger">{clearError}</p>}
+              <div className="mt-6 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setConfirmClearAll(false)}
+                  disabled={clearing}
+                  className="flex-1 rounded-xl bg-surface px-4 py-2.5 text-sm font-medium text-ink ring-1 ring-line-strong transition-colors hover:bg-surface-muted disabled:opacity-50"
+                >
+                  Anulo
+                </button>
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  disabled={clearing}
+                  className="flex-1 rounded-xl bg-danger px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
+                >
+                  {clearing ? "Duke fshirë…" : "Po, fshi"}
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

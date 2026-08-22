@@ -181,11 +181,13 @@ model Notification {
   type      NotificationType
   message   String
   read      Boolean          @default(false)
+  deleted   Boolean          @default(false)
   createdAt DateTime         @default(now())
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, read])
+  @@index([userId, deleted])
 }
 
 // Password reset (self-service). Only the SHA-256 hash of the token is stored,
