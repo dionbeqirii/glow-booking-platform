@@ -4,6 +4,7 @@ import NotificationBell from "./NotificationBell";
 import HeaderNav from "./HeaderNav";
 import MobileNav from "./MobileNav";
 import SettingsMenu from "./SettingsMenu";
+import CommandPalette from "./admin/CommandPalette";
 import { Wordmark } from "./ui";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -52,8 +53,9 @@ export default function DashboardShell({
           {/* Center: navigation, centered on large screens */}
           <HeaderNav role={role} />
 
-          {/* Right: notifications, settings, profile, hamburger (mobile/tablet) */}
+          {/* Right: command palette (admin), notifications, settings, profile, hamburger */}
           <div className="flex items-center gap-1.5">
+            {role === "ADMIN" && <CommandPalette />}
             <NotificationBell />
             <SettingsMenu name={name} role={role} />
             <span className="ml-1 hidden h-9 w-9 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent sm:flex">
