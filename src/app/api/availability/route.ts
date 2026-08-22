@@ -5,7 +5,7 @@ import { handle, ApiError } from "@/lib/api";
 // FR-04 — free slots for a service on a given day.
 export async function GET(req: Request) {
   return handle(async () => {
-    await requireSession();
+    const session = await requireSession();
     const url = new URL(req.url);
     const serviceId = url.searchParams.get("serviceId");
     const date = url.searchParams.get("date");
@@ -18,6 +18,11 @@ export async function GET(req: Request) {
       throw new ApiError(400, "Formati i datës duhet të jetë YYYY-MM-DD");
     }
 
-    return availableSlots({ serviceId, date, staffId });
+    return availableSlots({
+      serviceId,
+      date,
+      staffId,
+      requestingClientId: session.role === "CLIENT" ? session.userId : undefined,
+    });
   });
 }

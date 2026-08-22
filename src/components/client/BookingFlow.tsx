@@ -35,6 +35,8 @@ export default function BookingFlow({
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [joiningWaitlist, setJoiningWaitlist] = useState(false);
+  const [joinedWaitlist, setJoinedWaitlist] = useState(false);
 
   const service = services.find((s) => s.id === serviceId);
   const qualifiedStaff = staff.filter((m) => m.serviceIds.includes(serviceId));
@@ -49,6 +51,7 @@ export default function BookingFlow({
     setLoadingSlots(true);
     setPicked(null);
     setError(null);
+    setJoinedWaitlist(false);
 
     const q = new URLSearchParams({ serviceId, date });
     if (staffId) q.set("staffId", staffId);
@@ -67,6 +70,29 @@ export default function BookingFlow({
       cancelled = true;
     };
   }, [serviceId, staffId, date]);
+
+  async function joinWaitlist() {
+    if (!serviceId) return;
+    setJoiningWaitlist(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ serviceId, staffId: staffId || undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Bashkimi në listën e pritjes dështoi");
+        return;
+      }
+      setJoinedWaitlist(true);
+    } catch {
+      setError("Nuk u lidh dot me serverin");
+    } finally {
+      setJoiningWaitlist(false);
+    }
+  }
 
   async function confirm() {
     if (!picked) return;
@@ -167,9 +193,22 @@ export default function BookingFlow({
               {loadingSlots ? (
                 <p className="text-sm text-ink-faint">Duke ngarkuar oraret…</p>
               ) : slots.length === 0 ? (
-                <p className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-6 text-center text-sm text-ink-faint">
-                  Nuk ka orare të lira për këtë ditë. Provo një datë tjetër.
-                </p>
+                <div className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-6 text-center">
+                  <p className="text-sm text-ink-faint">Nuk ka orare të lira për këtë ditë. Provo një datë tjetër.</p>
+                  {joinedWaitlist ? (
+                    <p className="mt-3 text-sm font-medium text-ok">
+                      ✔ U regjistrove në listën e pritjes — do të njoftohesh nëse lirohet një vend.
+                    </p>
+                  ) : (
+                    <button
+                      onClick={joinWaitlist}
+                      disabled={joiningWaitlist}
+                      className={`mt-3 ${buttonStyles.secondary}`}
+                    >
+                      {joiningWaitlist ? "Duke u regjistruar…" : "Bashkohu në listën e pritjes"}
+                    </button>
+                  )}
+                </div>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {slots.map((slot) => {

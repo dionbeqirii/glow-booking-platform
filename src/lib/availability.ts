@@ -1,4 +1,5 @@
 import { prisma } from "./prisma";
+import { isHeldForSomeoneElse } from "./waitlist";
 import type { BookingStatus } from "@prisma/client";
 
 // Statuses that still occupy the calendar. Cancelled and no-show entries are
@@ -45,6 +46,9 @@ export async function availableSlots(params: {
   serviceId: string;
   date: string; // YYYY-MM-DD
   staffId?: string; // optional preferred staff
+  // Slots held with priority for someone else (3.3) are left off the list
+  // entirely; the requester's own hold, if any, is exempted.
+  requestingClientId?: string;
 }): Promise<{ durationMin: number; slots: Slot[] }> {
   const service = await prisma.service.findUnique({ where: { id: params.serviceId } });
   if (!service || !service.active) return { durationMin: 0, slots: [] };
@@ -79,6 +83,17 @@ export async function availableSlots(params: {
         },
         select: { startTime: true, endTime: true },
       },
+      // Slots freed by a cancellation and offered to the waitlist (3.3) —
+      // excluded below unless they're the requester's own hold.
+      priorityHoldsAsStaff: {
+        where: {
+          expiresAt: { gt: now },
+          startTime: { lt: dayEnd },
+          endTime: { gt: dayStart },
+          ...(params.requestingClientId ? { clientId: { not: params.requestingClientId } } : {}),
+        },
+        select: { startTime: true, endTime: true },
+      },
     },
   });
 
@@ -89,6 +104,10 @@ export async function availableSlots(params: {
     const busy = member.bookingsAsStaff.map((b) => ({
       start: (b.startTime.getTime() - dayStart.getTime()) / 60000,
       end: (b.endTime.getTime() - dayStart.getTime()) / 60000,
+    }));
+    const held = member.priorityHoldsAsStaff.map((h) => ({
+      start: (h.startTime.getTime() - dayStart.getTime()) / 60000,
+      end: (h.endTime.getTime() - dayStart.getTime()) / 60000,
     }));
     const off = member.timeOff.map((t) => ({
       start: (t.from.getTime() - dayStart.getTime()) / 60000,
@@ -105,6 +124,7 @@ export async function availableSlots(params: {
         if (at(params.date, start) < now) continue; // no past slots
         if (busy.some((b) => overlaps(start, end, b.start, b.end))) continue;
         if (off.some((o) => overlaps(start, end, o.start, o.end))) continue;
+        if (held.some((h) => overlaps(start, end, h.start, h.end))) continue;
 
         const list = byTime.get(start) ?? [];
         list.push({ id: member.id, name: member.name });
@@ -134,6 +154,9 @@ export async function isSlotBookable(params: {
   start: Date;
   end: Date;
   ignoreBookingId?: string;
+  // The client this slot would be booked for — exempts their own active
+  // priority hold from the block below (3.3).
+  requestingClientId?: string;
 }): Promise<{ ok: boolean; reason?: string }> {
   const { serviceId, staffId, start, end } = params;
 
@@ -169,6 +192,16 @@ export async function isSlotBookable(params: {
     },
   });
   if (clash > 0) return { ok: false, reason: "Termini është zënë ndërkohë" };
+
+  const held = await isHeldForSomeoneElse({
+    staffId,
+    start,
+    end,
+    requestingClientId: params.requestingClientId,
+  });
+  if (held) {
+    return { ok: false, reason: "Ky vend është i rezervuar me përparësi për një klient nga lista e pritjes" };
+  }
 
   return { ok: true };
 }

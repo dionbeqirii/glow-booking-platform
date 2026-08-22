@@ -68,6 +68,7 @@ export async function POST(req: Request) {
       staffId: data.staffId,
       start,
       end,
+      requestingClientId: clientId,
     });
     if (!check.ok) throw new ApiError(409, check.reason ?? "Termini nuk është i disponueshëm");
 
@@ -103,6 +104,12 @@ export async function POST(req: Request) {
       type: "CONFIRMATION",
       message: `Rezervimi u konfirmua për ${service.name} te ${booking.staff.name}, ${start.toLocaleString("sq")}.`,
     });
+
+    // They now have an appointment for this service — waiting for one to
+    // free up no longer applies (3.3). Ignored if they were never on it.
+    await prisma.waitlist
+      .delete({ where: { clientId_serviceId: { clientId, serviceId: data.serviceId } } })
+      .catch(() => {});
 
     return { booking: { id: booking.id } };
   });

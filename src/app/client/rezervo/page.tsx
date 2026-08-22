@@ -4,6 +4,7 @@ import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, EmptyState } from "@/components/ui";
 import BookingFlow from "@/components/client/BookingFlow";
+import WaitlistPanel, { type WaitlistRow } from "@/components/client/WaitlistPanel";
 
 type Search = { searchParams: Promise<{ service?: string }> };
 
@@ -11,7 +12,7 @@ export default async function BookPage({ searchParams }: Search) {
   const session = await requireRole("CLIENT");
   const sp = await searchParams;
 
-  const [services, staff] = await Promise.all([
+  const [services, staff, waitlist] = await Promise.all([
     prisma.service.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -22,6 +23,11 @@ export default async function BookPage({ searchParams }: Search) {
       orderBy: { name: "asc" },
       select: { id: true, name: true, staffServices: { select: { serviceId: true } } },
     }),
+    prisma.waitlist.findMany({
+      where: { clientId: session.userId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, service: { select: { name: true } }, staff: { select: { name: true } } },
+    }),
   ]);
 
   const serviceRows = services.map((s) => ({ ...s, price: Number(s.price) }));
@@ -29,6 +35,11 @@ export default async function BookPage({ searchParams }: Search) {
     id: m.id,
     name: m.name,
     serviceIds: m.staffServices.map((x) => x.serviceId),
+  }));
+  const waitlistRows: WaitlistRow[] = waitlist.map((w) => ({
+    id: w.id,
+    serviceName: w.service.name,
+    staffName: w.staff?.name ?? null,
   }));
 
   return (
@@ -40,6 +51,8 @@ export default async function BookPage({ searchParams }: Search) {
         <div className="mt-2">
           <PageTitle title="Rezervo një termin" hint="Zgjidh shërbimin, punonjësen dhe orarin që të përshtatet." />
         </div>
+
+        <WaitlistPanel initial={waitlistRows} />
 
         {serviceRows.length === 0 ? (
           <EmptyState text="Studioja nuk ka ende shërbime të disponueshme." />

@@ -62,6 +62,10 @@ model User {
   bookingsAsClient Booking[]     @relation("ClientBookings")
   queueAsClient    QueueEntry[]  @relation("ClientQueue")
   feedbackGiven    Feedback[]
+  waitlistEntries       Waitlist[]     @relation("WaitlistClient")
+  waitlistStaffPref     Waitlist[]     @relation("WaitlistStaffPref")
+  priorityHoldsAsClient PriorityHold[] @relation("PriorityHoldClient")
+  priorityHoldsAsStaff  PriorityHold[] @relation("PriorityHoldStaff")
 
   notifications Notification[]
   auditLogs     AuditLog[]
@@ -84,6 +88,45 @@ model Service {
   queueEntries  QueueEntry[]
   offers        Offer[]
   queueVisits   QueueEntryService[]
+  waitlist      Waitlist[]
+}
+
+// A client waiting for a slot to free up for a service (3.3), optionally
+// narrowed to one staff member. FIFO by createdAt: the earliest entry that
+// matches a newly-cancelled booking's service (and staff, if they specified
+// one) gets first priority.
+model Waitlist {
+  id        String   @id @default(cuid())
+  clientId  String
+  serviceId String
+  staffId   String?
+  createdAt DateTime @default(now())
+
+  client  User    @relation("WaitlistClient", fields: [clientId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  staff   User?   @relation("WaitlistStaffPref", fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, serviceId])
+  @@index([serviceId, createdAt])
+}
+
+// A temporary exclusive claim on a just-freed slot (3.3): for
+// `expiresAt`, only `clientId` may book [staffId, startTime, endTime) —
+// everyone else is blocked until it lapses, at which point the slot is
+// open to anyone (no cleanup needed; expiry is checked at read time).
+model PriorityHold {
+  id        String   @id @default(cuid())
+  staffId   String
+  startTime DateTime
+  endTime   DateTime
+  clientId  String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  staff  User @relation("PriorityHoldStaff", fields: [staffId], references: [id], onDelete: Cascade)
+  client User @relation("PriorityHoldClient", fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@index([staffId, startTime, endTime])
 }
 
 // A promoted deal built on top of an existing service (its own title, photo

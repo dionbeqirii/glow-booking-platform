@@ -220,6 +220,13 @@ export const queueServicesSchema = z.object({
 
 export type QueueCheckinInput = z.infer<typeof queueCheckinSchema>;
 
+// 3.3 — join the smart waitlist for a service, optionally narrowed to one
+// staff member.
+export const waitlistJoinSchema = z.object({
+  serviceId: z.string().min(1, "Zgjidh një shërbim"),
+  staffId: optionalText(50),
+});
+
 // ---------- Sprint 6: feedback (2.6) ----------
 
 // A client rates and comments on a finished booking. The comment is where a

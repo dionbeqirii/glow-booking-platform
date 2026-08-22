@@ -1,10 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/rbac";
 import { bookingUpdateSchema } from "@/lib/validation";
-import { isSlotBookable } from "@/lib/availability";
+import { isSlotBookable, ACTIVE_BOOKING_STATUSES } from "@/lib/availability";
 import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { offerFreedSlotToWaitlist } from "@/lib/waitlist";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
 
@@ -56,6 +57,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
         type: "STATUS_CHANGE",
         message: `Rezervimi për ${booking.service.name} u anulua.`,
       });
+      // 3.3 — offer the just-freed slot to the waitlist with priority.
+      await offerFreedSlotToWaitlist({
+        serviceId: booking.serviceId,
+        staffId: booking.staffId,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
       return { ok: true };
     }
 
@@ -75,6 +83,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         start,
         end,
         ignoreBookingId: id,
+        requestingClientId: booking.clientId,
       });
       if (!check.ok) throw new ApiError(409, check.reason ?? "Termini i ri nuk është i lirë");
 
@@ -160,6 +169,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
     }
     if (next === booking.status) return { ok: true };
 
+    // 3.3 — an admin correction into CANCELLED frees the slot the same way
+    // a normal cancel does, so the waitlist gets offered it too.
+    const wasActive = ACTIVE_BOOKING_STATUSES.includes(booking.status);
+
     try {
       await prisma.booking.update({ where: { id }, data: { status: next } });
     } catch (err) {
@@ -184,6 +197,16 @@ export async function PATCH(req: Request, { params }: Ctx) {
       type: "STATUS_CHANGE",
       message: `Rezervimi për ${booking.service.name}: ${BOOKING_STATUS_LABEL[next].toLowerCase()}.`,
     });
+
+    if (next === "CANCELLED" && wasActive) {
+      await offerFreedSlotToWaitlist({
+        serviceId: booking.serviceId,
+        staffId: booking.staffId,
+        startTime: booking.startTime,
+        endTime: booking.endTime,
+      });
+    }
+
     return { ok: true };
   });
 }
