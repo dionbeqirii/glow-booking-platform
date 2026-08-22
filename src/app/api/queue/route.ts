@@ -4,21 +4,57 @@ import { queueCheckinSchema } from "@/lib/validation";
 import { handle, readJson, ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
-import { simulateQueue, refreshQueueEstimates, ACTIVE_QUEUE_STATUSES, DISPLAY_QUEUE_STATUSES } from "@/lib/queue";
+import {
+  simulateQueue,
+  refreshQueueEstimates,
+  ACTIVE_QUEUE_STATUSES,
+  DISPLAY_QUEUE_STATUSES,
+  CLIENT_WAIT_BUFFER_MIN,
+} from "@/lib/queue";
 
-// GET — today's active queue. A client sees only their own entry; staff and
-// admin see the whole line so they can call the next person (FR-11).
+// GET — today's active queue. A client sees only their own entry (position +
+// buffered wait time); staff and admin see the whole line, with everyone's
+// details, so they can call the next person (FR-11, 3.2).
 export async function GET() {
   return handle(async () => {
     const session = await requireSession();
 
-    const where =
-      session.role === "CLIENT"
-        ? { clientId: session.userId, status: { in: DISPLAY_QUEUE_STATUSES } }
-        : { status: { in: DISPLAY_QUEUE_STATUSES } };
+    if (session.role === "CLIENT") {
+      const mine = await prisma.queueEntry.findFirst({
+        where: { clientId: session.userId, status: { in: DISPLAY_QUEUE_STATUSES } },
+        select: {
+          id: true,
+          queueNumber: true,
+          checkinAt: true,
+          estimatedWaitMin: true,
+          status: true,
+          calledAt: true,
+          service: { select: { name: true, durationMin: true } },
+          staff: { select: { name: true } },
+        },
+      });
+      if (!mine) return { entries: [] };
 
+      // Position among those still WAITING and checked in earlier — computed
+      // as its own query, never by scanning a result set that (correctly)
+      // never contains any other client's row.
+      const position =
+        mine.status === "WAITING"
+          ? await prisma.queueEntry.count({
+              where: { status: "WAITING", checkinAt: { lt: mine.checkinAt } },
+            })
+          : null;
+
+      return {
+        entries: [
+          { ...mine, position, estimatedWaitMin: mine.estimatedWaitMin + CLIENT_WAIT_BUFFER_MIN },
+        ],
+      };
+    }
+
+    // ---------- Staff / admin: the full line ----------
     const entries = await prisma.queueEntry.findMany({
-      where,
+      where: { status: { in: DISPLAY_QUEUE_STATUSES } },
       orderBy: { checkinAt: "asc" },
       select: {
         id: true,
@@ -127,7 +163,7 @@ export async function POST(req: Request) {
       await notify({
         userId: session.userId,
         type: "CONFIRMATION",
-        message: `Je në radhë me numrin ${entry.queueNumber}. Koha e parashikuar e pritjes: ~${entry.estimatedWaitMin} min.`,
+        message: `Je në radhë me numrin ${entry.queueNumber}. Koha e parashikuar e pritjes: ~${entry.estimatedWaitMin + CLIENT_WAIT_BUFFER_MIN} min.`,
       });
     }
 

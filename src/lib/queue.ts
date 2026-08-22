@@ -206,6 +206,15 @@ export const ACTIVE_QUEUE_STATUSES: QueueStatus[] = ["WAITING", "CALLED"];
 export const DISPLAY_QUEUE_STATUSES: QueueStatus[] = ["WAITING", "CALLED", "IN_SERVICE"];
 
 /**
+ * Padding added to the raw simulated estimate on every CLIENT-facing
+ * surface (queue page, check-in confirmation) — never for staff/admin, who
+ * need the accurate operational number to actually run the queue. A
+ * deliberately conservative ETA means the client is pleasantly early rather
+ * than kept waiting past what they were told (3.2).
+ */
+export const CLIENT_WAIT_BUFFER_MIN = 10;
+
+/**
  * Recomputes and persists the estimate for every currently active queue
  * entry. Called after any state change (check-in, call, complete, no-show,
  * leave) so the displayed wait time reflects the new queue (FR-09).

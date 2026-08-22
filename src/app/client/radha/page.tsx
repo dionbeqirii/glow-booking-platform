@@ -4,7 +4,7 @@ import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle } from "@/components/ui";
 import QueueView from "@/components/client/QueueView";
-import { DISPLAY_QUEUE_STATUSES } from "@/lib/queue";
+import { DISPLAY_QUEUE_STATUSES, CLIENT_WAIT_BUFFER_MIN } from "@/lib/queue";
 
 export default async function QueuePage() {
   const session = await requireRole("CLIENT");
@@ -41,7 +41,7 @@ export default async function QueuePage() {
             },
           })
         : null;
-    initialEntry = { ...mine, position };
+    initialEntry = { ...mine, position, estimatedWaitMin: mine.estimatedWaitMin + CLIENT_WAIT_BUFFER_MIN };
   }
 
   return (
