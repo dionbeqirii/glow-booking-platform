@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/rbac";
 import { bookingCreateSchema } from "@/lib/validation";
 import { isSlotBookable, ACTIVE_BOOKING_STATUSES } from "@/lib/availability";
-import { handle, readJson, ApiError } from "@/lib/api";
+import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 
@@ -86,7 +86,7 @@ export async function POST(req: Request) {
       });
     } catch (err) {
       // 23P01 = exclusion_violation: another request took the slot first.
-      if (isExclusionViolation(err)) {
+      if (isPgError(err, "23P01")) {
         throw new ApiError(409, "Termini u zu ndërkohë nga një kërkesë tjetër");
       }
       throw err;
@@ -106,13 +106,4 @@ export async function POST(req: Request) {
 
     return { booking: { id: booking.id } };
   });
-}
-
-function isExclusionViolation(err: unknown): boolean {
-  if (typeof err !== "object" || err === null) return false;
-  const code = (err as { code?: string }).code;
-  if (code === "23P01") return true;
-  // Prisma may wrap the driver error; check the message as a fallback.
-  const msg = (err as { message?: string }).message ?? "";
-  return msg.includes("booking_no_overlap") || msg.includes("23P01");
 }

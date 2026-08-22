@@ -177,8 +177,9 @@ export const bookingUpdateSchema = z
     // for reschedule and assign
     staffId: z.string().min(1).optional(),
     startTime: isoDateTime.optional(),
-    // for status change
-    status: z.enum(["CHECKED_IN", "IN_SERVICE", "COMPLETED", "NO_SHOW"]).optional(),
+    // for status change — the full enum so an admin can also set CONFIRMED
+    // or CANCELLED directly as a correction, not just move forward.
+    status: z.enum(["CONFIRMED", "CHECKED_IN", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
   })
   .refine((v) => v.action !== "reschedule" || (v.staffId && v.startTime), {
     message: "Riplanifikimi kërkon punonjësin dhe orarin e ri",

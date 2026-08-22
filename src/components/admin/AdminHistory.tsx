@@ -2,13 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Badge, EmptyState, buttonStyles } from "@/components/ui";
-import {
-  BOOKING_STATUS_LABEL,
-  BOOKING_STATUS_TONE,
-  QUEUE_STATUS_LABEL,
-  QUEUE_STATUS_TONE,
-} from "@/lib/booking-labels";
+import { Badge, EmptyState } from "@/components/ui";
+import { BOOKING_STATUS_LABEL, QUEUE_STATUS_LABEL, QUEUE_STATUS_TONE } from "@/lib/booking-labels";
 import type { BookingStatus, QueueStatus } from "@prisma/client";
 
 export type StaffOption = { id: string; name: string; serviceIds: string[] };
@@ -35,6 +30,11 @@ export type QueueHistoryRow = {
 };
 
 const ACTIVE_BOOKING: BookingStatus[] = ["CONFIRMED", "CHECKED_IN"];
+
+// The five statuses the admin corrects a booking to from the history table
+// (Check-in is intentionally left out — nothing else in the app sets it,
+// so it never needs to be a target, only a possible starting value).
+const STATUS_TARGETS: BookingStatus[] = ["CONFIRMED", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"];
 
 export default function AdminHistory({
   bookings,
@@ -73,6 +73,29 @@ export default function AdminHistory({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(data.error ?? "Ri-caktimi dështoi");
+      } else {
+        router.refresh();
+      }
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  // Admin correction: set a booking directly to any of the 5 statuses,
+  // bypassing the normal forward-only flow (backend enforces this is
+  // admin-only and re-checks for schedule conflicts).
+  async function setStatus(bookingId: string, status: BookingStatus) {
+    setBusy(bookingId);
+    setError("");
+    try {
+      const res = await fetch(`/api/bookings/${bookingId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", status }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error ?? "Ndryshimi i statusit dështoi");
       } else {
         router.refresh();
       }
@@ -188,9 +211,25 @@ export default function AdminHistory({
                           )}
                         </td>
                         <td className="px-4 py-3">
-                          <Badge tone={BOOKING_STATUS_TONE[b.status]}>
-                            {BOOKING_STATUS_LABEL[b.status]}
-                          </Badge>
+                          <select
+                            value={b.status}
+                            disabled={busy === b.id}
+                            onChange={(e) => setStatus(b.id, e.target.value as BookingStatus)}
+                            aria-label="Ndrysho statusin"
+                            className="rounded-lg border border-line-strong bg-surface px-2 py-1 text-sm text-ink disabled:opacity-50"
+                          >
+                            {/* Check-in only appears if that's the booking's
+                                current status — it's a valid starting value
+                                but not one of the 5 correction targets. */}
+                            {b.status === "CHECKED_IN" && (
+                              <option value="CHECKED_IN">{BOOKING_STATUS_LABEL.CHECKED_IN}</option>
+                            )}
+                            {STATUS_TARGETS.map((s) => (
+                              <option key={s} value={s}>
+                                {BOOKING_STATUS_LABEL[s]}
+                              </option>
+                            ))}
+                          </select>
                         </td>
                       </tr>
                     );

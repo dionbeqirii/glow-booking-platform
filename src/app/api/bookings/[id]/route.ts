@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/rbac";
 import { bookingUpdateSchema } from "@/lib/validation";
 import { isSlotBookable } from "@/lib/availability";
-import { handle, readJson, ApiError } from "@/lib/api";
+import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
@@ -84,8 +84,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
           data: { staffId: data.staffId!, startTime: start, endTime: end, status: "CONFIRMED" },
         });
       } catch (err) {
-        const code = (err as { code?: string }).code;
-        if (code === "23P01") throw new ApiError(409, "Termini u zu ndërkohë");
+        if (isPgError(err, "23P01")) throw new ApiError(409, "Termini u zu ndërkohë");
         throw err;
       }
 
@@ -122,8 +121,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       try {
         await prisma.booking.update({ where: { id }, data: { staffId: newStaffId } });
       } catch (err) {
-        const code = (err as { code?: string }).code;
-        if (code === "23P01") throw new ApiError(409, "Termini u zu ndërkohë");
+        if (isPgError(err, "23P01")) throw new ApiError(409, "Termini u zu ndërkohë");
         throw err;
       }
 
@@ -152,13 +150,28 @@ export async function PATCH(req: Request, { params }: Ctx) {
     }
 
     // ---------- Status change (FR-07) ----------
-    // Only staff and admin move a booking through its service lifecycle.
+    // Staff moves a booking forward through its normal lifecycle. The admin
+    // gets a full correction override — any of the 6 statuses, in any
+    // direction — since they're the one fixing mistakes after the fact.
     if (session.role === "CLIENT") throw new ApiError(403, "Klienti nuk e ndryshon statusin");
     const next = data.status as BookingStatus;
-    if (!NEXT[booking.status].includes(next)) {
+    if (!isAdmin && !NEXT[booking.status].includes(next)) {
       throw new ApiError(400, `Kalimi ${booking.status} → ${next} nuk lejohet`);
     }
-    await prisma.booking.update({ where: { id }, data: { status: next } });
+    if (next === booking.status) return { ok: true };
+
+    try {
+      await prisma.booking.update({ where: { id }, data: { status: next } });
+    } catch (err) {
+      // Reviving a cancelled/completed booking back into an active status
+      // (CONFIRMED/CHECKED_IN/IN_SERVICE) re-enters the exclusion
+      // constraint's watch — a real conflict surfaces here, not earlier.
+      if (isPgError(err, "23P01")) {
+        throw new ApiError(409, "Ky orar është zënë tashmë nga një rezervim tjetër aktiv i këtij punonjësi");
+      }
+      throw err;
+    }
+
     await audit({
       userId: session.userId,
       action: `BOOKING_${next}`,
