@@ -237,7 +237,7 @@ export default function SettingsMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-30 max-h-[80vh] w-80 overflow-y-auto rounded-2xl bg-surface/80 shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-white/60 backdrop-blur-2xl">
+        <div className="absolute right-0 top-11 z-30 max-h-[80vh] w-80 overflow-y-auto rounded-2xl bg-surface/90 shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-white/60 backdrop-blur-sm">
           {/* Account + avatar upload */}
           <div className="flex items-center gap-3 border-b border-line px-4 py-3">
             <div className="relative shrink-0">

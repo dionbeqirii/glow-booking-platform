@@ -20,10 +20,10 @@ const toneChip: Record<Tone, string> = {
 };
 
 const toneCard: Record<Tone, string> = {
-  accent: "bg-gradient-to-br from-accent-soft/55 to-surface/25",
-  gold: "bg-gradient-to-br from-gold-soft/55 to-surface/25",
-  ok: "bg-gradient-to-br from-ok-soft/55 to-surface/25",
-  warn: "bg-gradient-to-br from-warn-soft/50 to-surface/25",
+  accent: "bg-gradient-to-br from-accent-soft/70 to-surface/45",
+  gold: "bg-gradient-to-br from-gold-soft/70 to-surface/45",
+  ok: "bg-gradient-to-br from-ok-soft/70 to-surface/45",
+  warn: "bg-gradient-to-br from-warn-soft/65 to-surface/45",
 };
 
 const stroke = {
@@ -113,7 +113,7 @@ function Kpi({
   return (
     <Link href={href} className="group block">
       <div
-        className={`h-full rounded-2xl ${toneCard[tone]} p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-2xl transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_42px_-16px_rgba(43,38,34,0.32)] hover:ring-white/90`}
+        className={`h-full rounded-2xl ${toneCard[tone]} p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_42px_-16px_rgba(43,38,34,0.32)] hover:ring-white/90`}
       >
         <div className="flex items-center justify-between">
           <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
@@ -145,7 +145,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl bg-surface/40 p-5 shadow-[0_8px_32px_-16px_rgba(43,38,34,0.22)] ring-1 ring-white/70 backdrop-blur-2xl ${className}`}>
+    <section className={`rounded-2xl bg-surface/60 p-5 shadow-[0_8px_32px_-16px_rgba(43,38,34,0.22)] ring-1 ring-white/70 backdrop-blur-md ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-ink">{title}</h2>
@@ -161,7 +161,7 @@ function Panel({
 function MiniStat({ label, value, hint, tone = "accent" }: { label: string; value: string; hint?: string; tone?: Tone }) {
   const dot: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn" };
   return (
-    <div className="rounded-2xl bg-surface/40 p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-2xl">
+    <div className="rounded-2xl bg-surface/60 p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 backdrop-blur-md">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
         <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</p>
@@ -486,7 +486,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       <DashboardGlassBackground />
       <div className="mx-auto max-w-6xl space-y-6 pb-6">
         {/* ---- Hero + period filter ---- */}
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft/60 via-surface/35 to-gold-soft/60 p-6 shadow-[0_16px_48px_-20px_rgba(43,38,34,0.25)] ring-1 ring-white/70 backdrop-blur-2xl">
+        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft/75 via-surface/55 to-gold-soft/75 p-6 shadow-[0_16px_48px_-20px_rgba(43,38,34,0.25)] ring-1 ring-white/70 backdrop-blur-md">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
@@ -499,7 +499,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </p>
             </div>
             {/* Period segmented control */}
-            <div className="inline-flex rounded-xl bg-surface/60 p-1 ring-1 ring-white/60 backdrop-blur-xl">
+            <div className="inline-flex rounded-xl bg-surface/70 p-1 ring-1 ring-white/60 backdrop-blur-sm">
               {PERIODS.map((d) => (
                 <Link
                   key={d}

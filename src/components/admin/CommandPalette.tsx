@@ -154,7 +154,7 @@ export default function CommandPalette() {
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface/85 shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-white/60 backdrop-blur-2xl">
+            <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface/90 shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-white/60 backdrop-blur-sm">
               <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
                 <span className="text-ink-faint">
                   <SearchIcon />
