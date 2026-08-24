@@ -217,7 +217,7 @@ export default function SettingsMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label="Cilësimet e llogarisë"
-        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-white/50 sm:pr-2.5"
+        className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-surface-muted sm:pr-2.5"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-xs font-semibold text-accent">
           {account.avatarUrl ? (
@@ -237,7 +237,7 @@ export default function SettingsMenu({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-30 max-h-[80vh] w-80 overflow-y-auto rounded-2xl bg-surface/90 shadow-[0_1px_2px_rgba(43,38,34,0.04),0_16px_40px_-12px_rgba(43,38,34,0.25)] ring-1 ring-white/60 backdrop-blur-sm">
+        <div className="absolute right-0 top-11 z-30 max-h-[80vh] w-80 overflow-y-auto rounded-2xl bg-surface shadow-[0_1px_2px_rgba(31,42,34,0.04),0_16px_40px_-12px_rgba(31,42,34,0.18)] ring-1 ring-line">
           {/* Account + avatar upload */}
           <div className="flex items-center gap-3 border-b border-line px-4 py-3">
             <div className="relative shrink-0">

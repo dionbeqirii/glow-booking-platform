@@ -138,7 +138,7 @@ export default function CommandPalette() {
         onClick={() => setOpen(true)}
         aria-label="Hap paletën e komandave"
         title="Kërko (Ctrl+K)"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-white/50 hover:text-ink"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
       >
         <SearchIcon />
       </button>
@@ -154,7 +154,7 @@ export default function CommandPalette() {
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface/90 shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-white/60 backdrop-blur-sm">
+            <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface shadow-[0_24px_60px_-20px_rgba(31,42,34,0.35)] ring-1 ring-line">
               <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
                 <span className="text-ink-faint">
                   <SearchIcon />

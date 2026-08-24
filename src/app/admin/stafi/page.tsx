@@ -3,21 +3,27 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import StaffManager, { type StaffRow } from "@/components/admin/StaffManager";
+import { computeStudioStats } from "@/lib/stats";
 
 export default async function StaffPage() {
   const session = await requireRole("ADMIN");
 
-  const staff = await prisma.user.findMany({
-    where: { role: "STAFF" },
-    orderBy: { name: "asc" },
-    select: {
-      id: true,
-      name: true,
-      email: true,
-      phone: true,
-      _count: { select: { staffServices: true, workingHours: true } },
-    },
-  });
+  const [staff, stats] = await Promise.all([
+    prisma.user.findMany({
+      where: { role: "STAFF" },
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        phone: true,
+        _count: { select: { staffServices: true, workingHours: true } },
+      },
+    }),
+    // Last 30 days, same window as the dashboard's own utilization panel.
+    computeStudioStats(30, new Date()),
+  ]);
+  const utilizationById = new Map(stats.utilization.map((u) => [u.staffId, u.utilization]));
 
   const rows: StaffRow[] = staff.map((m) => ({
     id: m.id,
@@ -26,6 +32,7 @@ export default async function StaffPage() {
     phone: m.phone,
     skillCount: m._count.staffServices,
     hoursCount: m._count.workingHours,
+    utilization: utilizationById.get(m.id) ?? 0,
   }));
 
   return (

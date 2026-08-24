@@ -176,7 +176,7 @@ export default function DashboardWidgetGrid({
               if (e.target === e.currentTarget) setModalOpen(false);
             }}
           >
-            <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-surface/90 shadow-[0_24px_60px_-20px_rgba(43,38,34,0.55)] ring-1 ring-white/60 backdrop-blur-sm">
+            <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-surface shadow-[0_24px_60px_-20px_rgba(31,42,34,0.35)] ring-1 ring-line">
               <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
                   <h2 className="text-sm font-semibold text-ink">Rregullo panelin</h2>

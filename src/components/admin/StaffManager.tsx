@@ -12,6 +12,7 @@ export type StaffRow = {
   phone: string | null;
   skillCount: number;
   hoursCount: number;
+  utilization: number; // 0..1, booked vs. available minutes over the last 30 days
 };
 
 const emptyForm = { name: "", email: "", phone: "", password: "" };
@@ -72,17 +73,21 @@ export default function StaffManager({ initial }: { initial: StaffRow[] }) {
               <thead>
                 <tr className="border-b border-line text-left text-ink-soft">
                   <th className="py-2 pr-3 font-medium">Emri</th>
-                  <th className="py-2 pr-3 font-medium">Email</th>
+                  <th className="py-2 pr-3 font-medium">Telefoni</th>
                   <th className="py-2 pr-3 font-medium">Aftësi</th>
                   <th className="py-2 pr-3 font-medium">Orar</th>
+                  <th className="py-2 pr-3 font-medium">Shfrytëzimi</th>
                   <th className="py-2 font-medium"></th>
                 </tr>
               </thead>
               <tbody>
                 {initial.map((m) => (
                   <tr key={m.id} className="border-b border-line last:border-0">
-                    <td className="py-2.5 pr-3 font-medium text-ink">{m.name}</td>
-                    <td className="py-2.5 pr-3 text-ink-soft">{m.email}</td>
+                    <td className="py-2.5 pr-3">
+                      <div className="font-medium text-ink">{m.name}</div>
+                      <div className="text-xs text-ink-faint">{m.email}</div>
+                    </td>
+                    <td className="py-2.5 pr-3 text-ink-soft">{m.phone ?? "—"}</td>
                     <td className="py-2.5 pr-3">{m.skillCount} shërbime</td>
                     <td className="py-2.5 pr-3">
                       {m.hoursCount > 0 ? (
@@ -90,6 +95,14 @@ export default function StaffManager({ initial }: { initial: StaffRow[] }) {
                       ) : (
                         <span className="text-warn">pa orar</span>
                       )}
+                    </td>
+                    <td className="py-2.5 pr-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-9 text-xs font-semibold text-ink">{Math.round(m.utilization * 100)}%</span>
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-muted">
+                          <span className="block h-full rounded-full bg-accent" style={{ width: `${Math.round(m.utilization * 100)}%` }} />
+                        </span>
+                      </div>
                     </td>
                     <td className="py-2.5 text-right whitespace-nowrap">
                       <Link

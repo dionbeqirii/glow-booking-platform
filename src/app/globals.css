@@ -2,41 +2,41 @@
 
 /*
   Design tokens for "Glow By Diellza".
-  The palette is warm and quiet, closer to a skincare studio than to a
-  generic dashboard. Every colour used across the app is defined here, so
-  retheming the product means editing this block and nothing else.
+  Cool, clean SaaS palette — sage green primary, soft blue secondary. Every
+  colour used across the app is defined here, so retheming the product means
+  editing this block and nothing else.
 */
 :root {
   /* Surfaces */
-  --gbd-canvas: #faf7f4; /* page background, warm cream */
+  --gbd-canvas: #f7f9f7; /* page background, cool off-white */
   --gbd-surface: #ffffff; /* cards */
-  --gbd-surface-muted: #f4efea; /* subtle fills, table headers */
+  --gbd-surface-muted: #f0f4f1; /* subtle fills, table headers */
 
   /* Text */
-  --gbd-ink: #2b2622; /* headings and body */
-  --gbd-ink-soft: #6f645c; /* secondary text */
-  --gbd-ink-faint: #a3968c; /* hints, placeholders */
+  --gbd-ink: #1f2a22; /* headings and body */
+  --gbd-ink-soft: #5f6b61; /* secondary text */
+  --gbd-ink-faint: #94a196; /* hints, placeholders */
 
   /* Lines */
-  --gbd-line: #e7ded6;
-  --gbd-line-strong: #d6c9be;
+  --gbd-line: #e2e8e3;
+  --gbd-line-strong: #cdd8ce;
 
-  /* Brand accent: rose */
-  --gbd-accent: #c1546c;
-  --gbd-accent-hover: #a84259;
-  --gbd-accent-soft: #f7e7eb;
+  /* Brand accent: sage green */
+  --gbd-accent: #3f6b4f;
+  --gbd-accent-hover: #335a41;
+  --gbd-accent-soft: #e6f0e9;
 
-  /* Secondary accent: warm gold, used sparingly */
-  --gbd-gold: #c9a227;
-  --gbd-gold-soft: #faf3de;
+  /* Secondary accent: soft blue */
+  --gbd-gold: #4a7fb5;
+  --gbd-gold-soft: #e8f0f8;
 
   /* Status */
-  --gbd-ok: #4b7d68;
-  --gbd-ok-soft: #eaf2ee;
-  --gbd-warn: #9a6b28;
-  --gbd-warn-soft: #fbf1e2;
-  --gbd-danger: #a4453f;
-  --gbd-danger-soft: #f9ecea;
+  --gbd-ok: #2f5741;
+  --gbd-ok-soft: #dcebe1;
+  --gbd-warn: #b8863d;
+  --gbd-warn-soft: #f7ecdb;
+  --gbd-danger: #b3524a;
+  --gbd-danger-soft: #f8e9e7;
 }
 
 @theme inline {
@@ -66,7 +66,10 @@
   --color-danger-soft: var(--gbd-danger-soft);
 
   --font-sans: var(--font-body);
-  --font-display: var(--font-display);
+  /* Clean single-typeface system now (no serif display face) — every
+     explicit font-display className and the h1-h3 rule below both resolve
+     through this one alias, so retypesetting the whole app is this line. */
+  --font-display: var(--font-body);
 }
 
 body {
@@ -74,11 +77,12 @@ body {
   color: var(--gbd-ink);
 }
 
-/* Headings carry the brand voice; body text stays in the sans face. */
+/* Headings use the same clean sans as body text, just bolder. */
 h1,
 h2,
 h3 {
-  font-family: var(--font-display), Georgia, serif;
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.01em;
 }
 
@@ -147,7 +151,7 @@ input.glass-input:-webkit-autofill:active {
 }
 
 .auth-gradient {
-  background-image: linear-gradient(120deg, #faf7f4, #f6ecee, #faf3de, #f6ecee, #faf7f4);
+  background-image: linear-gradient(120deg, #f7f9f7, #eef4f0, #e8f0f8, #eef4f0, #f7f9f7);
   background-size: 300% 300%;
   animation: authGradient 20s ease-in-out infinite;
 }
@@ -156,8 +160,8 @@ input.glass-input:-webkit-autofill:active {
    wordmark and the sign-up line), for legibility without a white haze. */
 .on-video {
   text-shadow:
-    0 1px 3px rgba(43, 38, 34, 0.45),
-    0 2px 12px rgba(43, 38, 34, 0.3);
+    0 1px 3px rgba(31, 42, 34, 0.45),
+    0 2px 12px rgba(31, 42, 34, 0.3);
 }
 
 @media (prefers-reduced-motion: reduce) {

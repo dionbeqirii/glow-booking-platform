@@ -4,7 +4,6 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import DashboardWidgetGrid from "@/components/admin/DashboardWidgetGrid";
-import DashboardGlassBackground from "@/components/admin/DashboardGlassBackground";
 import { computeStudioStats } from "@/lib/stats";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import { normalizeDashboardLayout, type DashboardWidgetId } from "@/lib/dashboard-widgets";
@@ -17,13 +16,6 @@ const toneChip: Record<Tone, string> = {
   gold: "bg-gold-soft text-gold",
   ok: "bg-ok-soft text-ok",
   warn: "bg-warn-soft text-warn",
-};
-
-const toneCard: Record<Tone, string> = {
-  accent: "bg-gradient-to-br from-accent-soft/85 to-surface/65",
-  gold: "bg-gradient-to-br from-gold-soft/85 to-surface/65",
-  ok: "bg-gradient-to-br from-ok-soft/85 to-surface/65",
-  warn: "bg-gradient-to-br from-warn-soft/80 to-surface/65",
 };
 
 const stroke = {
@@ -41,14 +33,6 @@ function pct(n: number) {
 }
 
 /* ---------------- icons ---------------- */
-function Arrow() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" {...stroke}>
-      <path d="M5 12h14" />
-      <path d="m12 5 7 7-7 7" />
-    </svg>
-  );
-}
 function IcClients() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
@@ -112,20 +96,15 @@ function Kpi({
 }) {
   return (
     <Link href={href} className="group block">
-      <div
-        className={`h-full rounded-2xl ${toneCard[tone]} p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70 transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-[0_20px_42px_-16px_rgba(43,38,34,0.32)] hover:ring-white/90`}
-      >
-        <div className="flex items-center justify-between">
-          <span className={`flex h-9 w-9 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
-            {icon}
-          </span>
-          <span className="text-ink-faint opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100">
-            <Arrow />
-          </span>
+      <div className="flex h-full items-center gap-3.5 rounded-2xl border border-line bg-surface p-4 transition-shadow duration-200 hover:shadow-[0_8px_24px_-14px_rgba(31,42,34,0.2)]">
+        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-2xl font-bold leading-tight text-ink">{value}</p>
+          <p className="truncate text-sm font-semibold text-ink">{label}</p>
+          <p className="truncate text-xs text-ink-faint">{sub}</p>
         </div>
-        <p className="mt-3 text-2xl font-bold leading-none text-ink">{value}</p>
-        <p className="mt-1 text-sm font-semibold text-ink">{label}</p>
-        <p className="text-xs text-ink-faint">{sub}</p>
       </div>
     </Link>
   );
@@ -145,7 +124,7 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl bg-surface/75 p-5 shadow-[0_8px_32px_-16px_rgba(43,38,34,0.22)] ring-1 ring-white/70 ${className}`}>
+    <section className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>
       <div className="mb-4 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-ink">{title}</h2>
@@ -161,7 +140,7 @@ function Panel({
 function MiniStat({ label, value, hint, tone = "accent" }: { label: string; value: string; hint?: string; tone?: Tone }) {
   const dot: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn" };
   return (
-    <div className="rounded-2xl bg-surface/75 p-4 shadow-[0_8px_28px_-16px_rgba(43,38,34,0.2)] ring-1 ring-white/70">
+    <div className="rounded-2xl border border-line bg-surface p-4">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
         <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</p>
@@ -483,14 +462,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <DashboardGlassBackground />
       <div className="mx-auto max-w-6xl space-y-6 pb-6">
         {/* ---- Hero + period filter ---- */}
-        <section className="overflow-hidden rounded-3xl bg-gradient-to-br from-accent-soft/85 via-surface/70 to-gold-soft/85 p-6 shadow-[0_16px_48px_-20px_rgba(43,38,34,0.25)] ring-1 ring-white/70">
+        <section className="overflow-hidden rounded-2xl bg-accent-soft p-6">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
-              <h1 className="mt-1 font-display text-2xl font-semibold text-ink">Mirësevjen, {firstName}</h1>
+              <h1 className="mt-1 text-2xl font-bold text-ink">Mirësevjen, {firstName}</h1>
               <p className="mt-1 max-w-lg text-sm text-ink-soft">
                 Sot ke <strong className="font-semibold text-ink">{bookingsToday}</strong>{" "}
                 {bookingsToday === 1 ? "rezervim aktiv" : "rezervime aktive"} dhe{" "}
@@ -499,7 +477,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
               </p>
             </div>
             {/* Period segmented control */}
-            <div className="inline-flex rounded-xl bg-surface/85 p-1 ring-1 ring-white/60">
+            <div className="inline-flex rounded-xl bg-surface p-1 ring-1 ring-line">
               {PERIODS.map((d) => (
                 <Link
                   key={d}
