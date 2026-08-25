@@ -214,6 +214,29 @@ export const DISPLAY_QUEUE_STATUSES: QueueStatus[] = ["WAITING", "CALLED", "IN_S
  */
 export const CLIENT_WAIT_BUFFER_MIN = 10;
 
+export type NextSlot = { time: Date; staffCount: number };
+
+/**
+ * The next few distinct moments today at which at least one staff member
+ * becomes free — reuses the exact same staff-day model the queue simulation
+ * runs on (real shift hours, minus today's confirmed bookings and
+ * in-progress visits), so "next available" reflects actual staffing rather
+ * than a guessed fixed interval. Used for the walk-in queue page's
+ * "Upcoming Available Slots" panel.
+ */
+export async function getNextAvailableSlots(now: Date = new Date(), limit = 5): Promise<NextSlot[]> {
+  const staffDay = await loadStaffDay(now);
+  const byMinute = new Map<number, number>();
+  for (const staff of staffDay.values()) {
+    if (staff.cursor >= staff.shiftEnd) continue;
+    byMinute.set(staff.cursor, (byMinute.get(staff.cursor) ?? 0) + 1);
+  }
+  return [...byMinute.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .slice(0, limit)
+    .map(([minute, staffCount]) => ({ time: fromMinutes(now, minute), staffCount }));
+}
+
 /**
  * Recomputes and persists the estimate for every currently active queue
  * entry. Called after any state change (check-in, call, complete, no-show,

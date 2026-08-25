@@ -17,6 +17,7 @@ export async function GET() {
         name: true,
         email: true,
         phone: true,
+        title: true,
         createdAt: true,
         staffServices: { select: { serviceId: true } },
         _count: { select: { workingHours: true } },
@@ -39,10 +40,11 @@ export async function POST(req: Request) {
         name: data.name,
         email: data.email,
         phone: data.phone,
+        title: data.title,
         passwordHash: await hashPassword(data.password),
         role: "STAFF",
       },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, title: true },
     });
 
     await audit({

@@ -47,9 +47,10 @@ export async function PATCH(req: Request, { params }: Ctx) {
       data: {
         name: data.name,
         phone: data.phone,
+        title: data.title,
         ...(data.password ? { passwordHash: await hashPassword(data.password) } : {}),
       },
-      select: { id: true, name: true, email: true, phone: true },
+      select: { id: true, name: true, email: true, phone: true, title: true },
     });
 
     await audit({

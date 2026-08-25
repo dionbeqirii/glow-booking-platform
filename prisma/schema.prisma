@@ -56,6 +56,7 @@ model User {
   email        String   @unique
   phone        String?
   avatarUrl    String?
+  title        String?  // staff-only: job title/specialization (e.g. "Terapiste e Lëkurës")
   passwordHash String
   role         Role     @default(CLIENT)
   createdAt    DateTime @default(now())
@@ -98,7 +99,7 @@ model Service {
   staffServices StaffService[]
   bookings      Booking[]
   queueEntries  QueueEntry[]
-  offers        Offer[]
+  offerBundles  OfferService[]
   queueVisits   QueueEntryService[]
   waitlist      Waitlist[]
 }
@@ -141,22 +142,39 @@ model PriorityHold {
   @@index([staffId, startTime, endTime])
 }
 
-// A promoted deal built on top of an existing service (its own title, photo
-// and price) — booking an offer reuses the normal service booking flow, so
-// availability/staff-matching logic is never duplicated.
+// A promoted deal bundling one or more existing services (its own title,
+// photo, price and validity window) — booking an offer reuses the normal
+// service booking flow, so availability/staff-matching logic is never
+// duplicated. `validFrom`/`validUntil` are optional: an offer with neither
+// runs indefinitely until the admin deactivates it.
 model Offer {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   title       String
   description String?
   imageUrl    String?
-  price       Decimal  @db.Decimal(10, 2)
-  active      Boolean  @default(true)
-  serviceId   String
-  service     Service  @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  price       Decimal   @db.Decimal(10, 2)
+  durationMin Int       @default(60)
+  validFrom   DateTime?
+  validUntil  DateTime?
+  active      Boolean   @default(true)
+  services    OfferService[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([active])
+}
+
+// Which services are bundled into one offer (many-to-many) — mirrors
+// QueueEntryService's join-table shape.
+model OfferService {
+  id        String @id @default(cuid())
+  offerId   String
+  serviceId String
+
+  offer   Offer   @relation(fields: [offerId], references: [id], onDelete: Cascade)
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([offerId, serviceId])
 }
 
 // Which services each staff member can perform (skills)
@@ -233,6 +251,8 @@ model QueueEntry {
   id                String      @id @default(cuid())
   clientId          String?     // nullable: walk-in without an account
   clientName        String?     // used for walk-ins without an account
+  phone             String?     // used for walk-ins without an account
+  notes             String?     // front-desk note (allergies, preferences, etc.)
   serviceId         String
   staffId           String?     // assigned later
   queueNumber       Int

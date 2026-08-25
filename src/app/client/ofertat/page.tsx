@@ -10,7 +10,7 @@ export default async function ClientOffersPage() {
 
   const offers = await prisma.offer.findMany({
     orderBy: { createdAt: "desc" },
-    include: { service: { select: { id: true, name: true, active: true } } },
+    include: { services: { include: { service: { select: { id: true, name: true, active: true } } } } },
   });
 
   const toCard = (o: (typeof offers)[number]): OfferCardData => ({
@@ -19,13 +19,17 @@ export default async function ClientOffersPage() {
     description: o.description,
     imageUrl: o.imageUrl,
     price: Number(o.price),
-    serviceName: o.service.name,
+    serviceNames: o.services.map((os) => os.service.name),
   });
 
-  // "E kaluar" = the admin disabled the offer, or its underlying service is
-  // no longer active — either way it can't be booked anymore.
-  const active = offers.filter((o) => o.active && o.service.active);
-  const past = offers.filter((o) => !o.active || !o.service.active);
+  // "E kaluar" = the admin disabled the offer, its validity window has
+  // passed, or every underlying service is no longer active — either way
+  // it can't be booked anymore.
+  const now = new Date();
+  const bookable = (o: (typeof offers)[number]) =>
+    o.active && (!o.validUntil || o.validUntil >= now) && o.services.some((os) => os.service.active);
+  const active = offers.filter(bookable);
+  const past = offers.filter((o) => !bookable(o));
 
   return (
     <DashboardShell name={session.name} role={session.role}>
@@ -53,7 +57,7 @@ export default async function ClientOffersPage() {
                     key={o.id}
                     offer={toCard(o)}
                     footer={
-                      <Link href={`/client/rezervo?service=${o.serviceId}`} className={`${buttonStyles.primary} w-full`}>
+                      <Link href={`/client/rezervo?offer=${o.id}`} className={`${buttonStyles.primary} w-full`}>
                         Rezervo
                       </Link>
                     }

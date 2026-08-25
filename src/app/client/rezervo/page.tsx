@@ -5,14 +5,15 @@ import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, EmptyState } from "@/components/ui";
 import BookingFlow from "@/components/client/BookingFlow";
 import WaitlistPanel, { type WaitlistRow } from "@/components/client/WaitlistPanel";
+import { getBookableOffers } from "@/lib/offers-catalog";
 
-type Search = { searchParams: Promise<{ service?: string }> };
+type Search = { searchParams: Promise<{ service?: string; offer?: string }> };
 
 export default async function BookPage({ searchParams }: Search) {
   const session = await requireRole("CLIENT");
   const sp = await searchParams;
 
-  const [services, staff, waitlist] = await Promise.all([
+  const [services, staff, waitlist, offers] = await Promise.all([
     prisma.service.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
@@ -28,6 +29,7 @@ export default async function BookPage({ searchParams }: Search) {
       orderBy: { createdAt: "asc" },
       select: { id: true, service: { select: { name: true } }, staff: { select: { name: true } } },
     }),
+    getBookableOffers(),
   ]);
 
   const serviceRows = services.map((s) => ({ ...s, price: Number(s.price) }));
@@ -60,7 +62,9 @@ export default async function BookPage({ searchParams }: Search) {
           <BookingFlow
             services={serviceRows}
             staff={staffRows}
+            offers={offers}
             initialServiceId={serviceRows.some((s) => s.id === sp.service) ? sp.service : undefined}
+            initialOfferId={offers.some((o) => o.id === sp.offer) ? sp.offer : undefined}
           />
         )}
       </div>

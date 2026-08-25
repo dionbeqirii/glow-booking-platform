@@ -46,6 +46,28 @@ export const QUEUE_STATUS_TONE: Record<QueueStatus, "neutral" | "ok" | "warn"> =
   NO_SHOW: "warn",
 };
 
+// Richer, per-status pill styling — mirrors BOOKING_STATUS_PILL's color
+// language (teal/gold/purple/warn) so the two queues read consistently.
+export const QUEUE_STATUS_PILL: Record<QueueStatus, { bg: string; text: string; dot: string }> = {
+  WAITING: { bg: "bg-surface-muted", text: "text-ink-soft", dot: "bg-ink-faint" },
+  CALLED: { bg: "bg-teal-soft", text: "text-teal", dot: "bg-teal" },
+  IN_SERVICE: { bg: "bg-gold-soft", text: "text-gold", dot: "bg-gold" },
+  COMPLETED: { bg: "bg-purple-soft", text: "text-purple", dot: "bg-purple" },
+  NO_SHOW: { bg: "bg-warn-soft", text: "text-warn", dot: "bg-warn" },
+};
+
+// Shared wait-time severity coloring — used by both the main queue table
+// and the compact "Live Queue" sidebar so a given wait reads the same tone
+// everywhere it appears. Lives here (not queue-catalog.ts) because that
+// module imports prisma and this function is also used from a "use client"
+// component — pulling it in from a server-only module breaks the browser
+// bundle (pg/dns has no client build).
+export function waitTone(min: number): "text-ok" | "text-gold" | "text-danger" {
+  if (min <= 15) return "text-ok";
+  if (min <= 30) return "text-gold";
+  return "text-danger";
+}
+
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
   UNPAID: "Papaguar",
   PAID: "Paguar",

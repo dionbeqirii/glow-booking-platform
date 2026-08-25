@@ -7,8 +7,8 @@ import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 import type { ServiceListRow } from "@/lib/services-catalog";
 
 // Shared create/edit modal — POST when `existing` is absent, PATCH when
-// present. The image upload reuses the same local-disk /api/uploads route
-// OffersManager already established, just pointed at the "sherbimet" folder.
+// present. The image upload reuses the same local-disk /api/uploads route,
+// pointed at the "sherbimet" folder.
 export default function ServiceFormModal({
   existing,
   existingCategories,

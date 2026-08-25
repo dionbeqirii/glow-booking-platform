@@ -59,6 +59,8 @@ export async function GET() {
       select: {
         id: true,
         clientName: true,
+        phone: true,
+        notes: true,
         queueNumber: true,
         checkinAt: true,
         estimatedWaitMin: true,
@@ -66,7 +68,7 @@ export async function GET() {
         calledAt: true,
         service: { select: { name: true, durationMin: true } },
         staff: { select: { id: true, name: true } },
-        client: { select: { name: true } },
+        client: { select: { name: true, phone: true } },
       },
     });
 
@@ -143,6 +145,8 @@ export async function POST(req: Request) {
       data: {
         clientId: session.role === "CLIENT" ? session.userId : null,
         clientName: session.role === "CLIENT" ? null : data.clientName,
+        phone: session.role === "CLIENT" ? null : data.phone,
+        notes: session.role === "CLIENT" ? null : data.notes,
         serviceId: data.serviceId,
         staffId: projection.staffId,
         queueNumber: todayCount + 1,

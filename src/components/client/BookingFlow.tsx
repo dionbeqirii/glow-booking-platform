@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, Field, Alert, buttonStyles, inputStyles } from "../ui";
+import type { BookableOffer } from "@/lib/offers-catalog";
 
 type Service = { id: string; name: string; durationMin: number; price: number };
 type Staff = { id: string; name: string; serviceIds: string[] };
@@ -18,15 +19,21 @@ function todayISO(): string {
 export default function BookingFlow({
   services,
   staff,
+  offers,
   initialServiceId,
+  initialOfferId,
 }: {
   services: Service[];
   staff: Staff[];
+  offers: BookableOffer[];
   initialServiceId?: string;
+  initialOfferId?: string;
 }) {
   const router = useRouter();
 
-  const [serviceId, setServiceId] = useState<string>(initialServiceId ?? "");
+  const initialOffer = offers.find((o) => o.id === initialOfferId);
+  const [serviceId, setServiceId] = useState<string>(initialOffer?.bookingServiceId ?? initialServiceId ?? "");
+  const [offerId, setOfferId] = useState<string>(initialOffer?.id ?? "");
   const [staffId, setStaffId] = useState<string>(""); // "" = no preference
   const [date, setDate] = useState<string>(todayISO());
   const [slots, setSlots] = useState<Slot[]>([]);
@@ -39,6 +46,9 @@ export default function BookingFlow({
   const [joinedWaitlist, setJoinedWaitlist] = useState(false);
 
   const service = services.find((s) => s.id === serviceId);
+  const selectedOffer = offers.find((o) => o.id === offerId);
+  const displayName = selectedOffer?.title ?? service?.name;
+  const displayPrice = selectedOffer?.price ?? service?.price;
   const qualifiedStaff = staff.filter((m) => m.serviceIds.includes(serviceId));
 
   // Reload slots whenever the choice changes.
@@ -131,16 +141,50 @@ export default function BookingFlow({
         {/* Step 1 — service */}
         <div>
           <p className="mb-3 text-sm font-medium text-ink-soft">Hapi 1 — Zgjidh shërbimin</p>
+
+          {offers.length > 0 && (
+            <div className="mb-3 grid gap-2 sm:grid-cols-2">
+              {offers.map((o) => (
+                <button
+                  key={o.id}
+                  onClick={() => {
+                    setServiceId(o.bookingServiceId);
+                    setOfferId(o.id);
+                    setStaffId("");
+                  }}
+                  className={`rounded-xl border-2 px-4 py-3 text-left transition-colors ${
+                    offerId === o.id
+                      ? "border-accent bg-accent-soft"
+                      : "border-accent/30 bg-accent-soft/20 hover:bg-accent-soft/40"
+                  }`}
+                >
+                  <span className="mb-1 inline-block rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                    Ofertë
+                  </span>
+                  <span className="block font-medium text-ink">{o.title}</span>
+                  <span className="block text-xs text-ink-faint">{o.serviceNames.join(" + ")}</span>
+                  <span className="text-sm">
+                    {o.realValue > o.price && (
+                      <span className="mr-1 text-ink-faint line-through">{o.realValue.toFixed(2)} €</span>
+                    )}
+                    <span className="font-semibold text-accent">{o.price.toFixed(2)} €</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+
           <div className="grid gap-2 sm:grid-cols-2">
             {services.map((s) => (
               <button
                 key={s.id}
                 onClick={() => {
                   setServiceId(s.id);
+                  setOfferId("");
                   setStaffId("");
                 }}
                 className={`rounded-xl border px-4 py-3 text-left transition-colors ${
-                  serviceId === s.id
+                  serviceId === s.id && !offerId
                     ? "border-accent bg-accent-soft"
                     : "border-line hover:bg-surface-muted"
                 }`}
@@ -239,7 +283,8 @@ export default function BookingFlow({
         {picked && service && (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-accent-soft px-4 py-3">
             <p className="text-sm text-ink">
-              {service.name} ·{" "}
+              {displayName}
+              {selectedOffer && <span className="font-semibold text-accent"> · {displayPrice?.toFixed(2)} €</span>} ·{" "}
               {new Date(picked.time).toLocaleString("sq", {
                 weekday: "long",
                 day: "numeric",

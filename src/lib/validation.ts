@@ -102,25 +102,57 @@ export const serviceSchema = z.object({
 export const serviceUpdateSchema = serviceSchema.partial();
 
 // Offers — a promoted deal built on top of an existing service.
-export const offerSchema = z.object({
-  title: z.string().trim().min(2, "Titulli është shumë i shkurtër").max(120),
+export const offerSchema = z
+  .object({
+    title: z.string().trim().min(2, "Titulli është shumë i shkurtër").max(120),
+    description: optionalText(500),
+    serviceIds: z.array(z.string().min(1)).min(1, "Zgjidh të paktën një shërbim"),
+    imageUrl: optionalText(500),
+    price: z
+      .number({ message: "Çmimi duhet të jetë numër" })
+      .min(0, "Çmimi nuk mund të jetë negativ")
+      .max(100000),
+    durationMin: z
+      .number({ message: "Kohëzgjatja duhet të jetë numër" })
+      .int()
+      .min(5, "Kohëzgjatja duhet të jetë të paktën 5 minuta")
+      .max(600),
+    validFrom: optionalText(40),
+    validUntil: optionalText(40),
+    active: z.boolean().optional(),
+  })
+  .refine((o) => !o.validFrom || !o.validUntil || new Date(o.validFrom) < new Date(o.validUntil), {
+    message: "Fillimi i vlefshmërisë duhet të jetë para mbarimit",
+    path: ["validUntil"],
+  });
+
+export const offerUpdateSchema = z.object({
+  title: z.string().trim().min(2, "Titulli është shumë i shkurtër").max(120).optional(),
   description: optionalText(500),
-  serviceId: z.string().min(1, "Zgjidh një shërbim"),
+  serviceIds: z.array(z.string().min(1)).min(1, "Zgjidh të paktën një shërbim").optional(),
   imageUrl: optionalText(500),
   price: z
     .number({ message: "Çmimi duhet të jetë numër" })
     .min(0, "Çmimi nuk mund të jetë negativ")
-    .max(100000),
+    .max(100000)
+    .optional(),
+  durationMin: z
+    .number({ message: "Kohëzgjatja duhet të jetë numër" })
+    .int()
+    .min(5, "Kohëzgjatja duhet të jetë të paktën 5 minuta")
+    .max(600)
+    .optional(),
+  validFrom: optionalText(40),
+  validUntil: optionalText(40),
   active: z.boolean().optional(),
 });
-
-export const offerUpdateSchema = offerSchema.partial();
 
 // FR-02 — staff accounts
 export const staffCreateSchema = z.object({
   name: z.string().trim().min(2, "Emri duhet të ketë të paktën 2 shkronja").max(100),
   email: z.string().trim().toLowerCase().email("Email i pavlefshëm"),
   phone: optionalText(30),
+  title: optionalText(60),
   password: z.string().min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere").max(200),
 });
 
@@ -142,6 +174,7 @@ export const quickClientCreateSchema = z.object({
 export const staffUpdateSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   phone: optionalText(30),
+  title: optionalText(60),
   password: z
     .string()
     .min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere")
@@ -241,6 +274,8 @@ export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
 export const queueCheckinSchema = z.object({
   serviceId: z.string().min(1, "Zgjidh një shërbim"),
   clientName: optionalText(100),
+  phone: optionalText(30),
+  notes: optionalText(300),
 });
 
 // FR-11 — move a queue entry through its lifecycle, or leave the queue.

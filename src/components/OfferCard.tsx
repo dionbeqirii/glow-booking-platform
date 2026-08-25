@@ -6,12 +6,15 @@ export type OfferCardData = {
   description: string | null;
   imageUrl: string | null;
   price: number;
-  serviceName: string;
+  serviceNames: string[];
+  /** Sum of the bundled services' own prices — shown struck through when it beats the offer price. */
+  realValue?: number;
 };
 
-// Shared presentation for an offer, used on both the staff (view-only) and
-// client (bookable) pages. `footer` carries the role-specific action area
-// (nothing for staff, a "Rezervo" link for the client).
+// Shared presentation for an offer, used on the admin preview tab and on
+// both the staff (view-only) and client (bookable) pages. `footer` carries
+// the role-specific action area (nothing for staff, a "Rezervo" link for
+// the client, nothing for the admin preview).
 export function OfferCard({ offer, footer, dim = false }: { offer: OfferCardData; footer?: ReactNode; dim?: boolean }) {
   return (
     <div className={`overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)] ${dim ? "opacity-60" : ""}`}>
@@ -32,9 +35,14 @@ export function OfferCard({ offer, footer, dim = false }: { offer: OfferCardData
       <div className="p-4">
         <div className="flex items-start justify-between gap-2">
           <p className="font-semibold text-ink">{offer.title}</p>
-          <p className="shrink-0 font-semibold text-accent">{offer.price.toFixed(2)} €</p>
+          <div className="shrink-0 text-right">
+            {offer.realValue !== undefined && offer.realValue > offer.price && (
+              <p className="text-xs text-ink-faint line-through">{offer.realValue.toFixed(2)} €</p>
+            )}
+            <p className="font-semibold text-accent">{offer.price.toFixed(2)} €</p>
+          </div>
         </div>
-        <p className="mt-0.5 text-xs text-ink-faint">{offer.serviceName}</p>
+        <p className="mt-0.5 text-xs text-ink-faint">{offer.serviceNames.join(" + ")}</p>
         {offer.description && <p className="mt-2 text-sm text-ink-soft">{offer.description}</p>}
         {footer && <div className="mt-3">{footer}</div>}
       </div>

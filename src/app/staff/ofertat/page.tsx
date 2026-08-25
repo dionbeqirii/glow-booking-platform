@@ -13,7 +13,7 @@ export default async function StaffOffersPage() {
   const offers = await prisma.offer.findMany({
     where: { active: true },
     orderBy: { createdAt: "desc" },
-    include: { service: { select: { name: true } } },
+    include: { services: { include: { service: { select: { name: true } } } } },
   });
 
   const rows: OfferCardData[] = offers.map((o) => ({
@@ -22,7 +22,7 @@ export default async function StaffOffersPage() {
     description: o.description,
     imageUrl: o.imageUrl,
     price: Number(o.price),
-    serviceName: o.service.name,
+    serviceNames: o.services.map((os) => os.service.name),
   }));
 
   return (
