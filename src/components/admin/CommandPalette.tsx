@@ -155,7 +155,7 @@ export default function CommandPalette() {
             }}
           >
             <div className="w-full max-w-lg overflow-hidden rounded-2xl bg-surface shadow-[0_24px_60px_-20px_rgba(31,42,34,0.35)] ring-1 ring-line">
-              <div className="flex items-center gap-2.5 border-b border-line px-4 py-3">
+              <div className="flex items-center gap-2.5 border-b border-line px-3.5 py-2.5">
                 <span className="text-ink-faint">
                   <SearchIcon />
                 </span>

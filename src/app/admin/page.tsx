@@ -4,19 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import DashboardWidgetGrid from "@/components/admin/DashboardWidgetGrid";
+import DailyScheduleGrid from "@/components/admin/DailyScheduleGrid";
 import { computeStudioStats } from "@/lib/stats";
+import { getDaySchedule } from "@/lib/schedule";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import { normalizeDashboardLayout, type DashboardWidgetId } from "@/lib/dashboard-widgets";
+import { Kpi, type Tone } from "@/components/ui";
 import type { BookingStatus } from "@prisma/client";
-
-type Tone = "accent" | "gold" | "ok" | "warn";
-
-const toneChip: Record<Tone, string> = {
-  accent: "bg-accent-soft text-accent",
-  gold: "bg-gold-soft text-gold",
-  ok: "bg-ok-soft text-ok",
-  warn: "bg-warn-soft text-warn",
-};
 
 const stroke = {
   fill: "none",
@@ -79,37 +73,6 @@ function IcBookings() {
 }
 
 /* ---------------- building blocks ---------------- */
-function Kpi({
-  href,
-  tone,
-  icon,
-  value,
-  label,
-  sub,
-}: {
-  href: string;
-  tone: Tone;
-  icon: ReactNode;
-  value: number | string;
-  label: string;
-  sub: string;
-}) {
-  return (
-    <Link href={href} className="group block">
-      <div className="flex h-full items-center gap-3.5 rounded-2xl border border-line bg-surface p-4 transition-shadow duration-200 hover:shadow-[0_8px_24px_-14px_rgba(31,42,34,0.2)]">
-        <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
-          {icon}
-        </span>
-        <div className="min-w-0 flex-1">
-          <p className="text-2xl font-bold leading-tight text-ink">{value}</p>
-          <p className="truncate text-sm font-semibold text-ink">{label}</p>
-          <p className="truncate text-xs text-ink-faint">{sub}</p>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 function Panel({
   title,
   hint,
@@ -124,8 +87,8 @@ function Panel({
   className?: string;
 }) {
   return (
-    <section className={`rounded-2xl border border-line bg-surface p-5 ${className}`}>
-      <div className="mb-4 flex items-start justify-between gap-2">
+    <section className={`rounded-xl border border-line bg-surface p-3.5 ${className}`}>
+      <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-sm font-semibold text-ink">{title}</h2>
           {hint && <p className="text-xs text-ink-faint">{hint}</p>}
@@ -138,21 +101,21 @@ function Panel({
 }
 
 function MiniStat({ label, value, hint, tone = "accent" }: { label: string; value: string; hint?: string; tone?: Tone }) {
-  const dot: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn" };
+  const dot: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn", purple: "bg-purple" };
   return (
-    <div className="rounded-2xl border border-line bg-surface p-4">
+    <div className="rounded-xl border border-line bg-surface p-3">
       <div className="flex items-center gap-1.5">
         <span className={`h-1.5 w-1.5 rounded-full ${dot[tone]}`} />
         <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">{label}</p>
       </div>
-      <p className="mt-2 text-2xl font-bold text-ink">{value}</p>
+      <p className="mt-1.5 text-xl font-bold text-ink">{value}</p>
       {hint && <p className="mt-0.5 text-xs text-ink-faint">{hint}</p>}
     </div>
   );
 }
 
 function Bar({ label, right, share, tone = "accent" }: { label: ReactNode; right: ReactNode; share: number; tone?: Tone }) {
-  const fill: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn" };
+  const fill: Record<Tone, string> = { accent: "bg-accent", gold: "bg-gold", ok: "bg-ok", warn: "bg-warn", purple: "bg-purple" };
   return (
     <li>
       <div className="mb-1 flex items-center justify-between gap-3 text-sm">
@@ -228,6 +191,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     topClientRows,
     stats,
     savedLayout,
+    todaySchedule,
+    liveQueueRows,
   ] = await Promise.all([
     prisma.user.count({ where: { role: "CLIENT" } }),
     prisma.user.count({ where: { role: "CLIENT", createdAt: { gte: from } } }),
@@ -253,6 +218,19 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     }),
     computeStudioStats(days, now),
     prisma.dashboardLayout.findUnique({ where: { userId: session.userId }, select: { layout: true } }),
+    getDaySchedule(now),
+    prisma.queueEntry.findMany({
+      where: { status: { in: ["WAITING", "CALLED"] } },
+      orderBy: { checkinAt: "asc" },
+      take: 5,
+      select: {
+        id: true,
+        estimatedWaitMin: true,
+        client: { select: { name: true } },
+        clientName: true,
+        service: { select: { name: true } },
+      },
+    }),
   ]);
   const widgetLayout = normalizeDashboardLayout(savedLayout?.layout);
 
@@ -303,10 +281,71 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <Kpi href="/admin/radha" tone="warn" icon={<IcQueue />} value={queueWaiting} label="Në radhë sot" sub="në pritje / thirrur" />
       </div>
     ),
+    scheduleQueue: (
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <section className="rounded-xl border border-line bg-surface p-3.5">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h2 className="text-sm font-semibold text-ink">Orari ditor</h2>
+              <span className="text-xs text-ink-faint">{dateStr}</span>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3 text-[11px] text-ink-soft">
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" />Rezervuar</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-faint" />Përfunduar</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-danger" />Anuluar</span>
+              </div>
+              <Link href="/admin/kalendari" className="shrink-0 text-xs font-medium text-accent hover:underline">Kalendari →</Link>
+            </div>
+          </div>
+          <DailyScheduleGrid schedule={todaySchedule} />
+        </section>
+
+        <section className="rounded-xl border border-line bg-surface p-3.5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="text-sm font-semibold text-ink">Radha live</h2>
+            <Link
+              href="/admin/radha"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+              Shto
+            </Link>
+          </div>
+          {liveQueueRows.length === 0 ? (
+            <p className="text-sm text-ink-faint">Radha është bosh për momentin.</p>
+          ) : (
+            <ul className="space-y-3">
+              {liveQueueRows.map((q, i) => (
+                <li key={q.id} className="flex items-center gap-3">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-surface-muted text-xs font-bold text-ink-soft">
+                    {i + 1}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold text-ink">{q.client?.name ?? q.clientName ?? "Klient"}</p>
+                    <p className="truncate text-xs text-ink-faint">{q.service.name}</p>
+                  </div>
+                  <span className="flex shrink-0 items-center gap-1 text-xs text-ink-soft">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
+                    {q.estimatedWaitMin} min
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
+            <p className="text-[11px] text-ink-faint">
+              Përditësuar: {now.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" })}
+            </p>
+            <Link href="/admin/radha" className="text-xs font-medium text-accent hover:underline">Shiko radhën →</Link>
+          </div>
+        </section>
+      </div>
+    ),
     trend: (
       <Panel title="Trendi i rezervimeve" hint={`${days} ditët e fundit`}>
         <div className="mb-2 flex items-end gap-2">
-          <p className="text-3xl font-bold leading-none text-ink">{trendTotal}</p>
+          <p className="text-2xl font-bold leading-none text-ink">{trendTotal}</p>
           <p className="pb-0.5 text-xs text-ink-faint">rezervime gjithsej</p>
         </div>
         <div className="h-48">
@@ -462,13 +501,13 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <div className="mx-auto max-w-6xl space-y-6 pb-6">
+      <div className="mx-auto max-w-6xl space-y-4 pb-4">
         {/* ---- Hero + period filter ---- */}
-        <section className="overflow-hidden rounded-2xl bg-accent-soft p-6">
+        <section className="overflow-hidden rounded-xl bg-accent-soft p-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
-              <h1 className="mt-1 text-2xl font-bold text-ink">Mirësevjen, {firstName}</h1>
+              <h1 className="mt-1 text-xl font-bold text-ink">Mirësevjen, {firstName}</h1>
               <p className="mt-1 max-w-lg text-sm text-ink-soft">
                 Sot ke <strong className="font-semibold text-ink">{bookingsToday}</strong>{" "}
                 {bookingsToday === 1 ? "rezervim aktiv" : "rezervime aktive"} dhe{" "}

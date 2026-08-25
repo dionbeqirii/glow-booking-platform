@@ -12,8 +12,18 @@ function fmtHour(h: number): string {
   return `${String(h).padStart(2, "0")}:00`;
 }
 
-export default function DailyScheduleGrid({ schedule }: { schedule: DaySchedule }) {
-  const { staff, hours, bookings } = schedule;
+export default function DailyScheduleGrid({
+  schedule,
+  hiddenStaff,
+  serviceFilter,
+}: {
+  schedule: DaySchedule;
+  hiddenStaff?: Set<string>;
+  serviceFilter?: string;
+}) {
+  const { hours } = schedule;
+  const staff = hiddenStaff ? schedule.staff.filter((s) => !hiddenStaff.has(s.id)) : schedule.staff;
+  const bookings = serviceFilter ? schedule.bookings.filter((b) => b.serviceName === serviceFilter) : schedule.bookings;
 
   if (staff.length === 0) {
     return <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>;
@@ -23,17 +33,21 @@ export default function DailyScheduleGrid({ schedule }: { schedule: DaySchedule 
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="max-h-[420px] overflow-auto rounded-xl border border-line">
       <div
-        className="grid min-w-[560px] overflow-hidden rounded-xl border border-line"
+        className="grid min-w-[560px]"
         style={{ gridTemplateColumns: `56px repeat(${staff.length}, minmax(120px, 1fr))` }}
       >
-        <div className="border-b border-r border-line bg-surface-muted" />
-        {staff.map((s) => (
-          <div key={s.id} className="truncate border-b border-r border-line bg-surface-muted p-2 text-center text-xs font-semibold text-ink last:border-r-0">
-            {s.name}
-          </div>
-        ))}
+        <div className="sticky top-0 z-10 border-b border-r border-line bg-surface-muted p-1.5 text-[10px] font-medium text-ink-faint">Ora</div>
+        {staff.map((s) => {
+          const initials = s.name.slice(0, 2).toUpperCase();
+          return (
+            <div key={s.id} className="sticky top-0 z-10 flex items-center justify-center gap-1.5 truncate border-b border-r border-line bg-surface-muted p-2 text-xs font-semibold text-ink last:border-r-0">
+              <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[9px] font-bold text-accent">{initials}</span>
+              <span className="truncate">{s.name}</span>
+            </div>
+          );
+        })}
 
         {hours.map((h) => (
           <Fragment key={h}>

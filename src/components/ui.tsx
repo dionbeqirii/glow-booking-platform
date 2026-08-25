@@ -1,9 +1,51 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
+
+export type Tone = "accent" | "gold" | "ok" | "warn" | "purple";
+
+export const toneChip: Record<Tone, string> = {
+  accent: "bg-accent-soft text-accent",
+  gold: "bg-gold-soft text-gold",
+  ok: "bg-ok-soft text-ok",
+  warn: "bg-warn-soft text-warn",
+  purple: "bg-purple-soft text-purple",
+};
+
+export function Kpi({
+  href,
+  tone,
+  icon,
+  value,
+  label,
+  sub,
+}: {
+  href: string;
+  tone: Tone;
+  icon: ReactNode;
+  value: number | string;
+  label: string;
+  sub: string;
+}) {
+  return (
+    <Link href={href} className="group block">
+      <div className="flex h-full items-center gap-3 rounded-xl border border-line bg-surface p-3.5 transition-shadow duration-200 hover:shadow-[0_8px_24px_-14px_rgba(31,42,34,0.2)]">
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition-transform duration-300 group-hover:scale-110 ${toneChip[tone]}`}>
+          {icon}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-xl font-bold leading-tight text-ink">{value}</p>
+          <p className="truncate text-sm font-semibold text-ink">{label}</p>
+          <p className="truncate text-xs text-ink-faint">{sub}</p>
+        </div>
+      </div>
+    </Link>
+  );
+}
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <div
-      className={`rounded-2xl bg-surface p-6 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04),0_8px_24px_-12px_rgba(43,38,34,0.10)] ${className}`}
+      className={`rounded-xl bg-surface p-4 ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04),0_8px_24px_-12px_rgba(43,38,34,0.10)] ${className}`}
     >
       {children}
     </div>
@@ -12,8 +54,8 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function SectionTitle({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="mb-5">
-      <h2 className="text-xl font-semibold text-ink">{title}</h2>
+    <div className="mb-4">
+      <h2 className="text-lg font-semibold text-ink">{title}</h2>
       {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
     </div>
   );
@@ -21,15 +63,15 @@ export function SectionTitle({ title, hint }: { title: string; hint?: string }) 
 
 export function PageTitle({ title, hint }: { title: string; hint?: string }) {
   return (
-    <div className="mb-6">
-      <h1 className="text-3xl font-semibold text-ink">{title}</h1>
-      {hint && <p className="mt-1.5 text-sm text-ink-soft">{hint}</p>}
+    <div className="mb-4">
+      <h1 className="text-2xl font-semibold text-ink">{title}</h1>
+      {hint && <p className="mt-1 text-sm text-ink-soft">{hint}</p>}
     </div>
   );
 }
 
 const base =
-  "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
+  "inline-flex items-center justify-center rounded-lg px-3.5 py-2 text-sm font-medium transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed";
 
 export const buttonStyles = {
   primary: `${base} bg-accent text-white hover:bg-accent-hover`,
@@ -39,7 +81,7 @@ export const buttonStyles = {
 };
 
 export const inputStyles =
-  "w-full rounded-xl border border-line-strong bg-surface px-3.5 py-2.5 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent/15";
+  "w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent/15";
 
 export function Field({
   label,
@@ -65,7 +107,7 @@ export function Alert({ message, tone = "error" }: { message: string; tone?: "er
       ? "bg-danger-soft text-danger ring-danger/20"
       : "bg-ok-soft text-ok ring-ok/20";
   return (
-    <p className={`rounded-xl px-4 py-2.5 text-sm ring-1 ${styles}`} role="alert">
+    <p className={`rounded-lg px-3.5 py-2 text-sm ring-1 ${styles}`} role="alert">
       {message}
     </p>
   );
@@ -73,7 +115,7 @@ export function Alert({ message, tone = "error" }: { message: string; tone?: "er
 
 export function EmptyState({ text }: { text: string }) {
   return (
-    <p className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-10 text-center text-sm text-ink-faint">
+    <p className="rounded-lg border border-dashed border-line-strong bg-canvas px-4 py-8 text-center text-sm text-ink-faint">
       {text}
     </p>
   );

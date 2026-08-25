@@ -117,7 +117,7 @@ export default function AdminHistory({
       {/* Toolbar: tabs and the status filter live in one row so they read
           as a single "what am I looking at" control, not two disconnected
           blocks. */}
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-surface p-2 ring-1 ring-line">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-surface p-2 ring-1 ring-line">
         <div className="flex gap-2">
           <button type="button" className={tabBtn(tab === "bookings")} onClick={() => setTab("bookings")}>
             Rezervimet ({bookings.length})
@@ -176,11 +176,11 @@ export default function AdminHistory({
               <table className="w-full text-sm">
                 <thead className="bg-surface-muted text-left text-xs text-ink-soft">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Data</th>
-                    <th className="px-4 py-3 font-medium">Klienti</th>
-                    <th className="px-4 py-3 font-medium">Shërbimi</th>
-                    <th className="px-4 py-3 font-medium">Punonjësi</th>
-                    <th className="px-4 py-3 font-medium">Statusi</th>
+                    <th className="px-3 py-2 font-medium">Data</th>
+                    <th className="px-3 py-2 font-medium">Klienti</th>
+                    <th className="px-3 py-2 font-medium">Shërbimi</th>
+                    <th className="px-3 py-2 font-medium">Punonjësi</th>
+                    <th className="px-3 py-2 font-medium">Statusi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
@@ -189,10 +189,10 @@ export default function AdminHistory({
                     const canReassign = ACTIVE_BOOKING.includes(b.status);
                     return (
                       <tr key={b.id} className="bg-surface">
-                        <td className="whitespace-nowrap px-4 py-3 text-ink">{b.when}</td>
-                        <td className="px-4 py-3 text-ink">{b.clientName}</td>
-                        <td className="px-4 py-3 text-ink-soft">{b.serviceName}</td>
-                        <td className="px-4 py-3">
+                        <td className="whitespace-nowrap px-3 py-2 text-ink">{b.when}</td>
+                        <td className="px-3 py-2 text-ink">{b.clientName}</td>
+                        <td className="px-3 py-2 text-ink-soft">{b.serviceName}</td>
+                        <td className="px-3 py-2">
                           {canReassign ? (
                             <select
                               value={b.staffId}
@@ -210,7 +210,7 @@ export default function AdminHistory({
                             <span className="text-ink-soft">{b.staffName}</span>
                           )}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-3 py-2">
                           <select
                             value={b.status}
                             disabled={busy === b.id}
@@ -248,23 +248,23 @@ export default function AdminHistory({
               <table className="w-full text-sm">
                 <thead className="bg-surface-muted text-left text-xs text-ink-soft">
                   <tr>
-                    <th className="px-4 py-3 font-medium">Check-in</th>
-                    <th className="px-4 py-3 font-medium">Nr.</th>
-                    <th className="px-4 py-3 font-medium">Klienti</th>
-                    <th className="px-4 py-3 font-medium">Shërbimi</th>
-                    <th className="px-4 py-3 font-medium">Punonjësi</th>
-                    <th className="px-4 py-3 font-medium">Statusi</th>
+                    <th className="px-3 py-2 font-medium">Check-in</th>
+                    <th className="px-3 py-2 font-medium">Nr.</th>
+                    <th className="px-3 py-2 font-medium">Klienti</th>
+                    <th className="px-3 py-2 font-medium">Shërbimi</th>
+                    <th className="px-3 py-2 font-medium">Punonjësi</th>
+                    <th className="px-3 py-2 font-medium">Statusi</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
                   {shownQueue.map((q) => (
                     <tr key={q.id} className="bg-surface">
-                      <td className="whitespace-nowrap px-4 py-3 text-ink">{q.when}</td>
-                      <td className="px-4 py-3 text-ink-soft">{q.queueNumber}</td>
-                      <td className="px-4 py-3 text-ink">{q.clientName}</td>
-                      <td className="px-4 py-3 text-ink-soft">{q.serviceName}</td>
-                      <td className="px-4 py-3 text-ink-soft">{q.staffName ?? "—"}</td>
-                      <td className="px-4 py-3">
+                      <td className="whitespace-nowrap px-3 py-2 text-ink">{q.when}</td>
+                      <td className="px-3 py-2 text-ink-soft">{q.queueNumber}</td>
+                      <td className="px-3 py-2 text-ink">{q.clientName}</td>
+                      <td className="px-3 py-2 text-ink-soft">{q.serviceName}</td>
+                      <td className="px-3 py-2 text-ink-soft">{q.staffName ?? "—"}</td>
+                      <td className="px-3 py-2">
                         <Badge tone={QUEUE_STATUS_TONE[q.status]}>{QUEUE_STATUS_LABEL[q.status]}</Badge>
                       </td>
                     </tr>

@@ -158,6 +158,20 @@ export async function PATCH(req: Request, { params }: Ctx) {
       return { ok: true };
     }
 
+    // ---------- Payment status (admin-tracked, not a payment gateway) ----------
+    if (data.action === "payment") {
+      if (!isAdmin) throw new ApiError(403, "Vetëm administratori ndryshon statusin e pagesës");
+      await prisma.booking.update({ where: { id }, data: { paymentStatus: data.paymentStatus! } });
+      await audit({
+        userId: session.userId,
+        action: "BOOKING_PAYMENT_STATUS_CHANGE",
+        entity: "Booking",
+        entityId: id,
+        details: data.paymentStatus,
+      });
+      return { ok: true };
+    }
+
     // ---------- Status change (FR-07) ----------
     // Staff moves a booking forward through its normal lifecycle. The admin
     // gets a full correction override — any of the 6 statuses, in any

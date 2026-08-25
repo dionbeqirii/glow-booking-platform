@@ -88,7 +88,7 @@ export default function ServicesManager({ initial }: { initial: ServiceRow[] }) 
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
       <Card>
         <SectionTitle title="Katalogu i shërbimeve" hint={`${initial.length} shërbime të regjistruara`} />
         {initial.length === 0 ? (

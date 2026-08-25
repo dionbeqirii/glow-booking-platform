@@ -59,9 +59,14 @@ export async function POST(req: Request) {
     const start = new Date(data.startTime);
     const end = new Date(start.getTime() + service.durationMin * 60000);
 
-    // Clients book for themselves; staff and admin may book on behalf of a
-    // client, but for now the booker is always the current user.
-    const clientId = session.userId;
+    // Clients (and staff) book for themselves; an admin may book on behalf of
+    // any existing client account via the "Termin i Ri" modal.
+    let clientId = session.userId;
+    if (session.role === "ADMIN" && data.clientId) {
+      const targetClient = await prisma.user.findUnique({ where: { id: data.clientId }, select: { role: true } });
+      if (!targetClient || targetClient.role !== "CLIENT") throw new ApiError(404, "Klienti nuk u gjet");
+      clientId = data.clientId;
+    }
 
     const check = await isSlotBookable({
       serviceId: data.serviceId,

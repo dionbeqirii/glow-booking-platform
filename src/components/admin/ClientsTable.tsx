@@ -41,7 +41,7 @@ export default function ClientsTable({ clients }: { clients: ClientRow[] }) {
   }, [q, clients]);
 
   return (
-    <div className="mt-5">
+    <div className="mt-4">
       {/* Toolbar */}
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div className="relative w-full max-w-xs">
@@ -70,11 +70,11 @@ export default function ClientsTable({ clients }: { clients: ClientRow[] }) {
           <table className="w-full min-w-[640px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                <th className="px-4 py-3 font-medium">Klienti</th>
-                <th className="px-4 py-3 font-medium">Kontakti</th>
-                <th className="px-4 py-3 font-medium">Anëtar që nga</th>
-                <th className="px-4 py-3 text-center font-medium">Rezervime</th>
-                <th className="px-4 py-3 font-medium">Vizita e fundit</th>
+                <th className="px-3 py-2 font-medium">Klienti</th>
+                <th className="px-3 py-2 font-medium">Kontakti</th>
+                <th className="px-3 py-2 font-medium">Anëtar që nga</th>
+                <th className="px-3 py-2 text-center font-medium">Rezervime</th>
+                <th className="px-3 py-2 font-medium">Vizita e fundit</th>
               </tr>
             </thead>
             <tbody>
@@ -87,7 +87,7 @@ export default function ClientsTable({ clients }: { clients: ClientRow[] }) {
               ) : (
                 filtered.map((c) => (
                   <tr key={c.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/60">
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <Link href={`/admin/klientet/${c.id}`} className="flex items-center gap-3 hover:underline">
                         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xs font-semibold text-accent">
                           {initials(c.name)}
@@ -95,17 +95,17 @@ export default function ClientsTable({ clients }: { clients: ClientRow[] }) {
                         <span className="font-medium text-ink">{c.name}</span>
                       </Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-3 py-2">
                       <div className="text-ink">{c.email}</div>
                       <div className="text-xs text-ink-faint">{c.phone ?? "—"}</div>
                     </td>
-                    <td className="px-4 py-3 text-ink-soft">{c.joined}</td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-3 py-2 text-ink-soft">{c.joined}</td>
+                    <td className="px-3 py-2 text-center">
                       <span className="inline-flex min-w-7 items-center justify-center rounded-full bg-surface-muted px-2 py-0.5 text-xs font-semibold text-ink">
                         {c.bookings}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-ink-soft">{c.lastVisit ?? <span className="text-ink-faint">Asnjë</span>}</td>
+                    <td className="px-3 py-2 text-ink-soft">{c.lastVisit ?? <span className="text-ink-faint">Asnjë</span>}</td>
                   </tr>
                 ))
               )}

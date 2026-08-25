@@ -26,6 +26,14 @@ enum BookingStatus {
   NO_SHOW
 }
 
+// Admin-tracked "did the client pay" flag — not a payment gateway integration,
+// just a status the studio toggles manually against cash/in-person payment.
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
 enum QueueStatus {
   WAITING
   CALLED
@@ -189,6 +197,7 @@ model Booking {
   startTime DateTime
   endTime   DateTime
   status    BookingStatus @default(CONFIRMED)
+  paymentStatus PaymentStatus @default(UNPAID)
   createdAt DateTime      @default(now())
 
   client  User    @relation("ClientBookings", fields: [clientId], references: [id])

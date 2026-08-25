@@ -148,7 +148,7 @@ export default function DashboardWidgetGrid({
   const rows = layout.filter((w) => widgets[w.id]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-end">
         <button
           type="button"

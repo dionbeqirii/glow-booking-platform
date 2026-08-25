@@ -3,6 +3,7 @@
 // and the client (customize-mode UI), so both agree on what a "widget" is.
 export const DASHBOARD_WIDGET_IDS = [
   "kpi",
+  "scheduleQueue",
   "trend",
   "periodStats",
   "statusBreakdown",
@@ -17,6 +18,7 @@ export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[number];
 
 export const DASHBOARD_WIDGET_LABEL: Record<DashboardWidgetId, string> = {
   kpi: "Kartat kryesore (KPI)",
+  scheduleQueue: "Orari ditor & Radha live",
   trend: "Trendi i rezervimeve",
   periodStats: "Performanca e periudhës",
   statusBreakdown: "Rezervimet sipas statusit",

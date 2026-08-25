@@ -62,7 +62,7 @@ export default function StaffManager({ initial }: { initial: StaffRow[] }) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+    <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
       <Card>
         <SectionTitle title="Stafi" hint={`${initial.length} punonjës të regjistruar`} />
         {initial.length === 0 ? (

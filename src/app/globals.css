@@ -37,6 +37,13 @@
   --gbd-warn-soft: #f7ecdb;
   --gbd-danger: #b3524a;
   --gbd-danger-soft: #f8e9e7;
+
+  /* Extra categorical tones (service/category colour-coding, e.g. the
+     calendar's per-service legend) — not status colours. */
+  --gbd-purple: #6d5a94;
+  --gbd-purple-soft: #ece8f3;
+  --gbd-teal: #2f7a72;
+  --gbd-teal-soft: #dcede9;
 }
 
 @theme inline {
@@ -64,6 +71,11 @@
   --color-warn-soft: var(--gbd-warn-soft);
   --color-danger: var(--gbd-danger);
   --color-danger-soft: var(--gbd-danger-soft);
+
+  --color-purple: var(--gbd-purple);
+  --color-purple-soft: var(--gbd-purple-soft);
+  --color-teal: var(--gbd-teal);
+  --color-teal-soft: var(--gbd-teal-soft);
 
   --font-sans: var(--font-body);
   /* Clean single-typeface system now (no serif display face) — every

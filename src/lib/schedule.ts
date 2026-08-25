@@ -13,13 +13,16 @@ export type ScheduleBooking = {
 
 export type DaySchedule = {
   staff: { id: string; name: string }[];
+  services: { id: string; name: string }[];
   hours: number[]; // e.g. [9, 10, ..., 18] — the grid's row labels
   bookings: ScheduleBooking[];
 };
 
 // Real data for a "daily schedule" grid (staff columns x hourly rows) — shared
 // by the admin Kalendari page and the dashboard's compact widget version, so
-// both stay backed by the same query instead of drifting.
+// both stay backed by the same query instead of drifting. `services` is
+// included alongside `staff` so the Kalendari page's filter/legend sidebar
+// can render the same way regardless of which view (day/week/month) is active.
 export async function getDaySchedule(date: Date): Promise<DaySchedule> {
   const dayStart = new Date(date);
   dayStart.setHours(0, 0, 0, 0);
@@ -27,8 +30,9 @@ export async function getDaySchedule(date: Date): Promise<DaySchedule> {
   dayEnd.setDate(dayEnd.getDate() + 1);
   const weekday = dayStart.getDay();
 
-  const [staff, bookings, hours] = await Promise.all([
+  const [staff, services, bookings, hours] = await Promise.all([
     prisma.user.findMany({ where: { role: "STAFF" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
+    prisma.service.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.booking.findMany({
       where: { startTime: { gte: dayStart, lt: dayEnd } },
       orderBy: { startTime: "asc" },
@@ -59,6 +63,7 @@ export async function getDaySchedule(date: Date): Promise<DaySchedule> {
 
   return {
     staff,
+    services,
     hours: hourRange,
     bookings: bookings.map((b) => ({
       id: b.id,

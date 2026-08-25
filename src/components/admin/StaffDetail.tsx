@@ -100,7 +100,7 @@ export default function StaffDetail({
   }
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-4">
       {msg && <Alert message={msg.text} tone={msg.tone} />}
 
       {/* ---- Skills (FR-02) ---- */}

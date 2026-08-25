@@ -9,6 +9,8 @@ export type Tab = { label: string; href: string };
 export const TABS: Record<string, Tab[]> = {
   ADMIN: [
     { label: "Paneli", href: "/admin" },
+    { label: "Kalendari", href: "/admin/kalendari" },
+    { label: "Terminet", href: "/admin/terminet" },
     { label: "Shërbimet", href: "/admin/sherbimet" },
     { label: "Ofertat", href: "/admin/ofertat" },
     { label: "Stafi", href: "/admin/stafi" },
@@ -48,6 +50,21 @@ function TabIcon({ label }: { label: string }) {
           <rect x="14" y="3" width="7" height="7" rx="1.5" />
           <rect x="3" y="14" width="7" height="7" rx="1.5" />
           <rect x="14" y="14" width="7" height="7" rx="1.5" />
+        </svg>
+      );
+    case "Kalendari":
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
+        </svg>
+      );
+    case "Terminet":
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+          <path d="M9 11.5 11 13.5 15.5 9" />
+          <rect x="3" y="4" width="18" height="18" rx="2" />
+          <path d="M16 2v4M8 2v4M3 10h18" />
         </svg>
       );
     case "Shërbimet":
@@ -143,7 +160,7 @@ export default function Sidebar({ role }: { role: string }) {
           <Link
             key={t.href}
             href={t.href}
-            className={`flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors ${
+            className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-colors ${
               active ? "bg-accent-soft font-semibold text-accent" : "font-medium text-ink-soft hover:bg-surface-muted hover:text-ink"
             }`}
           >

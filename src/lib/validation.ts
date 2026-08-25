@@ -122,6 +122,21 @@ export const staffCreateSchema = z.object({
   password: z.string().min(8, "Fjalëkalimi duhet të ketë të paktën 8 karaktere").max(200),
 });
 
+// Admin "Termin i Ri" modal — register a brand-new client inline (no
+// self-chosen password; email is optional, unlike self-registration).
+export const quickClientCreateSchema = z.object({
+  firstName: z.string().trim().min(1, "Emri është i detyrueshëm").max(60),
+  lastName: z.string().trim().min(1, "Mbiemri është i detyrueshëm").max(60),
+  phone: z.string().trim().min(1, "Numri i telefonit është i detyrueshëm").max(30),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Email i pavlefshëm")
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+});
+
 export const staffUpdateSchema = z.object({
   name: z.string().trim().min(2).max(100).optional(),
   phone: optionalText(30),
@@ -179,22 +194,28 @@ const isoDateTime = z
   .refine((s) => !Number.isNaN(Date.parse(s)), "Data/ora nuk është e vlefshme");
 
 // FR-04/05 — a client creates a booking for a concrete service, staff and time.
+// `clientId` is optional and only ever honoured for an ADMIN caller (booking
+// on behalf of an existing client from the admin "Termin i Ri" modal); a
+// client or staff caller always books for themselves regardless of this field.
 export const bookingCreateSchema = z.object({
   serviceId: z.string().min(1, "Zgjidh një shërbim"),
   staffId: z.string().min(1, "Zgjidh një punonjës"),
   startTime: isoDateTime,
+  clientId: z.string().min(1).optional(),
 });
 
 // FR-06/07/12 — cancel, reschedule, reassign staff, or change status.
 export const bookingUpdateSchema = z
   .object({
-    action: z.enum(["cancel", "reschedule", "assign", "status"]),
+    action: z.enum(["cancel", "reschedule", "assign", "status", "payment"]),
     // for reschedule and assign
     staffId: z.string().min(1).optional(),
     startTime: isoDateTime.optional(),
     // for status change — the full enum so an admin can also set CONFIRMED
     // or CANCELLED directly as a correction, not just move forward.
     status: z.enum(["CONFIRMED", "CHECKED_IN", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"]).optional(),
+    // for payment — an admin-tracked flag, not a payment gateway integration.
+    paymentStatus: z.enum(["UNPAID", "PAID", "REFUNDED"]).optional(),
   })
   .refine((v) => v.action !== "reschedule" || (v.staffId && v.startTime), {
     message: "Riplanifikimi kërkon punonjësin dhe orarin e ri",
@@ -204,6 +225,9 @@ export const bookingUpdateSchema = z
   })
   .refine((v) => v.action !== "status" || v.status, {
     message: "Ndryshimi i statusit kërkon statusin e ri",
+  })
+  .refine((v) => v.action !== "payment" || v.paymentStatus, {
+    message: "Ndryshimi i pagesës kërkon statusin e ri",
   });
 
 export type BookingCreateInput = z.infer<typeof bookingCreateSchema>;
