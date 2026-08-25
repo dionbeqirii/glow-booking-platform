@@ -26,6 +26,8 @@ export async function POST(req: Request) {
       data: {
         name: data.name,
         description: data.description,
+        category: data.category,
+        imageUrl: data.imageUrl,
         durationMin: data.durationMin,
         price: data.price,
         active: data.active ?? true,

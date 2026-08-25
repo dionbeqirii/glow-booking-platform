@@ -4,9 +4,9 @@ import path from "path";
 import { requireRole } from "@/lib/rbac";
 import { handle, ApiError } from "@/lib/api";
 
-// Local image upload for admin-authored content (offer photos). No cloud
-// storage is wired into this project, so files are written under
-// public/uploads — fine for a self-contained thesis demo, not for a
+// Local image upload for admin-authored content (offer photos, service
+// photos). No cloud storage is wired into this project, so files are written
+// under public/uploads — fine for a self-contained thesis demo, not for a
 // multi-instance production deploy (files wouldn't survive a redeploy on
 // most hosts).
 const MAX_BYTES = 5 * 1024 * 1024; // 5 MB
@@ -14,6 +14,12 @@ const ALLOWED: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
+};
+// Fixed allowlist, not a raw client-supplied path — keeps the folder name out
+// of reach of path traversal regardless of what the form sends.
+const FOLDERS: Record<string, string> = {
+  ofertat: "ofertat",
+  sherbimet: "sherbimet",
 };
 
 export async function POST(req: Request) {
@@ -32,7 +38,10 @@ export async function POST(req: Request) {
       throw new ApiError(400, "Skedari nuk duhet të kalojë 5 MB");
     }
 
-    const dir = path.join(process.cwd(), "public", "uploads", "ofertat");
+    const folderKey = form?.get("folder");
+    const folder = FOLDERS[typeof folderKey === "string" ? folderKey : ""] ?? FOLDERS.ofertat;
+
+    const dir = path.join(process.cwd(), "public", "uploads", folder);
     await mkdir(dir, { recursive: true });
 
     // A random filename — never trust the client-supplied name.
@@ -40,6 +49,6 @@ export async function POST(req: Request) {
     const bytes = Buffer.from(await file.arrayBuffer());
     await writeFile(path.join(dir, filename), bytes);
 
-    return { url: `/uploads/ofertat/${filename}` };
+    return { url: `/uploads/${folder}/${filename}` };
   });
 }

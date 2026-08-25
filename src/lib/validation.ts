@@ -85,6 +85,8 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const serviceSchema = z.object({
   name: z.string().trim().min(2, "Emri i shërbimit është shumë i shkurtër").max(120),
   description: optionalText(500),
+  category: optionalText(60),
+  imageUrl: optionalText(500),
   durationMin: z
     .number({ message: "Kohëzgjatja duhet të jetë numër" })
     .int("Kohëzgjatja duhet të jetë numër i plotë")
