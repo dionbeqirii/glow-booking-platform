@@ -501,7 +501,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <div className="mx-auto max-w-6xl space-y-4 pb-4">
+      <div className="mx-auto max-w-none space-y-4 pb-4">
         {/* ---- Hero + period filter ---- */}
         <section className="overflow-hidden rounded-xl bg-accent-soft p-4">
           <div className="flex flex-wrap items-end justify-between gap-4">

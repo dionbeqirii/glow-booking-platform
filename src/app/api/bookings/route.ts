@@ -59,18 +59,21 @@ export async function POST(req: Request) {
     const start = new Date(data.startTime);
     const end = new Date(start.getTime() + service.durationMin * 60000);
 
-    // Clients (and staff) book for themselves; an admin may book on behalf of
-    // any existing client account via the "Termin i Ri" modal.
+    // A client books for themselves. An admin may book on behalf of any
+    // existing client account, for any staff member, via the "Termin i Ri"
+    // modal. Staff may do the same from their own "My Schedule" page, but
+    // only ever onto their own calendar — data.staffId is ignored for them.
     let clientId = session.userId;
-    if (session.role === "ADMIN" && data.clientId) {
+    if ((session.role === "ADMIN" || session.role === "STAFF") && data.clientId) {
       const targetClient = await prisma.user.findUnique({ where: { id: data.clientId }, select: { role: true } });
       if (!targetClient || targetClient.role !== "CLIENT") throw new ApiError(404, "Klienti nuk u gjet");
       clientId = data.clientId;
     }
+    const staffId = session.role === "STAFF" ? session.userId : data.staffId;
 
     const check = await isSlotBookable({
       serviceId: data.serviceId,
-      staffId: data.staffId,
+      staffId,
       start,
       end,
       requestingClientId: clientId,
@@ -83,7 +86,7 @@ export async function POST(req: Request) {
         data: {
           clientId,
           serviceId: data.serviceId,
-          staffId: data.staffId,
+          staffId,
           startTime: start,
           endTime: end,
           status: "CONFIRMED",

@@ -3,14 +3,59 @@ import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
-import { PageTitle, Card, Badge, EmptyState } from "@/components/ui";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from "@/lib/booking-labels";
+import { Kpi, EmptyState } from "@/components/ui";
+import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_PILL } from "@/lib/booking-labels";
+import { serviceColorMap } from "@/lib/service-colors";
 
 function fmtDate(d: Date): string {
   return d.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 function fmtDateTime(d: Date): string {
   return d.toLocaleString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+}
+function initials(name: string): string {
+  return (
+    name
+      .split(/\s+/)
+      .map((w) => w.replace(/[^\p{L}]/gu, ""))
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0].toUpperCase())
+      .join("") || "?"
+  );
+}
+
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+function IcCalendar() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M16 2v4M8 2v4M3 10h18" />
+    </svg>
+  );
+}
+function IcClock() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+function IcStar() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" />
+    </svg>
+  );
+}
+function IcAlert() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+      <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+      <path d="M12 9v4M12 17h.01" />
+    </svg>
+  );
 }
 
 function Star({ filled }: { filled: boolean }) {
@@ -54,6 +99,7 @@ export default async function AdminClientProfilePage({ params }: Ctx) {
         id: true,
         startTime: true,
         status: true,
+        paymentStatus: true,
         service: { select: { name: true } },
         staff: { select: { name: true } },
       },
@@ -71,8 +117,11 @@ export default async function AdminClientProfilePage({ params }: Ctx) {
     }),
   ]);
 
+  const activeBookings = bookings.filter((b) => b.status !== "CANCELLED");
+  const lastVisit = activeBookings[0]?.startTime ?? null;
   const avgRating = feedback.length > 0 ? feedback.reduce((s, f) => s + f.rating, 0) / feedback.length : null;
   const complaints = feedback.filter((f) => f.rating <= 2);
+  const colorByService = serviceColorMap(bookings.map((b) => b.service.name));
 
   return (
     <DashboardShell name={session.name} role={session.role}>
@@ -80,37 +129,55 @@ export default async function AdminClientProfilePage({ params }: Ctx) {
         <Link href="/admin/klientet" className="text-sm text-ink-soft hover:underline">
           ← Klientët
         </Link>
-        <div className="mt-2">
-          <PageTitle title={client.name} hint={`Klient që nga ${fmtDate(client.createdAt)}`} />
+
+        <div className="mt-2 mb-5 flex items-center gap-3">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft text-lg font-semibold text-accent">
+            {initials(client.name)}
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate text-2xl font-semibold text-ink">{client.name}</h1>
+            <p className="text-sm text-ink-soft">{client.email} · {client.phone ?? "Pa telefon"}</p>
+            <p className="text-xs text-ink-faint">Klient që nga {fmtDate(client.createdAt)}</p>
+          </div>
         </div>
 
-        {/* Contact + rating summary */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-3">
-          <Card>
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Kontakti</p>
-            <p className="mt-2 text-sm text-ink">{client.email}</p>
-            <p className="text-sm text-ink-soft">{client.phone ?? "—"}</p>
-          </Card>
-          <Card>
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Rezervime</p>
-            <p className="mt-2 text-2xl font-bold text-ink">{bookings.length}</p>
-          </Card>
-          <Card>
-            <p className="text-xs font-medium uppercase tracking-wide text-ink-faint">Vlerësimi mesatar</p>
-            {avgRating === null ? (
-              <p className="mt-2 text-sm text-ink-faint">Ende pa feedback</p>
-            ) : (
-              <div className="mt-2 flex items-center gap-2">
-                <Stars value={Math.round(avgRating)} />
-                <span className="text-sm font-semibold text-ink">{avgRating.toFixed(1)}</span>
-              </div>
-            )}
-          </Card>
+        <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          <Kpi
+            href={`/admin/klientet/${id}`}
+            tone="accent"
+            icon={<IcCalendar />}
+            value={activeBookings.length}
+            label="Rezervime Gjithsej"
+            sub="Të gjitha kohërat"
+          />
+          <Kpi
+            href={`/admin/klientet/${id}`}
+            tone="gold"
+            icon={<IcClock />}
+            value={lastVisit ? fmtDate(lastVisit) : "—"}
+            label="Vizita e Fundit"
+            sub={lastVisit ? "Rezervimi më i fundit" : "Ende pa vizitë"}
+          />
+          <Kpi
+            href={`/admin/klientet/${id}`}
+            tone="purple"
+            icon={<IcStar />}
+            value={avgRating !== null ? avgRating.toFixed(1) : "—"}
+            label="Vlerësimi Mesatar"
+            sub={feedback.length > 0 ? `${feedback.length} vlerësime` : "Ende pa vlerësime"}
+          />
+          <Kpi
+            href={`/admin/klientet/${id}`}
+            tone="warn"
+            icon={<IcAlert />}
+            value={complaints.length}
+            label="Ankesa"
+            sub="Vlerësime të ulëta"
+          />
         </div>
 
-        {/* Feedback & complaints */}
-        <Card className="mb-6">
-          <h2 className="mb-1 text-sm font-semibold text-ink">Feedback & Ankesa</h2>
+        <div className="mb-5 rounded-xl border border-line bg-surface p-4">
+          <h2 className="mb-1 text-sm font-semibold text-ink">Feedback &amp; Ankesa</h2>
           <p className="mb-4 text-xs text-ink-faint">
             {complaints.length > 0
               ? `${complaints.length} vlerësim${complaints.length === 1 ? "" : "e"} i ulët — trajtoji si ankesa.`
@@ -119,15 +186,13 @@ export default async function AdminClientProfilePage({ params }: Ctx) {
           {feedback.length === 0 ? (
             <EmptyState text="Ende nuk ka lënë feedback." />
           ) : (
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-2.5">
               {feedback.map((f) => {
                 const isComplaint = f.rating <= 2;
                 return (
                   <li
                     key={f.id}
-                    className={`rounded-xl p-3.5 ring-1 ${
-                      isComplaint ? "bg-danger-soft ring-danger/20" : "bg-surface-muted ring-line"
-                    }`}
+                    className={`rounded-xl p-3.5 ring-1 ${isComplaint ? "bg-danger-soft ring-danger/20" : "bg-surface-muted ring-line"}`}
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -148,29 +213,43 @@ export default async function AdminClientProfilePage({ params }: Ctx) {
               })}
             </ul>
           )}
-        </Card>
+        </div>
 
-        {/* Booking history */}
-        <Card>
-          <h2 className="mb-4 text-sm font-semibold text-ink">Historiku i rezervimeve</h2>
+        <div className="rounded-xl border border-line bg-surface p-4">
+          <h2 className="mb-3 text-sm font-semibold text-ink">Historiku i Rezervimeve</h2>
           {bookings.length === 0 ? (
             <EmptyState text="Ende pa rezervime." />
           ) : (
-            <ul className="divide-y divide-line">
-              {bookings.map((b) => (
-                <li key={b.id} className="flex items-center justify-between py-3">
-                  <div>
-                    <p className="text-sm font-medium text-ink">{b.service.name}</p>
-                    <p className="text-xs text-ink-faint">
-                      {fmtDateTime(b.startTime)} · {b.staff.name}
-                    </p>
-                  </div>
-                  <Badge tone={BOOKING_STATUS_TONE[b.status]}>{BOOKING_STATUS_LABEL[b.status]}</Badge>
-                </li>
-              ))}
+            <ul className="flex flex-col gap-1.5">
+              {bookings.map((b) => {
+                const tone = colorByService.get(b.service.name);
+                const statusPill = BOOKING_STATUS_PILL[b.status];
+                const paymentPill = PAYMENT_STATUS_PILL[b.paymentStatus];
+                return (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg px-2 py-2 transition-colors hover:bg-surface-muted/60">
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone?.dot ?? "bg-ink-faint"}`} />
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium text-ink">{b.service.name}</p>
+                        <p className="truncate text-xs text-ink-faint">{fmtDateTime(b.startTime)} · {b.staff.name}</p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${statusPill.bg} ${statusPill.text}`}>
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusPill.dot}`} />
+                        {BOOKING_STATUS_LABEL[b.status]}
+                      </span>
+                      <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${paymentPill.bg} ${paymentPill.text}`}>
+                        <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${paymentPill.dot}`} />
+                        {PAYMENT_STATUS_LABEL[b.paymentStatus]}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
-        </Card>
+        </div>
       </div>
     </DashboardShell>
   );
