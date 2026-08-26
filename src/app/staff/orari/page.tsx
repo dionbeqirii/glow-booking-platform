@@ -2,12 +2,12 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 import { getScheduleForDay, getDaySummary, getUpcomingTimeOff, getQualifiedServices } from "@/lib/staff-schedule";
 import StaffNewAppointmentButton from "@/components/staff/StaffNewAppointmentButton";
 import AddTimeOffButton from "@/components/staff/AddTimeOffButton";
 import RemoveTimeOffButton from "@/components/staff/RemoveTimeOffButton";
 import DateJumpButton from "@/components/staff/DateJumpButton";
+import ScheduleBookingBlock from "@/components/staff/ScheduleBookingBlock";
 
 const HOUR_PX = 44;
 const PX_PER_MIN = HOUR_PX / 60;
@@ -15,17 +15,6 @@ const MIN_BLOCK_PX = 32;
 const DEFAULT_RANGE_START_MIN = 9 * 60;
 const DEFAULT_RANGE_END_MIN = 18 * 60;
 
-function initials(name: string): string {
-  return (
-    name
-      .split(/\s+/)
-      .map((w) => w.replace(/[^\p{L}]/gu, ""))
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((w) => w[0].toUpperCase())
-      .join("") || "?"
-  );
-}
 function minutesSinceMidnight(d: Date): number {
   return d.getHours() * 60 + d.getMinutes();
 }
@@ -224,28 +213,17 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                       );
                     }
 
-                    const pill = BOOKING_STATUS_PILL[item.status];
                     return (
-                      <div
+                      <ScheduleBookingBlock
                         key={item.id}
-                        className={`absolute left-1 right-1 flex items-center gap-2.5 overflow-hidden rounded-lg px-2.5 transition-colors hover:brightness-95 ${pill.bg}`}
-                        style={{ top: topPx, height: heightPx }}
-                      >
-                        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-surface text-[10px] font-semibold text-ink-soft ring-1 ring-line">
-                          {initials(item.clientName)}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium text-ink">{item.clientName}</p>
-                          <p className="truncate text-xs text-ink-faint">{item.serviceName}</p>
-                        </div>
-                        <span className={`shrink-0 rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold ${pill.text}`}>
-                          {BOOKING_STATUS_LABEL[item.status]}
-                        </span>
-                        <span className="hidden shrink-0 text-xs text-ink-faint sm:inline">{timeRangeLabel(item.start, item.end)}</span>
-                        <span className="shrink-0 text-ink-faint">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
-                        </span>
-                      </div>
+                        id={item.id}
+                        clientName={item.clientName}
+                        serviceName={item.serviceName}
+                        status={item.status}
+                        timeRangeLabel={timeRangeLabel(item.start, item.end)}
+                        topPx={topPx}
+                        heightPx={heightPx}
+                      />
                     );
                   })}
                 </div>

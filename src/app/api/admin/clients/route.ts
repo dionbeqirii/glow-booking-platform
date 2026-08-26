@@ -6,15 +6,16 @@ import { handle, readJson, ApiError } from "@/lib/api";
 import { hashPassword } from "@/lib/auth";
 import { audit } from "@/lib/audit";
 
-// Admin "Termin i Ri" modal — register a client on the spot when they don't
-// already have an account. No self-chosen password (a random one is hashed
-// and stored, same as any other account, but never surfaced — this is a
-// passive booking record, not a login the admin hands out); email is
-// optional, so a missing one gets a synthetic, guaranteed-unique placeholder
-// so it can still satisfy the unique constraint every User row needs.
+// The admin's and staff's own "Termin i Ri" modals both use this to register
+// a client on the spot when they don't already have an account. No
+// self-chosen password (a random one is hashed and stored, same as any
+// other account, but never surfaced — this is a passive booking record, not
+// a login the caller hands out); email is optional, so a missing one gets a
+// synthetic, guaranteed-unique placeholder so it can still satisfy the
+// unique constraint every User row needs.
 export async function POST(req: Request) {
   return handle(async () => {
-    const session = await requireRole("ADMIN");
+    const session = await requireRole("ADMIN", "STAFF");
     const data = quickClientCreateSchema.parse(await readJson(req));
 
     const name = `${data.firstName} ${data.lastName}`.trim();
