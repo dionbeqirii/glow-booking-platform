@@ -89,17 +89,30 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-export default function NewClientButton() {
+export default function NewClientButton({ variant = "pill" }: { variant?: "pill" | "row" }) {
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        Klient i Ri
-      </button>
+      {variant === "pill" ? (
+        <button
+          onClick={() => setOpen(true)}
+          className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+          Klient i Ri
+        </button>
+      ) : (
+        <button
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-2.5 rounded-lg px-1 py-1.5 text-left text-xs font-medium text-ink transition-colors hover:bg-surface-muted"
+        >
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
+          </span>
+          <span className="min-w-0 flex-1 truncate">Klient i Ri</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-faint" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
+        </button>
+      )}
       {open && <NewClientModal onClose={() => setOpen(false)} />}
     </>
   );

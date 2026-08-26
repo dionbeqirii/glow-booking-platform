@@ -125,6 +125,29 @@ export async function getQueueSlots(now = new Date(), limit = 5): Promise<QueueS
   return slots.map((s) => ({ timeLabel: s.time.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }) }));
 }
 
+export type RecentlyServed = { id: string; clientName: string; serviceName: string; servedAtLabel: string };
+
+export async function getRecentlyServed(limit = 5): Promise<RecentlyServed[]> {
+  const entries = await prisma.queueEntry.findMany({
+    where: { status: "COMPLETED", completedAt: { not: null } },
+    orderBy: { completedAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      completedAt: true,
+      clientName: true,
+      client: { select: { name: true } },
+      service: { select: { name: true } },
+    },
+  });
+  return entries.map((e) => ({
+    id: e.id,
+    clientName: e.client?.name ?? e.clientName ?? "Klient pa emër",
+    serviceName: e.service.name,
+    servedAtLabel: e.completedAt!.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+  }));
+}
+
 export type QueueInsight = { icon: "walkin" | "alert" | "slot"; text: string; timeLabel: string };
 
 const LONG_WAIT_THRESHOLD_MIN = 45;
