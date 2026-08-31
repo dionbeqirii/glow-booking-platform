@@ -6,6 +6,7 @@ import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { offerFreedSlotToWaitlist } from "@/lib/waitlist";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
 
@@ -205,6 +206,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
       entity: "Booking",
       entityId: id,
     });
+    if (next === "COMPLETED") {
+      await awardLoyaltyPoints(booking.clientId, Number(booking.service.price));
+    }
     // Keep the client informed of every lifecycle move on their booking (FR-13).
     await notify({
       userId: booking.clientId,

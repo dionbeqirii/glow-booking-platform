@@ -60,6 +60,7 @@ model User {
   passwordHash String
   role         Role     @default(CLIENT)
   createdAt    DateTime @default(now())
+  loyaltyPoints Int     @default(0) // client-only: earned on completed visits, 1 point per €1 spent
 
   // staff-side relations
   staffServices  StaffService[]

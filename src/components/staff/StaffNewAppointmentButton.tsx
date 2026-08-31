@@ -7,6 +7,7 @@ import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 type ClientOption = { id: string; name: string; phone: string | null };
 type ServiceOption = { id: string; name: string; durationMin: number; price: number };
+type OfferOption = { id: string; title: string; price: number; realValue: number; bookingServiceId: string };
 type Slot = { time: string; staff: { id: string; name: string }[] };
 
 function todayISO(): string {
@@ -22,11 +23,13 @@ export default function StaffNewAppointmentButton({
   meId,
   clients,
   services,
+  offers = [],
   defaultDate,
 }: {
   meId: string;
   clients: ClientOption[];
   services: ServiceOption[];
+  offers?: OfferOption[];
   defaultDate?: string;
 }) {
   const [open, setOpen] = useState(false);
@@ -40,7 +43,7 @@ export default function StaffNewAppointmentButton({
         Termin i Ri
       </button>
       {open && (
-        <StaffNewAppointmentModal meId={meId} clients={clients} services={services} defaultDate={defaultDate} onClose={() => setOpen(false)} />
+        <StaffNewAppointmentModal meId={meId} clients={clients} services={services} offers={offers} defaultDate={defaultDate} onClose={() => setOpen(false)} />
       )}
     </>
   );
@@ -50,12 +53,14 @@ function StaffNewAppointmentModal({
   meId,
   clients,
   services,
+  offers,
   defaultDate,
   onClose,
 }: {
   meId: string;
   clients: ClientOption[];
   services: ServiceOption[];
+  offers: OfferOption[];
   defaultDate?: string;
   onClose: () => void;
 }) {
@@ -72,6 +77,7 @@ function StaffNewAppointmentModal({
   const [newEmail, setNewEmail] = useState("");
 
   const [serviceId, setServiceId] = useState("");
+  const [offerId, setOfferId] = useState("");
   const [date, setDate] = useState(defaultDate && defaultDate >= todayISO() ? defaultDate : todayISO());
   const [slots, setSlots] = useState<Slot[]>([]);
   const [picked, setPicked] = useState<Slot | null>(null);
@@ -81,6 +87,19 @@ function StaffNewAppointmentModal({
   const [busy, setBusy] = useState(false);
 
   const service = services.find((s) => s.id === serviceId);
+  const selectedOffer = offers.find((o) => o.id === offerId);
+
+  function onServiceSelect(value: string) {
+    if (value.startsWith("offer:")) {
+      const offer = offers.find((o) => o.id === value.slice("offer:".length));
+      if (!offer) return;
+      setServiceId(offer.bookingServiceId);
+      setOfferId(offer.id);
+    } else {
+      setServiceId(value);
+      setOfferId("");
+    }
+  }
 
   const filteredClients = useMemo(() => {
     const q = clientQuery.trim().toLowerCase();
@@ -241,12 +260,38 @@ function StaffNewAppointmentModal({
           </div>
 
           <Field label="Shërbimi" hint="Vetëm shërbimet që je e autorizuar t'i kryesh.">
-            <select value={serviceId} onChange={(e) => setServiceId(e.target.value)} className={inputStyles}>
+            <select
+              value={offerId ? `offer:${offerId}` : serviceId}
+              onChange={(e) => onServiceSelect(e.target.value)}
+              className={inputStyles}
+            >
               <option value="">Zgjidh shërbimin</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
-              ))}
+              {offers.length > 0 ? (
+                <>
+                  <optgroup label="Ofertat">
+                    {offers.map((o) => (
+                      <option key={`offer:${o.id}`} value={`offer:${o.id}`}>
+                        🎁 {o.title} — {o.price.toFixed(2)} €{o.realValue > o.price ? ` (kursim ${(o.realValue - o.price).toFixed(2)} €)` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Shërbimet">
+                    {services.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
+                    ))}
+                  </optgroup>
+                </>
+              ) : (
+                services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
+                ))
+              )}
             </select>
+            {selectedOffer && (
+              <p className="mt-1.5 text-xs text-ink-faint">
+                Do të rezervohet si <span className="font-medium text-ink-soft">{service?.name}</span> ({selectedOffer.title}).
+              </p>
+            )}
           </Field>
 
           <Field label="Data">

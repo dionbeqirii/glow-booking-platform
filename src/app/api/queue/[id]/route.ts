@@ -5,6 +5,7 @@ import { handle, readJson, ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import { refreshQueueEstimates } from "@/lib/queue";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 import type { QueueStatus } from "@prisma/client";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -117,6 +118,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         services,
         total: services.reduce((s, x) => s + x.price, 0),
       };
+      await awardLoyaltyPoints(entry.clientId, invoice.total);
     }
 
     await audit({

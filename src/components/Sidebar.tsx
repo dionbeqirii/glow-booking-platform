@@ -27,10 +27,11 @@ export const TABS: Record<string, Tab[]> = {
     { label: "Statistikat e mia", href: "/staff/statistikat" },
   ],
   CLIENT: [
-    { label: "Terminet", href: "/client" },
+    { label: "Paneli", href: "/client" },
+    { label: "Terminet e Mia", href: "/client/terminet" },
+    { label: "Radha", href: "/client/radha" },
     { label: "Rezervo", href: "/client/rezervo" },
     { label: "Ofertat", href: "/client/ofertat" },
-    { label: "Radha", href: "/client/radha" },
     { label: "Historiku", href: "/client/historiku" },
   ],
 };
@@ -62,6 +63,7 @@ function TabIcon({ label }: { label: string }) {
         </svg>
       );
     case "Terminet":
+    case "Terminet e Mia":
       return (
         <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
           <path d="M9 11.5 11 13.5 15.5 9" />
@@ -130,13 +132,6 @@ function TabIcon({ label }: { label: string }) {
         <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
           <path d="M3 3v18h18" />
           <path d="M7 15v3M12 10v8M17 6v12" />
-        </svg>
-      );
-    case "Terminet":
-      return (
-        <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
-          <rect x="3" y="4" width="18" height="18" rx="2" />
-          <path d="M16 2v4M8 2v4M3 10h18" />
         </svg>
       );
     case "Rezervo":

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { getScheduleForDay, getDaySummary, getUpcomingTimeOff, getQualifiedServices } from "@/lib/staff-schedule";
+import { getBookableOffers } from "@/lib/offers-catalog";
 import StaffNewAppointmentButton from "@/components/staff/StaffNewAppointmentButton";
 import AddTimeOffButton from "@/components/staff/AddTimeOffButton";
 import RemoveTimeOffButton from "@/components/staff/RemoveTimeOffButton";
@@ -102,13 +103,19 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
   const date = parseISODate(sp.date);
   const isToday = toISODate(date) === toISODate(now);
 
-  const [schedule, summary, upcomingBreaks, services, clients] = await Promise.all([
+  const [schedule, summary, upcomingBreaks, services, clients, bookableOffers] = await Promise.all([
     getScheduleForDay(session.userId, date),
     getDaySummary(session.userId, date),
     getUpcomingTimeOff(session.userId, now),
     getQualifiedServices(session.userId),
     prisma.user.findMany({ where: { role: "CLIENT" }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true } }),
+    getBookableOffers(now),
   ]);
+
+  // Only offers this staff member is actually qualified to deliver — same
+  // "authorized services only" rule the modal's own service list follows.
+  const qualifiedServiceIds = new Set(services.map((s) => s.id));
+  const offers = bookableOffers.filter((o) => qualifiedServiceIds.has(o.bookingServiceId));
 
   let rangeStart = DEFAULT_RANGE_START_MIN;
   let rangeEnd = DEFAULT_RANGE_END_MIN;
@@ -163,7 +170,7 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
             <select className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent" defaultValue="day">
               <option value="day">Ditë</option>
             </select>
-            <StaffNewAppointmentButton meId={session.userId} clients={clients} services={services} defaultDate={toISODate(date)} />
+            <StaffNewAppointmentButton meId={session.userId} clients={clients} services={services} offers={offers} defaultDate={toISODate(date)} />
           </div>
         </div>
 

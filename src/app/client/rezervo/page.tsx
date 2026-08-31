@@ -48,7 +48,7 @@ export default async function BookPage({ searchParams }: Search) {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-3xl">
         <Link href="/client" className="text-sm text-ink-soft hover:underline">
-          ← Terminet e mia
+          ← Paneli
         </Link>
         <div className="mt-2">
           <PageTitle title="Rezervo një termin" hint="Zgjidh shërbimin, punonjësen dhe orarin që të përshtatet." />

@@ -16,7 +16,7 @@ export type OfferListRow = {
   validUntil: string | null;
   active: boolean;
   status: OfferDisplayStatus;
-  services: { id: string; name: string; price: number }[];
+  services: { id: string; name: string; price: number; description: string | null }[];
   realValue: number;
 };
 
@@ -40,11 +40,16 @@ export async function getOffersList(filters: OfferListFilters, now = new Date())
   const offers = await prisma.offer.findMany({
     where,
     orderBy: { createdAt: "desc" },
-    include: { services: { include: { service: { select: { id: true, name: true, price: true } } } } },
+    include: { services: { include: { service: { select: { id: true, name: true, price: true, description: true } } } } },
   });
 
   const rows = offers.map((o) => {
-    const services = o.services.map((os) => ({ id: os.service.id, name: os.service.name, price: Number(os.service.price) }));
+    const services = o.services.map((os) => ({
+      id: os.service.id,
+      name: os.service.name,
+      price: Number(os.service.price),
+      description: os.service.description,
+    }));
     return {
       id: o.id,
       title: o.title,
