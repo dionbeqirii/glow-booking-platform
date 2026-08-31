@@ -75,6 +75,7 @@ export type BookableOffer = {
   price: number;
   realValue: number;
   serviceNames: string[];
+  validUntilLabel: string | null;
   /** The first still-active bundled service — booking an offer books this service underneath. */
   bookingServiceId: string;
 };
@@ -105,6 +106,7 @@ export async function getBookableOffers(now = new Date()): Promise<BookableOffer
       price: Number(o.price),
       realValue: o.services.reduce((sum, os) => sum + Number(os.service.price), 0),
       serviceNames: o.services.map((os) => os.service.name),
+      validUntilLabel: o.validUntil ? o.validUntil.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" }) : null,
       bookingServiceId: firstActive.serviceId,
     });
   }

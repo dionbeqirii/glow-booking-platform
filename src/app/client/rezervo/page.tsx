@@ -2,7 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
-import { PageTitle, EmptyState } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import BookingFlow from "@/components/client/BookingFlow";
 import WaitlistPanel, { type WaitlistRow } from "@/components/client/WaitlistPanel";
 import { getBookableOffers } from "@/lib/offers-catalog";
@@ -17,7 +17,7 @@ export default async function BookPage({ searchParams }: Search) {
     prisma.service.findMany({
       where: { active: true },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, durationMin: true, price: true },
+      select: { id: true, name: true, durationMin: true, price: true, category: true },
     }),
     prisma.user.findMany({
       where: { role: "STAFF" },
@@ -46,12 +46,13 @@ export default async function BookPage({ searchParams }: Search) {
 
   return (
     <DashboardShell name={session.name} role={session.role}>
-      <div className="mx-auto max-w-3xl">
+      <div className="mx-auto max-w-none">
         <Link href="/client" className="text-sm text-ink-soft hover:underline">
           ← Paneli
         </Link>
-        <div className="mt-2">
-          <PageTitle title="Rezervo një termin" hint="Zgjidh shërbimin, punonjësen dhe orarin që të përshtatet." />
+        <div className="mt-2 mb-4">
+          <h1 className="text-xl font-bold text-ink">Rezervo një termin</h1>
+          <p className="text-sm text-ink-soft">Zgjidh shërbimin, punonjësen dhe orarin që të përshtatet.</p>
         </div>
 
         <WaitlistPanel initial={waitlistRows} />
