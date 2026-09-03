@@ -52,7 +52,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
   );
 }
 
-function ReadOnlyStars({ value }: { value: number }) {
+export function ReadOnlyStars({ value }: { value: number }) {
   return (
     <div className="flex gap-0.5 text-gold" aria-label={`${value} nga 5 yje`}>
       {[1, 2, 3, 4, 5].map((n) => (
@@ -62,7 +62,7 @@ function ReadOnlyStars({ value }: { value: number }) {
   );
 }
 
-function FeedbackForm({ bookingId }: { bookingId: string }) {
+export function FeedbackForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -115,7 +115,7 @@ function FeedbackForm({ bookingId }: { bookingId: string }) {
   );
 }
 
-function FeedbackDisplay({ rating, comment, bookingId }: { rating: number; comment: string | null; bookingId: string }) {
+export function FeedbackDisplay({ rating, comment, bookingId }: { rating: number; comment: string | null; bookingId: string }) {
   const [editing, setEditing] = useState(false);
   if (editing) return <FeedbackForm bookingId={bookingId} />;
   return (

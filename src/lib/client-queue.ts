@@ -2,6 +2,42 @@ import { prisma } from "./prisma";
 import { DISPLAY_QUEUE_STATUSES, CLIENT_WAIT_BUFFER_MIN } from "./queue";
 import type { QueueStatus } from "@prisma/client";
 
+const FINISHED_QUEUE_STATUSES: QueueStatus[] = ["COMPLETED", "NO_SHOW"];
+
+export type QueueHistoryRow = {
+  id: string;
+  whenLabel: string;
+  status: QueueStatus;
+  serviceName: string;
+  staffName: string | null;
+};
+
+// Past walk-in (no-appointment) visits — a separate real event from a
+// Booking, so it's shown as its own section in the client's history rather
+// than folded into the booking-status tabs.
+export async function getClientQueueHistory(clientId: string): Promise<QueueHistoryRow[]> {
+  const entries = await prisma.queueEntry.findMany({
+    where: { clientId, status: { in: FINISHED_QUEUE_STATUSES } },
+    orderBy: { checkinAt: "desc" },
+    take: 50,
+    select: {
+      id: true,
+      checkinAt: true,
+      status: true,
+      service: { select: { name: true } },
+      staff: { select: { name: true } },
+    },
+  });
+
+  return entries.map((e) => ({
+    id: e.id,
+    whenLabel: e.checkinAt.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    status: e.status,
+    serviceName: e.service.name,
+    staffName: e.staff?.name ?? null,
+  }));
+}
+
 export type ClientQueueLiveRow = {
   id: string;
   position: number;

@@ -14,11 +14,13 @@ export type AppointmentRow = {
   serviceId: string;
   serviceName: string;
   serviceDescription: string | null;
+  serviceImageUrl: string | null;
   serviceDuration: number;
   staffId: string;
   staffName: string;
   staffTitle: string | null;
   canManage: boolean;
+  feedback: { rating: number; comment: string | null } | null;
 };
 
 export async function getClientAppointments(clientId: string, now = new Date()): Promise<AppointmentRow[]> {
@@ -31,8 +33,9 @@ export async function getClientAppointments(clientId: string, now = new Date()):
       startTime: true,
       status: true,
       serviceId: true,
-      service: { select: { name: true, description: true, durationMin: true } },
+      service: { select: { name: true, description: true, durationMin: true, imageUrl: true } },
       staff: { select: { id: true, name: true, title: true } },
+      feedback: { select: { rating: true, comment: true } },
     },
   });
 
@@ -46,10 +49,12 @@ export async function getClientAppointments(clientId: string, now = new Date()):
     serviceId: b.serviceId,
     serviceName: b.service.name,
     serviceDescription: b.service.description,
+    serviceImageUrl: b.service.imageUrl,
     serviceDuration: b.service.durationMin,
     staffId: b.staff.id,
     staffName: b.staff.name,
     staffTitle: b.staff.title,
     canManage: b.startTime.getTime() > now.getTime() && (ACTIVE_BOOKING_STATUSES as string[]).includes(b.status),
+    feedback: b.feedback,
   }));
 }
