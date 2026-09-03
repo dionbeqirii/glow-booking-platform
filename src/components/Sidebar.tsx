@@ -17,6 +17,7 @@ export const TABS: Record<string, Tab[]> = {
     { label: "Klientët", href: "/admin/klientet" },
     { label: "Radha", href: "/admin/radha" },
     { label: "Historiku", href: "/admin/historiku" },
+    { label: "Audit Log", href: "/admin/audit-log" },
   ],
   STAFF: [
     { label: "Paneli", href: "/staff" },
@@ -125,6 +126,14 @@ function TabIcon({ label }: { label: string }) {
           <path d="M3 12a9 9 0 1 0 3-6.7" />
           <path d="M3 5v5h5" />
           <path d="M12 8v4l3 2" />
+        </svg>
+      );
+    case "Audit Log":
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" {...stroke} aria-hidden>
+          <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+          <path d="M14 3v5h5" />
+          <path d="M9 13h6M9 17h4" />
         </svg>
       );
     case "Statistikat e mia":

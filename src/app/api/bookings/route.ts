@@ -106,6 +106,7 @@ export async function POST(req: Request) {
       action: "BOOKING_CREATE",
       entity: "Booking",
       entityId: booking.id,
+      details: `${service.name} te ${booking.staff.name}, ${start.toLocaleString("sq")}`,
     });
     await notify({
       userId: clientId,

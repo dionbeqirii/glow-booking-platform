@@ -354,6 +354,7 @@ model AuditLog {
   entity    String
   entityId  String?
   details   String?
+  ipAddress String? // best-effort, from the request's x-forwarded-for/x-real-ip; null when neither header is present (e.g. local dev with no proxy)
   createdAt DateTime @default(now())
 
   user User? @relation(fields: [userId], references: [id])

@@ -50,7 +50,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
         throw new ApiError(400, "Ky rezervim nuk mund të anulohet më");
       }
       await prisma.booking.update({ where: { id }, data: { status: "CANCELLED" } });
-      await audit({ userId: session.userId, action: "BOOKING_CANCEL", entity: "Booking", entityId: id });
+      await audit({ userId: session.userId, action: "BOOKING_CANCEL", entity: "Booking", entityId: id, details: booking.service.name });
       // Tell the other party: the client if staff/admin cancelled, else the staff.
       const recipient = session.userId === booking.clientId ? booking.staffId : booking.clientId;
       await notify({
@@ -98,7 +98,13 @@ export async function PATCH(req: Request, { params }: Ctx) {
         throw err;
       }
 
-      await audit({ userId: session.userId, action: "BOOKING_RESCHEDULE", entity: "Booking", entityId: id });
+      await audit({
+        userId: session.userId,
+        action: "BOOKING_RESCHEDULE",
+        entity: "Booking",
+        entityId: id,
+        details: `${booking.service.name} → ${start.toLocaleString("sq")}`,
+      });
       await notify({
         userId: booking.clientId,
         type: "STATUS_CHANGE",
@@ -205,6 +211,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       action: `BOOKING_${next}`,
       entity: "Booking",
       entityId: id,
+      details: booking.service.name,
     });
     if (next === "COMPLETED") {
       await awardLoyaltyPoints(booking.clientId, Number(booking.service.price));

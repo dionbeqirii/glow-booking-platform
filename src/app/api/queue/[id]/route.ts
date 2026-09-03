@@ -39,7 +39,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       if (entry.status !== "WAITING") throw new ApiError(400, "Vetëm klientët në pritje mund të largohen");
 
       await prisma.queueEntry.delete({ where: { id } });
-      await audit({ userId: session.userId, action: "QUEUE_LEAVE", entity: "QueueEntry", entityId: id });
+      await audit({ userId: session.userId, action: "QUEUE_LEAVE", entity: "QueueEntry", entityId: id, details: entry.service.name });
       await refreshQueueEstimates();
       return { ok: true };
     }
@@ -126,6 +126,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       action: `QUEUE_${next}`,
       entity: "QueueEntry",
       entityId: id,
+      details: entry.service.name,
     });
 
     if (entry.clientId) {
