@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/rbac";
 import { bookingCreateSchema } from "@/lib/validation";
@@ -5,6 +6,8 @@ import { isSlotBookable, ACTIVE_BOOKING_STATUSES } from "@/lib/availability";
 import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { sendTransactionalMail, bookingConfirmationEmail, EMAIL_LOCALE } from "@/lib/mailer";
+import { localize } from "@/lib/localized-content";
 
 // GET — the caller's bookings, scoped by role.
 export async function GET(req: Request) {
@@ -91,7 +94,12 @@ export async function POST(req: Request) {
           endTime: end,
           status: "CONFIRMED",
         },
-        select: { id: true, startTime: true, staff: { select: { name: true } } },
+        select: {
+          id: true,
+          startTime: true,
+          staff: { select: { name: true } },
+          client: { select: { name: true, email: true } },
+        },
       });
     } catch (err) {
       // 23P01 = exclusion_violation: another request took the slot first.
@@ -113,6 +121,23 @@ export async function POST(req: Request) {
       type: "CONFIRMATION",
       message: `Rezervimi u konfirmua për ${service.name} te ${booking.staff.name}, ${start.toLocaleString("sq")}.`,
     });
+
+    // Email confirmation (FR-05) — best-effort, always in English (see
+    // EMAIL_LOCALE), whether they booked it themselves or staff/admin booked
+    // on their behalf.
+    const t = await getTranslations({ locale: EMAIL_LOCALE, namespace: "BookingEmail" });
+    const { subject, html } = bookingConfirmationEmail({
+      t,
+      origin: new URL(req.url).origin,
+      clientName: booking.client.name,
+      serviceName: localize(service.name, service.nameEn, service.nameDe, EMAIL_LOCALE),
+      staffName: booking.staff.name,
+      dateLabel: start.toLocaleDateString(EMAIL_LOCALE, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+      timeLabel: start.toLocaleTimeString(EMAIL_LOCALE, { hour: "2-digit", minute: "2-digit", hour12: false }),
+      durationMin: service.durationMin,
+      price: Number(service.price),
+    });
+    await sendTransactionalMail({ to: booking.client.email, subject, html, logTag: "booking-confirm" });
 
     // They now have an appointment for this service — waiting for one to
     // free up no longer applies (3.3). Ignored if they were never on it.

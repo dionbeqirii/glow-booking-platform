@@ -3,15 +3,23 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-
-const ROLE_LABEL: Record<string, string> = {
-  ADMIN: "Administrator",
-  STAFF: "Staf",
-  CLIENT: "Klient",
-};
+import { useTranslations } from "next-intl";
 
 type Account = { name: string; email: string | null; phone: string | null; role: string; avatarUrl: string | null };
 type Business = { name: string; address: string; phone: string; email: string; description: string };
+
+function roleLabel(role: string, t: (key: string) => string): string {
+  switch (role) {
+    case "ADMIN":
+      return t("roleAdmin");
+    case "STAFF":
+      return t("roleStaff");
+    case "CLIENT":
+      return t("roleClient");
+    default:
+      return role;
+  }
+}
 
 const EMPTY_BUSINESS: Business = { name: "", address: "", phone: "", email: "", description: "" };
 
@@ -24,6 +32,7 @@ export default function SettingsMenu({
   role: string;
   avatarUrl: string | null;
 }) {
+  const t = useTranslations("AccountSettings");
   const router = useRouter();
   const isAdmin = role === "ADMIN";
   const [open, setOpen] = useState(false);
@@ -99,13 +108,13 @@ export default function SettingsMenu({
       const res = await fetch("/api/account/avatar", { method: "POST", body: fd });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg({ tone: "err", text: data.error ?? "Ngarkimi i fotos dështoi" });
+        setMsg({ tone: "err", text: data.error ?? t("photoUploadFailed") });
         return;
       }
       setAccount((a) => ({ ...a, avatarUrl: data.url }));
       router.refresh();
     } catch {
-      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+      setMsg({ tone: "err", text: t("connectionFailed") });
     } finally {
       setUploadingAvatar(false);
       if (avatarInputRef.current) avatarInputRef.current.value = "";
@@ -119,7 +128,7 @@ export default function SettingsMenu({
       const res = await fetch("/api/account/avatar", { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        setMsg({ tone: "err", text: data.error ?? "Heqja e fotos dështoi" });
+        setMsg({ tone: "err", text: data.error ?? t("photoRemoveFailed") });
         return;
       }
       setAccount((a) => ({ ...a, avatarUrl: null }));
@@ -141,14 +150,14 @@ export default function SettingsMenu({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setMsg({ tone: "err", text: data.error ?? "Ruajtja dështoi" });
+        setMsg({ tone: "err", text: data.error ?? t("saveFailed") });
         return;
       }
       setAccount((a) => ({ ...a, ...data.user }));
-      setMsg({ tone: "ok", text: "Të dhënat u ruajtën." });
+      setMsg({ tone: "ok", text: t("profileSaved") });
       router.refresh();
     } catch {
-      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+      setMsg({ tone: "err", text: t("connectionFailed") });
     } finally {
       setBusy(false);
     }
@@ -166,14 +175,14 @@ export default function SettingsMenu({
         body: JSON.stringify({ currentPassword: form.get("currentPassword"), newPassword: form.get("newPassword") }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setMsg({ tone: "err", text: data.error ?? "Ndryshimi dështoi" });
+      if (!res.ok) setMsg({ tone: "err", text: data.error ?? t("passwordChangeFailed") });
       else {
-        setMsg({ tone: "ok", text: "Fjalëkalimi u ndryshua." });
+        setMsg({ tone: "ok", text: t("passwordChanged") });
         (e.target as HTMLFormElement).reset();
         setSection(null);
       }
     } catch {
-      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+      setMsg({ tone: "err", text: t("connectionFailed") });
     } finally {
       setBusy(false);
     }
@@ -190,10 +199,10 @@ export default function SettingsMenu({
         body: JSON.stringify(business),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) setMsg({ tone: "err", text: data.error ?? "Ruajtja dështoi" });
-      else setMsg({ tone: "ok", text: "Të dhënat e biznesit u ruajtën." });
+      if (!res.ok) setMsg({ tone: "err", text: data.error ?? t("saveFailed") });
+      else setMsg({ tone: "ok", text: t("businessDataSaved") });
     } catch {
-      setMsg({ tone: "err", text: "Nuk u lidh dot me serverin" });
+      setMsg({ tone: "err", text: t("connectionFailed") });
     } finally {
       setBusy(false);
     }
@@ -207,7 +216,6 @@ export default function SettingsMenu({
   // Strip a trailing role note like "(Administratore)" so the trigger shows
   // the name once, with the role rendered separately beneath it.
   const displayName = account.name.replace(/\s*\([^)]*\)\s*/g, " ").trim() || account.name;
-  const roleLabel = ROLE_LABEL[account.role] ?? account.role;
 
   return (
     <div className="relative" ref={boxRef}>
@@ -216,7 +224,7 @@ export default function SettingsMenu({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Cilësimet e llogarisë"
+        aria-label={t("accountSettingsAria")}
         className="flex items-center gap-2 rounded-full py-1 pl-1 pr-1.5 transition-colors hover:bg-surface-muted sm:pr-2.5"
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-soft text-xs font-semibold text-accent">
@@ -229,7 +237,7 @@ export default function SettingsMenu({
         </span>
         <span className="hidden leading-tight sm:block">
           <span className="block text-sm font-medium text-ink">{displayName}</span>
-          <span className="block text-xs font-medium text-accent">{roleLabel}</span>
+          <span className="block text-xs font-medium text-accent">{roleLabel(account.role, t)}</span>
         </span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="hidden text-ink-faint sm:block">
           <path d="m6 9 6 6 6-6" />
@@ -253,8 +261,8 @@ export default function SettingsMenu({
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={uploadingAvatar}
-                aria-label="Ndrysho foton e profilit"
-                title="Ndrysho foton"
+                aria-label={t("changePhotoAria")}
+                title={t("changePhotoTitle")}
                 className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white ring-2 ring-surface transition-opacity hover:opacity-90 disabled:opacity-50"
               >
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -272,7 +280,7 @@ export default function SettingsMenu({
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold text-ink">{account.name}</p>
-              <p className="text-xs text-ink-faint">{ROLE_LABEL[account.role] ?? account.role}</p>
+              <p className="text-xs text-ink-faint">{roleLabel(account.role, t)}</p>
               {account.avatarUrl && (
                 <button
                   type="button"
@@ -280,7 +288,7 @@ export default function SettingsMenu({
                   disabled={uploadingAvatar}
                   className="mt-1 text-xs font-medium text-danger hover:underline disabled:opacity-50"
                 >
-                  Hiq foton
+                  {t("removePhoto")}
                 </button>
               )}
             </div>
@@ -288,7 +296,7 @@ export default function SettingsMenu({
 
           <form onSubmit={saveProfile} className="space-y-2 px-4 py-3 text-sm">
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-ink-soft">Emri</span>
+              <span className="mb-1 block text-xs font-medium text-ink-soft">{t("nameLabel")}</span>
               <input
                 value={account.name}
                 onChange={(e) => setAccount((a) => ({ ...a, name: e.target.value }))}
@@ -299,7 +307,7 @@ export default function SettingsMenu({
               />
             </label>
             <label className="block">
-              <span className="mb-1 block text-xs font-medium text-ink-soft">Telefoni</span>
+              <span className="mb-1 block text-xs font-medium text-ink-soft">{t("phoneLabel")}</span>
               <input
                 value={account.phone ?? ""}
                 onChange={(e) => setAccount((a) => ({ ...a, phone: e.target.value }))}
@@ -309,7 +317,7 @@ export default function SettingsMenu({
               />
             </label>
             <p className="flex justify-between gap-3 pt-0.5 text-xs text-ink-faint">
-              <span>Email</span>
+              <span>{t("emailLabel")}</span>
               <span className="truncate">{account.email ?? "—"}</span>
             </p>
             <button
@@ -317,22 +325,22 @@ export default function SettingsMenu({
               disabled={busy}
               className="w-full rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50"
             >
-              {busy ? "Duke ruajtur…" : "Ruaj ndryshimet"}
+              {busy ? t("saving") : t("saveChanges")}
             </button>
           </form>
 
           {/* Change password */}
           <div className="border-t border-line px-4 py-3">
             <button type="button" onClick={() => pickSection("password")} className="flex w-full items-center justify-between text-sm font-medium text-ink hover:text-accent">
-              Ndrysho fjalëkalimin
+              {t("changePasswordToggle")}
               <span className="text-ink-faint">{section === "password" ? "⌄" : "›"}</span>
             </button>
             {section === "password" && (
               <form onSubmit={changePassword} className="mt-2 flex flex-col gap-2">
-                <input name="currentPassword" type="password" required placeholder="Fjalëkalimi aktual" autoComplete="current-password" className={inputCls} />
-                <input name="newPassword" type="password" required minLength={8} placeholder="Fjalëkalimi i ri (min. 8)" autoComplete="new-password" className={inputCls} />
+                <input name="currentPassword" type="password" required placeholder={t("currentPasswordPlaceholder")} autoComplete="current-password" className={inputCls} />
+                <input name="newPassword" type="password" required minLength={8} placeholder={t("newPasswordPlaceholder")} autoComplete="new-password" className={inputCls} />
                 <button type="submit" disabled={busy} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
-                  {busy ? "Duke ruajtur…" : "Ruaj fjalëkalimin"}
+                  {busy ? t("saving") : t("savePassword")}
                 </button>
               </form>
             )}
@@ -342,18 +350,18 @@ export default function SettingsMenu({
           {isAdmin && (
             <div className="border-t border-line px-4 py-3">
               <button type="button" onClick={() => pickSection("business")} className="flex w-full items-center justify-between text-sm font-medium text-ink hover:text-accent">
-                Të dhënat e biznesit
+                {t("businessDetailsToggle")}
                 <span className="text-ink-faint">{section === "business" ? "⌄" : "›"}</span>
               </button>
               {section === "business" && (
                 <form onSubmit={saveBusiness} className="mt-2 flex flex-col gap-2">
-                  <input value={business.name} onChange={(e) => setBusiness((b) => ({ ...b, name: e.target.value }))} required placeholder="Emri i biznesit" className={inputCls} />
-                  <input value={business.address} onChange={(e) => setBusiness((b) => ({ ...b, address: e.target.value }))} placeholder="Adresa" className={inputCls} />
-                  <input value={business.phone} onChange={(e) => setBusiness((b) => ({ ...b, phone: e.target.value }))} placeholder="Telefoni" className={inputCls} />
-                  <input value={business.email} onChange={(e) => setBusiness((b) => ({ ...b, email: e.target.value }))} placeholder="Email" className={inputCls} />
-                  <textarea value={business.description} onChange={(e) => setBusiness((b) => ({ ...b, description: e.target.value }))} placeholder="Përshkrimi" rows={2} className={inputCls} />
+                  <input value={business.name} onChange={(e) => setBusiness((b) => ({ ...b, name: e.target.value }))} required placeholder={t("businessNamePlaceholder")} className={inputCls} />
+                  <input value={business.address} onChange={(e) => setBusiness((b) => ({ ...b, address: e.target.value }))} placeholder={t("addressPlaceholder")} className={inputCls} />
+                  <input value={business.phone} onChange={(e) => setBusiness((b) => ({ ...b, phone: e.target.value }))} placeholder={t("businessPhonePlaceholder")} className={inputCls} />
+                  <input value={business.email} onChange={(e) => setBusiness((b) => ({ ...b, email: e.target.value }))} placeholder={t("businessEmailPlaceholder")} className={inputCls} />
+                  <textarea value={business.description} onChange={(e) => setBusiness((b) => ({ ...b, description: e.target.value }))} placeholder={t("descriptionPlaceholder")} rows={2} className={inputCls} />
                   <button type="submit" disabled={busy} className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover disabled:opacity-50">
-                    {busy ? "Duke ruajtur…" : "Ruaj të dhënat"}
+                    {busy ? t("saving") : t("saveBusinessDetails")}
                   </button>
                 </form>
               )}
@@ -380,7 +388,7 @@ export default function SettingsMenu({
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                 <path d="M16 17l5-5-5-5M21 12H9" />
               </svg>
-              Dil nga llogaria
+              {t("logoutMenuItem")}
             </button>
           </div>
         </div>
@@ -406,9 +414,9 @@ export default function SettingsMenu({
                 <path d="M16 17l5-5-5-5M21 12H9" />
               </svg>
             </span>
-            <h2 className="mt-4 text-lg font-semibold text-ink">Dil nga llogaria?</h2>
+            <h2 className="mt-4 text-lg font-semibold text-ink">{t("logoutModalTitle")}</h2>
             <p className="mt-1.5 text-sm text-ink-soft">
-              A je i sigurt që dëshiron të dalësh? Do të të duhet të kyçesh sërish për të vazhduar.
+              {t("logoutModalBody")}
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -417,7 +425,7 @@ export default function SettingsMenu({
                 disabled={loggingOut}
                 className="flex-1 rounded-xl bg-surface px-4 py-2.5 text-sm font-medium text-ink ring-1 ring-line-strong transition-colors hover:bg-surface-muted disabled:opacity-50"
               >
-                Anulo
+                {t("cancelButton")}
               </button>
               <button
                 type="button"
@@ -425,7 +433,7 @@ export default function SettingsMenu({
                 disabled={loggingOut}
                 className="flex-1 rounded-xl bg-danger px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
               >
-                {loggingOut ? "Duke dalë…" : "Po, dil"}
+                {loggingOut ? t("loggingOut") : t("confirmLogoutButton")}
               </button>
             </div>
           </div>

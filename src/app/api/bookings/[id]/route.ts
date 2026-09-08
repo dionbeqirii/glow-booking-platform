@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession, requireRole } from "@/lib/rbac";
 import { bookingUpdateSchema } from "@/lib/validation";
@@ -5,10 +6,35 @@ import { isSlotBookable, ACTIVE_BOOKING_STATUSES } from "@/lib/availability";
 import { handle, readJson, ApiError, isPgError } from "@/lib/api";
 import { audit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
+import { sendTransactionalMail, bookingCancelledEmail, EMAIL_LOCALE } from "@/lib/mailer";
+import { localize } from "@/lib/localized-content";
 import { offerFreedSlotToWaitlist } from "@/lib/waitlist";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
+
+// Emails the client that their booking was cancelled — only ever called when
+// the actor is staff/admin (a client cancelling their own booking already
+// knows, so no email there). Best-effort, in the client's own locale.
+async function sendCancelledEmail(
+  origin: string,
+  booking: {
+    startTime: Date;
+    client: { name: string; email: string };
+    service: { name: string; nameEn: string | null; nameDe: string | null };
+  }
+): Promise<void> {
+  const t = await getTranslations({ locale: EMAIL_LOCALE, namespace: "BookingEmail" });
+  const { subject, html } = bookingCancelledEmail({
+    t,
+    origin,
+    clientName: booking.client.name,
+    serviceName: localize(booking.service.name, booking.service.nameEn, booking.service.nameDe, EMAIL_LOCALE),
+    dateLabel: booking.startTime.toLocaleDateString(EMAIL_LOCALE, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+    timeLabel: booking.startTime.toLocaleTimeString(EMAIL_LOCALE, { hour: "2-digit", minute: "2-digit", hour12: false }),
+  });
+  await sendTransactionalMail({ to: booking.client.email, subject, html, logTag: "booking-cancel" });
+}
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -32,7 +58,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
     const booking = await prisma.booking.findUnique({
       where: { id },
-      include: { service: true },
+      include: { service: true, client: { select: { name: true, email: true } } },
     });
     if (!booking) throw new ApiError(404, "Rezervimi nuk u gjet");
 
@@ -58,6 +84,11 @@ export async function PATCH(req: Request, { params }: Ctx) {
         type: "STATUS_CHANGE",
         message: `Rezervimi për ${booking.service.name} u anulua.`,
       });
+      // Only when staff/admin cancelled it — a client cancelling their own
+      // booking already knows, no email needed.
+      if (session.userId !== booking.clientId) {
+        await sendCancelledEmail(new URL(req.url).origin, booking);
+      }
       // 3.3 — offer the just-freed slot to the waitlist with priority.
       await offerFreedSlotToWaitlist({
         serviceId: booking.serviceId,
@@ -224,6 +255,9 @@ export async function PATCH(req: Request, { params }: Ctx) {
     });
 
     if (next === "CANCELLED" && wasActive) {
+      // This branch is staff/admin-only (CLIENT is rejected above), so the
+      // actor is never the client themselves — always email them.
+      await sendCancelledEmail(new URL(req.url).origin, booking);
       await offerFreedSlotToWaitlist({
         serviceId: booking.serviceId,
         staffId: booking.staffId,

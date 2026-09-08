@@ -20,6 +20,35 @@ function initials(name: string): string {
 
 const CANCELLABLE: BookingStatus[] = ["CONFIRMED", "CHECKED_IN"];
 
+// Mirrors the server's own NEXT transition map (see bookings/[id]/route.ts,
+// FR-07) — COMPLETED is reachable directly from CONFIRMED/CHECKED_IN too, so
+// staff marking a booking "done" doesn't have to walk through every step it
+// never bothered tracking.
+const NEXT_STATUS: Partial<Record<BookingStatus, BookingStatus[]>> = {
+  CONFIRMED: ["CHECKED_IN", "COMPLETED", "NO_SHOW"],
+  CHECKED_IN: ["IN_SERVICE", "COMPLETED", "NO_SHOW"],
+  IN_SERVICE: ["COMPLETED"],
+};
+
+function actionLabelFor(next: BookingStatus, t: (key: string) => string): string {
+  switch (next) {
+    case "CHECKED_IN":
+      return t("checkInAction");
+    case "IN_SERVICE":
+      return t("startServiceAction");
+    case "COMPLETED":
+      return t("completeAction");
+    case "NO_SHOW":
+      return t("noShowAction");
+    default:
+      return next;
+  }
+}
+
+function actionClass(next: BookingStatus): string {
+  return next === "NO_SHOW" ? "text-warn hover:bg-warn-soft" : "text-ink hover:bg-surface-muted";
+}
+
 export default function ScheduleBookingBlock({
   id,
   clientName,
@@ -69,8 +98,25 @@ export default function ScheduleBookingBlock({
     }
   }
 
+  async function setStatus(next: BookingStatus) {
+    setBusy(true);
+    setOpen(false);
+    try {
+      const res = await fetch(`/api/bookings/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "status", status: next }),
+      });
+      if (res.ok) router.refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const pill = BOOKING_STATUS_PILL[status];
   const canCancel = CANCELLABLE.includes(status);
+  const nextStatuses = NEXT_STATUS[status] ?? [];
+  const hasAnyAction = nextStatuses.length > 0 || canCancel;
 
   return (
     <div
@@ -99,14 +145,24 @@ export default function ScheduleBookingBlock({
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
         </button>
         {open && (
-          <div className="absolute right-0 top-7 z-20 w-44 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
-            {canCancel ? (
+          <div className="absolute right-0 top-7 z-20 w-48 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
+            {nextStatuses.map((next) => (
+              <button
+                key={next}
+                type="button"
+                onClick={() => setStatus(next)}
+                className={`w-full px-3.5 py-2 text-left text-sm transition-colors ${actionClass(next)}`}
+              >
+                {actionLabelFor(next, t)}
+              </button>
+            ))}
+            {nextStatuses.length > 0 && canCancel && <div className="my-1 border-t border-line" />}
+            {canCancel && (
               <button type="button" onClick={cancel} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft">
                 {t("cancelBookingAction")}
               </button>
-            ) : (
-              <p className="px-3.5 py-2 text-xs text-ink-faint">{t("cannotCancelAnymore")}</p>
             )}
+            {!hasAnyAction && <p className="px-3.5 py-2 text-xs text-ink-faint">{t("noActionsAvailable")}</p>}
           </div>
         )}
       </div>
