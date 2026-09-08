@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import type { MyServiceRow } from "@/lib/staff-stats";
 
 const COLLAPSED_COUNT = 6;
@@ -18,6 +19,7 @@ function initials(name: string): string {
 }
 
 export default function MyServicesPanel({ services }: { services: MyServiceRow[] }) {
+  const t = useTranslations("StaffStats");
   const [view, setView] = useState<"list" | "grid">("list");
   const [expanded, setExpanded] = useState(false);
 
@@ -28,22 +30,22 @@ export default function MyServicesPanel({ services }: { services: MyServiceRow[]
     <div className="flex h-full min-h-0 flex-col">
       <div className="mb-1 flex shrink-0 items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-ink">Shërbimet e mia</p>
-          <p className="text-xs text-ink-faint">Shërbimet që keni autorizuar t&apos;i kryeni.</p>
+          <p className="text-sm font-semibold text-ink">{t("myServicesTitle")}</p>
+          <p className="text-xs text-ink-faint">{t("myServicesHint")}</p>
         </div>
         <div className="flex shrink-0 gap-0.5 rounded-lg bg-surface-muted p-0.5 text-xs font-medium">
           <button type="button" onClick={() => setView("list")} className={`rounded-md px-2.5 py-1 transition-colors ${view === "list" ? "bg-surface text-ink shadow-sm" : "text-ink-faint hover:text-ink"}`}>
-            Listë
+            {t("listViewOption")}
           </button>
           <button type="button" onClick={() => setView("grid")} className={`rounded-md px-2.5 py-1 transition-colors ${view === "grid" ? "bg-surface text-ink shadow-sm" : "text-ink-faint hover:text-ink"}`}>
-            Grid
+            {t("gridViewOption")}
           </button>
         </div>
       </div>
 
       {services.length === 0 ? (
         <p className="mt-3 rounded-lg border border-dashed border-line-strong bg-canvas px-4 py-8 text-center text-xs text-ink-faint">
-          Ende s&apos;ke shërbime të autorizuara. Kontakto administratorin.
+          {t("noServicesAuthorized")}
         </p>
       ) : view === "list" ? (
         <div className="mt-1 flex min-h-0 flex-1 flex-col divide-y divide-line overflow-y-auto">
@@ -54,7 +56,7 @@ export default function MyServicesPanel({ services }: { services: MyServiceRow[]
               </span>
               <span className="min-w-0 flex-1 truncate text-ink">
                 {s.name}
-                {!s.active && <span className="ml-1.5 text-xs text-ink-faint">(joaktiv)</span>}
+                {!s.active && <span className="ml-1.5 text-xs text-ink-faint">{t("inactiveTag")}</span>}
               </span>
               <span className="shrink-0 text-xs text-ink-faint">{s.durationMin} min</span>
               <span className="shrink-0 text-sm font-semibold text-ok">{s.price.toFixed(2)} €</span>
@@ -73,7 +75,7 @@ export default function MyServicesPanel({ services }: { services: MyServiceRow[]
               </span>
               <p className="mt-1.5 truncate text-xs font-medium text-ink">
                 {s.name}
-                {!s.active && <span className="ml-1 text-ink-faint">(joaktiv)</span>}
+                {!s.active && <span className="ml-1 text-ink-faint">{t("inactiveTag")}</span>}
               </p>
               <p className="text-[11px] text-ink-faint">{s.durationMin} min</p>
               <p className="text-xs font-semibold text-ok">{s.price.toFixed(2)} €</p>
@@ -88,7 +90,7 @@ export default function MyServicesPanel({ services }: { services: MyServiceRow[]
           onClick={() => setExpanded((v) => !v)}
           className="mt-1.5 flex shrink-0 items-center justify-center gap-1 py-1 text-xs font-medium text-accent hover:underline"
         >
-          {expanded ? "Shfaq më pak" : "Shfaq më shumë"}
+          {expanded ? t("showLess") : t("showMore")}
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className={`transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden>
             <path d="m6 9 6 6 6-6" />
           </svg>

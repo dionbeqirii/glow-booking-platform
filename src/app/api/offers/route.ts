@@ -3,6 +3,7 @@ import { requireRole, requireSession } from "@/lib/rbac";
 import { offerSchema } from "@/lib/validation";
 import { handle, readJson, ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 // Any signed-in user may read the offer list; staff/clients only see the
 // ones the admin has enabled. Only the administrator may create one.
@@ -30,6 +31,7 @@ function parseValidityDates(validFrom?: string, validUntil?: string) {
 export async function POST(req: Request) {
   return handle(async () => {
     const session = await requireRole("ADMIN");
+    const now = new Date();
     const data = offerSchema.parse(await readJson(req));
     const { from, until } = parseValidityDates(data.validFrom, data.validUntil);
 
@@ -57,6 +59,24 @@ export async function POST(req: Request) {
       entityId: offer.id,
       details: offer.title,
     });
+
+    // Tell every client only when the offer is genuinely bookable right now —
+    // same rule getBookableOffers() uses — so no one gets pinged about an
+    // offer they'd click through to and find nothing to book (inactive, or
+    // scheduled for a later/earlier validity window).
+    const isLiveNow = offer.active && (!offer.validFrom || offer.validFrom <= now) && (!offer.validUntil || offer.validUntil >= now);
+    if (isLiveNow) {
+      const clients = await prisma.user.findMany({ where: { role: "CLIENT" }, select: { id: true } });
+      await Promise.all(
+        clients.map((c) =>
+          notify({
+            userId: c.id,
+            type: "OFFER_NEW",
+            message: `Ofertë e re: "${offer.title}" — ${Number(offer.price).toFixed(2)} €. Rezervo tani!`,
+          })
+        )
+      );
+    }
 
     return { offer };
   });

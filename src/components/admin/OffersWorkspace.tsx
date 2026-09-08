@@ -1,12 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { OfferListRow, OfferServiceOption, OfferDisplayStatus } from "@/lib/offers-catalog";
 import OfferDetailPanel from "./OfferDetailPanel";
 
 const PAGE_SIZE = 5;
 
-const STATUS_LABEL: Record<OfferDisplayStatus, string> = { active: "Aktive", inactive: "Joaktive", expired: "Skaduar" };
 const STATUS_TONE: Record<OfferDisplayStatus, string> = {
   active: "bg-ok-soft text-ok",
   inactive: "bg-surface-muted text-ink-faint",
@@ -32,6 +32,12 @@ export default function OffersWorkspace({
   initial: OfferListRow[];
   serviceOptions: OfferServiceOption[];
 }) {
+  const t = useTranslations("AdminOffers");
+  const STATUS_LABEL: Record<OfferDisplayStatus, string> = {
+    active: t("statusActive"),
+    inactive: t("statusInactive"),
+    expired: t("statusExpired"),
+  };
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<OfferDisplayStatus | "">("");
   const [page, setPage] = useState(1);
@@ -82,7 +88,7 @@ export default function OffersWorkspace({
               <input
                 value={query}
                 onChange={(e) => { setQuery(e.target.value); setPage(1); }}
-                placeholder="Kërko oferta…"
+                placeholder={t("searchPlaceholder")}
                 className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
               />
             </div>
@@ -91,24 +97,24 @@ export default function OffersWorkspace({
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value as OfferDisplayStatus | ""); setPage(1); }}
             >
-              <option value="">Të gjitha Statuset</option>
-              <option value="active">Aktive</option>
-              <option value="inactive">Joaktive</option>
-              <option value="expired">Skaduar</option>
+              <option value="">{t("allStatusesOption")}</option>
+              <option value="active">{t("statusActive")}</option>
+              <option value="inactive">{t("statusInactive")}</option>
+              <option value="expired">{t("statusExpired")}</option>
             </select>
             <button
               onClick={startNew}
               className="ml-auto inline-flex shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-              Ofertë e Re
+              {t("newOffer")}
             </button>
           </div>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-line bg-surface p-2">
           {pageItems.length === 0 ? (
-            <p className="px-3 py-10 text-center text-sm text-ink-faint">Asnjë ofertë nuk përputhet me filtrat.</p>
+            <p className="px-3 py-10 text-center text-sm text-ink-faint">{t("noMatch")}</p>
           ) : (
             <div className="flex flex-col gap-1.5">
               {pageItems.map((o) => (
@@ -132,7 +138,7 @@ export default function OffersWorkspace({
                         <p className="truncate text-sm font-medium text-ink">{o.title}</p>
                         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_TONE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
                       </div>
-                      <p className="truncate text-xs text-ink-faint">{o.services.map((s) => s.name).join(" + ") || "Pa shërbime"}</p>
+                      <p className="truncate text-xs text-ink-faint">{o.services.map((s) => s.name).join(" + ") || t("noServicesFallback")}</p>
                     </div>
                     <p className="shrink-0 text-sm font-semibold text-ink">{o.price.toFixed(2)} €</p>
                   </div>
@@ -143,7 +149,7 @@ export default function OffersWorkspace({
         </div>
 
         <div className="flex shrink-0 items-center justify-between px-1">
-          <span className="text-xs text-ink-faint">{filtered.length} {filtered.length === 1 ? "ofertë" : "oferta"} gjithsej</span>
+          <span className="text-xs text-ink-faint">{filtered.length === 1 ? t("totalCountOne", { count: filtered.length }) : t("totalCountOther", { count: filtered.length })}</span>
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <button
@@ -151,15 +157,15 @@ export default function OffersWorkspace({
                 disabled={pageSafe === 1}
                 className="rounded-lg px-2.5 py-1 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-40"
               >
-                ← Mbrapa
+                {t("prevPage")}
               </button>
-              <span className="text-xs text-ink-faint">Faqja {pageSafe} nga {totalPages}</span>
+              <span className="text-xs text-ink-faint">{t("pageOfTotal", { page: pageSafe, total: totalPages })}</span>
               <button
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={pageSafe === totalPages}
                 className="rounded-lg px-2.5 py-1 text-xs font-medium text-ink-soft transition-colors hover:bg-surface-muted disabled:opacity-40"
               >
-                Para →
+                {t("nextPage")}
               </button>
             </div>
           )}
@@ -177,8 +183,8 @@ export default function OffersWorkspace({
           />
         ) : (
           <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-canvas p-6 text-center">
-            <p className="text-sm font-medium text-ink-soft">Nuk ka ofertë të zgjedhur</p>
-            <p className="text-xs text-ink-faint">Zgjidh një ofertë nga lista, ose krijo një të re.</p>
+            <p className="text-sm font-medium text-ink-soft">{t("noneSelectedTitle")}</p>
+            <p className="text-xs text-ink-faint">{t("noneSelectedHint")}</p>
           </div>
         )}
       </div>

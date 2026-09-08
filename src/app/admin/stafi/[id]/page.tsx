@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -11,6 +12,7 @@ export default async function StaffDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await requireRole("ADMIN");
+  const t = await getTranslations("AdminStaff");
   const { id } = await params;
 
   const member = await prisma.user.findFirst({
@@ -36,7 +38,7 @@ export default async function StaffDetailPage({
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-4xl">
         <Link href="/admin/stafi" className="text-sm text-ink-soft hover:underline">
-          ← Stafi
+          {t("backToStaff")}
         </Link>
         <h1 className="mt-2 text-xl font-bold text-ink">{member.name}</h1>
         <p className="mb-5 text-sm text-ink-soft">{member.email}</p>

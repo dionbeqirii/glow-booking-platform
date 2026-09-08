@@ -2,11 +2,11 @@ import { prisma } from "./prisma";
 import { DISPLAY_QUEUE_STATUSES, CLIENT_WAIT_BUFFER_MIN } from "./queue";
 import type { BookingStatus } from "@prisma/client";
 
-function dateLabel(d: Date): string {
-  return d.toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+function dateLabel(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 }
-function timeLabel(d: Date): string {
-  return d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+function timeLabel(d: Date, locale: string): string {
+  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 export type UpcomingAppointment = {
@@ -20,7 +20,7 @@ export type UpcomingAppointment = {
   status: BookingStatus;
 };
 
-export async function getUpcomingAppointment(clientId: string, now = new Date()): Promise<UpcomingAppointment | null> {
+export async function getUpcomingAppointment(clientId: string, now = new Date(), locale = "sq"): Promise<UpcomingAppointment | null> {
   const booking = await prisma.booking.findFirst({
     where: { clientId, status: { in: ["CONFIRMED", "CHECKED_IN", "IN_SERVICE"] }, startTime: { gte: now } },
     orderBy: { startTime: "asc" },
@@ -37,8 +37,8 @@ export async function getUpcomingAppointment(clientId: string, now = new Date())
     id: booking.id,
     serviceName: booking.service.name,
     serviceDescription: booking.service.description,
-    dateLabel: dateLabel(booking.startTime),
-    timeLabel: timeLabel(booking.startTime),
+    dateLabel: dateLabel(booking.startTime, locale),
+    timeLabel: timeLabel(booking.startTime, locale),
     staffName: booking.staff.name,
     staffTitle: booking.staff.title,
     status: booking.status,
@@ -54,7 +54,7 @@ export type RecentAppointment = {
   status: BookingStatus;
 };
 
-export async function getRecentAppointments(clientId: string, limit = 4): Promise<RecentAppointment[]> {
+export async function getRecentAppointments(clientId: string, limit = 4, locale = "sq"): Promise<RecentAppointment[]> {
   const bookings = await prisma.booking.findMany({
     where: { clientId, status: "COMPLETED" },
     orderBy: { startTime: "desc" },
@@ -65,8 +65,8 @@ export async function getRecentAppointments(clientId: string, limit = 4): Promis
     id: b.id,
     serviceName: b.service.name,
     serviceDescription: b.service.description,
-    dateLabel: b.startTime.toLocaleDateString("sq", { day: "numeric", month: "short", year: "numeric" }),
-    timeLabel: timeLabel(b.startTime),
+    dateLabel: b.startTime.toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" }),
+    timeLabel: timeLabel(b.startTime, locale),
     status: b.status,
   }));
 }

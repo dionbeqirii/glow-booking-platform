@@ -2,8 +2,9 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { BookingStatus } from "@prisma/client";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL, QUEUE_STATUS_LABEL, QUEUE_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL, QUEUE_STATUS_PILL } from "@/lib/booking-labels";
 import type { AppointmentRow } from "@/lib/client-appointments";
 import type { QueueHistoryRow } from "@/lib/client-queue";
 import { ReadOnlyStars, FeedbackForm, FeedbackDisplay } from "./BookingFeedback";
@@ -13,13 +14,6 @@ type Tab = "all" | "upcoming" | "finished" | "cancelled";
 const UPCOMING_STATUSES: BookingStatus[] = ["CONFIRMED", "CHECKED_IN", "IN_SERVICE"];
 const FINISHED_STATUSES: BookingStatus[] = ["COMPLETED", "NO_SHOW"];
 const FEEDBACK_ELIGIBLE: BookingStatus[] = ["COMPLETED", "CANCELLED"];
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "all", label: "Të gjitha" },
-  { key: "upcoming", label: "Të ardhshme" },
-  { key: "finished", label: "Të përfunduara" },
-  { key: "cancelled", label: "Të anuluara" },
-];
 
 function initials(name: string): string {
   return (
@@ -73,6 +67,8 @@ function EmptyRow({ text }: { text: string }) {
 // Self-contained: owns its own expand/feedback state so it never resets when
 // a sibling card or the tab/list above it re-renders.
 function HistoryCard({ b }: { b: AppointmentRow }) {
+  const t = useTranslations("ClientHistory");
+  const tStatus = useTranslations("Status.booking");
   const [open, setOpen] = useState(false);
   const pill = BOOKING_STATUS_PILL[b.status];
   const feedbackEligible = FEEDBACK_ELIGIBLE.includes(b.status);
@@ -99,7 +95,7 @@ function HistoryCard({ b }: { b: AppointmentRow }) {
         <div className="flex shrink-0 flex-col items-end gap-2">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-            {BOOKING_STATUS_LABEL[b.status]}
+            {tStatus(b.status)}
           </span>
           <div className="flex items-center gap-2.5">
             {feedbackEligible && b.feedback && <ReadOnlyStars value={b.feedback.rating} />}
@@ -110,7 +106,7 @@ function HistoryCard({ b }: { b: AppointmentRow }) {
                 className="flex items-center gap-1 text-xs font-medium text-accent hover:underline"
               >
                 <IcStarOutline />
-                Vlerëso
+                {t("rateButton")}
               </button>
             )}
             <button
@@ -118,7 +114,7 @@ function HistoryCard({ b }: { b: AppointmentRow }) {
               onClick={() => setOpen((v) => !v)}
               className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted"
             >
-              Shiko Detajet
+              {t("viewDetails")}
               <IcChevron open={open} />
             </button>
           </div>
@@ -135,11 +131,13 @@ function HistoryCard({ b }: { b: AppointmentRow }) {
             )
           ) : (
             <p className="text-xs text-ink-faint">
-              Ky termin është i konfirmuar. Për ta riplanifikuar ose anuluar, shko te{" "}
-              <Link href="/client/terminet" className="font-medium text-accent hover:underline">
-                Terminet e Mia
-              </Link>
-              .
+              {t.rich("confirmedNotice", {
+                link: (chunks) => (
+                  <Link href="/client/terminet" className="font-medium text-accent hover:underline">
+                    {chunks}
+                  </Link>
+                ),
+              })}
             </p>
           )}
         </div>
@@ -149,7 +147,16 @@ function HistoryCard({ b }: { b: AppointmentRow }) {
 }
 
 export default function ClientHistoryWorkspace({ bookings, queueHistory }: { bookings: AppointmentRow[]; queueHistory: QueueHistoryRow[] }) {
+  const t = useTranslations("ClientHistory");
+  const tQueueStatus = useTranslations("Status.queue");
   const [tab, setTab] = useState<Tab>("all");
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: "all", label: t("tabAll") },
+    { key: "upcoming", label: t("tabUpcoming") },
+    { key: "finished", label: t("tabFinished") },
+    { key: "cancelled", label: t("tabCancelled") },
+  ];
 
   const upcoming = useMemo(
     () => bookings.filter((b) => UPCOMING_STATUSES.includes(b.status)).sort((a, b) => a.startTime.localeCompare(b.startTime)),
@@ -165,10 +172,10 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
   );
 
   const stats = [
-    { label: "Total shërbime", value: bookings.length, icon: <IcBag />, tone: "text-accent bg-accent-soft" },
-    { label: "Të përfunduara", value: finished.length, icon: <IcCheckCircle />, tone: "text-ok bg-ok-soft" },
-    { label: "Të ardhshme", value: upcoming.length, icon: <IcCalendar />, tone: "text-purple bg-purple-soft" },
-    { label: "Të anuluara", value: cancelled.length, icon: <IcXCircle />, tone: "text-danger bg-danger-soft" },
+    { label: t("statTotalServices"), value: bookings.length, icon: <IcBag />, tone: "text-accent bg-accent-soft" },
+    { label: t("statFinished"), value: finished.length, icon: <IcCheckCircle />, tone: "text-ok bg-ok-soft" },
+    { label: t("statUpcoming"), value: upcoming.length, icon: <IcCalendar />, tone: "text-purple bg-purple-soft" },
+    { label: t("statCancelled"), value: cancelled.length, icon: <IcXCircle />, tone: "text-danger bg-danger-soft" },
   ];
 
   return (
@@ -191,9 +198,9 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
 
         {(tab === "all" || tab === "upcoming") && (
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">{tab === "all" ? "Kalendari i afërt" : "Të ardhshme"}</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{tab === "all" ? t("upcomingSectionTitleAll") : t("tabUpcoming")}</p>
             {upcoming.length === 0 ? (
-              <EmptyRow text="Ende s'ke termine të ardhshme." />
+              <EmptyRow text={t("noUpcomingAppts")} />
             ) : (
               <div className="flex flex-col gap-2.5">
                 {(tab === "all" ? upcoming.slice(0, 3) : upcoming).map((b) => <HistoryCard key={b.id} b={b} />)}
@@ -201,7 +208,7 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
             )}
             {tab === "all" && upcoming.length > 3 && (
               <button type="button" onClick={() => setTab("upcoming")} className="mt-2 text-xs font-semibold text-accent hover:underline">
-                Shiko të gjitha ({upcoming.length}) →
+                {t("viewAllCountLink", { count: upcoming.length })}
               </button>
             )}
           </div>
@@ -209,9 +216,9 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
 
         {(tab === "all" || tab === "finished") && (
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Të përfunduara</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{t("finishedSectionTitle")}</p>
             {finished.length === 0 ? (
-              <EmptyRow text="Ende pa shërbime të përfunduara." />
+              <EmptyRow text={t("noFinishedAppts")} />
             ) : (
               <div className="flex flex-col gap-2.5">
                 {finished.map((b) => <HistoryCard key={b.id} b={b} />)}
@@ -222,9 +229,9 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
 
         {(tab === "all" || tab === "cancelled") && (
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Të anuluara</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{t("cancelledSectionTitle")}</p>
             {cancelled.length === 0 ? (
-              <EmptyRow text="Ende pa termine të anuluara." />
+              <EmptyRow text={t("noCancelledAppts")} />
             ) : (
               <div className="flex flex-col gap-2.5">
                 {cancelled.map((b) => <HistoryCard key={b.id} b={b} />)}
@@ -235,7 +242,7 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
 
         {tab === "all" && queueHistory.length > 0 && (
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Radha pa Termin (e Kaluar)</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{t("pastQueueSectionTitle")}</p>
             <div className="divide-y divide-line rounded-xl border border-line bg-surface px-3.5">
               {queueHistory.map((q) => {
                 const pill = QUEUE_STATUS_PILL[q.status];
@@ -250,7 +257,7 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
                     </div>
                     <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-                      {QUEUE_STATUS_LABEL[q.status]}
+                      {tQueueStatus(q.status)}
                     </span>
                   </div>
                 );
@@ -262,7 +269,7 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
 
       <div className="flex flex-col gap-3 lg:sticky lg:top-4">
         <div className="rounded-xl border border-line bg-surface p-4">
-          <p className="mb-3 text-sm font-semibold text-ink">Përmbledhje e historikut</p>
+          <p className="mb-3 text-sm font-semibold text-ink">{t("historySummaryTitle")}</p>
           <div className="flex flex-col gap-3">
             {stats.map((s) => (
               <div key={s.label} className="flex items-center gap-2.5">
@@ -279,10 +286,10 @@ export default function ClientHistoryWorkspace({ bookings, queueHistory }: { boo
         <div className="rounded-xl bg-surface-muted p-3.5">
           <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
             <IcMessage />
-            Ke pyetje?
+            {t("questionsTitle")}
           </div>
-          <p className="mt-1 mb-2.5 text-xs text-ink-faint">Na kontakto në çdo moment.</p>
-          <div className="rounded-lg bg-accent px-3 py-1.5 text-center text-xs font-semibold text-white">Na Kontaktoni</div>
+          <p className="mt-1 mb-2.5 text-xs text-ink-faint">{t("questionsHint")}</p>
+          <div className="rounded-lg bg-accent px-3 py-1.5 text-center text-xs font-semibold text-white">{t("contactUsButton")}</div>
         </div>
       </div>
     </div>

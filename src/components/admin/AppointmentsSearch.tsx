@@ -2,11 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 // The search field of the single-row Terminet toolbar — a shrinkable flex
 // item (not a fixed width) so it gives way to the fixed-width controls
 // around it instead of forcing the row to overflow.
 export default function AppointmentsSearch({ currentQuery }: { currentQuery: string }) {
+  const t = useTranslations("AdminAppointments");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -41,7 +43,7 @@ export default function AppointmentsSearch({ currentQuery }: { currentQuery: str
       <input
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        placeholder="Kërko klient, shërbim, staf…"
+        placeholder={t("searchPlaceholder")}
         className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-8 pr-3 text-sm text-ink outline-none transition-colors focus:border-accent"
       />
     </div>

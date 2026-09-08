@@ -30,7 +30,7 @@ export type StaffStatsKpis = {
 // Every figure is scoped to this one staff member and compared against the
 // immediately preceding period of equal length (e.g. 30 days vs the 30
 // before that) — never a fabricated benchmark.
-export async function getStaffStatsKpis(staffId: string, days: number, now = new Date()): Promise<StaffStatsKpis> {
+export async function getStaffStatsKpis(staffId: string, days: number, now = new Date(), locale = "sq"): Promise<StaffStatsKpis> {
   const from = new Date(now.getTime() - days * DAY_MS);
   const priorNow = from;
   const priorFrom = new Date(priorNow.getTime() - days * DAY_MS);
@@ -65,8 +65,8 @@ export async function getStaffStatsKpis(staffId: string, days: number, now = new
 
   return {
     days,
-    fromLabel: from.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" }),
-    toLabel: now.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" }),
+    fromLabel: from.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }),
+    toLabel: now.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }),
     completedCount: currentCompleted.length,
     completedDeltaPct: pctDelta(currentCompleted.length, priorCompleted.length),
     revenue: currentRevenue,
@@ -80,9 +80,10 @@ export async function getStaffStatsKpis(staffId: string, days: number, now = new
   };
 }
 
-export type WeekdayPoint = { label: string; current: number; prior: number };
-
-const WEEKDAY_LABELS_MON_FIRST = ["E Hënë", "E Martë", "E Mërkurë", "E Enjte", "E Premte", "E Shtunë", "E Diel"];
+// `weekday` is Monday-first (0 = Monday .. 6 = Sunday) — the caller (which
+// has a real translator) attaches the localized day-name label; see
+// `weekdayFullLabelsMondayFirst` in calendar-labels.ts.
+export type WeekdayPoint = { weekday: number; current: number; prior: number };
 
 // Revenue from this staff member's completed bookings, bucketed by weekday
 // across the whole selected window (not just the most recent 7 days) —
@@ -108,7 +109,7 @@ export async function getWeeklyPerformance(staffId: string, days: number, now = 
   for (const b of current) currentByWd[(b.startTime.getDay() + 6) % 7] += Number(b.service.price);
   for (const b of prior) priorByWd[(b.startTime.getDay() + 6) % 7] += Number(b.service.price);
 
-  return WEEKDAY_LABELS_MON_FIRST.map((label, i) => ({ label, current: currentByWd[i], prior: priorByWd[i] }));
+  return currentByWd.map((_, i) => ({ weekday: i, current: currentByWd[i], prior: priorByWd[i] }));
 }
 
 export type RequestedService = { name: string; count: number };

@@ -3,23 +3,26 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 
 type Command = {
   id: string;
   label: string;
   hint?: string;
-  group: "Navigim" | "Veprime";
+  group: "nav" | "actions";
   run: () => void;
 };
 
-const NAV_ITEMS = [
-  { label: "Paneli", href: "/admin" },
-  { label: "Shërbimet", href: "/admin/sherbimet" },
-  { label: "Ofertat", href: "/admin/ofertat" },
-  { label: "Stafi", href: "/admin/stafi" },
-  { label: "Klientët", href: "/admin/klientet" },
-  { label: "Radha", href: "/admin/radha" },
-  { label: "Historiku", href: "/admin/historiku" },
+// Labels come from the real Nav translations (reusing the exact same keys
+// the sidebar uses) rather than a second hardcoded list — see NAV_HREFS.
+const NAV_HREFS: { key: string; href: string }[] = [
+  { key: "panel", href: "/admin" },
+  { key: "services", href: "/admin/sherbimet" },
+  { key: "offers", href: "/admin/ofertat" },
+  { key: "staff", href: "/admin/stafi" },
+  { key: "clients", href: "/admin/klientet" },
+  { key: "queue", href: "/admin/radha" },
+  { key: "history", href: "/admin/historiku" },
 ];
 
 const stroke = {
@@ -43,6 +46,8 @@ function SearchIcon() {
 // a couple of one-shot actions (PDF export), available from anywhere in the
 // admin section without hunting through the nav bar.
 export default function CommandPalette() {
+  const t = useTranslations("AdminCommandPalette");
+  const tNav = useTranslations("Nav");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -68,21 +73,21 @@ export default function CommandPalette() {
   }
 
   const commands: Command[] = useMemo(() => {
-    const nav: Command[] = NAV_ITEMS.map((item) => ({
+    const nav: Command[] = NAV_HREFS.map((item) => ({
       id: `nav-${item.href}`,
-      label: item.label,
+      label: tNav(item.key),
       hint: item.href,
-      group: "Navigim",
+      group: "nav",
       run: () => router.push(item.href),
     }));
     const actions: Command[] = [1, 3, 6].map((m) => ({
       id: `pdf-${m}`,
-      label: `Eksporto raport PDF — ${m} muaj`,
-      group: "Veprime",
+      label: t("exportPdfLabel", { months: m }),
+      group: "actions",
       run: () => window.open(`/api/reports/pdf?months=${m}`, "_blank"),
     }));
     return [...nav, ...actions];
-  }, [router]);
+  }, [router, t, tNav]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -136,8 +141,8 @@ export default function CommandPalette() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="Hap paletën e komandave"
-        title="Kërko (Ctrl+K)"
+        aria-label={t("paletteAria")}
+        title={t("searchTitle")}
         className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
       >
         <SearchIcon />
@@ -164,7 +169,7 @@ export default function CommandPalette() {
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={onInputKeyDown}
-                  placeholder="Kërko faqe ose veprim…"
+                  placeholder={t("searchPlaceholder")}
                   className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
                 />
                 <kbd className="rounded border border-line-strong px-1.5 py-0.5 text-[10px] text-ink-faint">Esc</kbd>
@@ -172,7 +177,7 @@ export default function CommandPalette() {
 
               <div className="max-h-80 overflow-y-auto p-1.5">
                 {filtered.length === 0 ? (
-                  <p className="px-3 py-8 text-center text-sm text-ink-faint">Asnjë rezultat.</p>
+                  <p className="px-3 py-8 text-center text-sm text-ink-faint">{t("noResults")}</p>
                 ) : (
                   filtered.map((cmd, i) => {
                     const showGroupHeader = i === 0 || filtered[i - 1].group !== cmd.group;
@@ -181,7 +186,7 @@ export default function CommandPalette() {
                       <div key={cmd.id}>
                         {showGroupHeader && (
                           <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-wide text-ink-faint">
-                            {cmd.group}
+                            {cmd.group === "nav" ? t("navGroup") : t("actionsGroup")}
                           </p>
                         )}
                         <button
@@ -202,9 +207,9 @@ export default function CommandPalette() {
               </div>
 
               <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[11px] text-ink-faint">
-                <span>↑↓ lëviz</span>
-                <span>⏎ zgjidh</span>
-                <span>Esc mbyll</span>
+                <span>{t("navigateHint")}</span>
+                <span>{t("selectHint")}</span>
+                <span>{t("closeHint")}</span>
               </div>
             </div>
           </div>,

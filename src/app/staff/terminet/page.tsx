@@ -1,12 +1,18 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle } from "@/components/ui";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 
 export default async function StaffAppointmentsPage() {
   const session = await requireRole("STAFF");
+  const [t, tStatus, locale] = await Promise.all([
+    getTranslations("StaffAppointments"),
+    getTranslations("Status.booking"),
+    getLocale(),
+  ]);
 
   const bookings = await prisma.booking.findMany({
     where: { staffId: session.userId },
@@ -24,8 +30,8 @@ export default async function StaffAppointmentsPage() {
   const now = new Date();
   const rows = bookings.map((b) => ({
     id: b.id,
-    dateLabel: b.startTime.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }),
-    timeLabel: b.startTime.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    dateLabel: b.startTime.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" }),
+    timeLabel: b.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     clientName: b.client.name,
     serviceName: b.service.name,
     durationMin: b.service.durationMin,
@@ -37,10 +43,10 @@ export default async function StaffAppointmentsPage() {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-4xl">
         <Link href="/staff" className="text-sm text-ink-soft hover:underline">
-          ← Paneli
+          {t("backToPanel")}
         </Link>
         <div className="mt-2">
-          <PageTitle title="Terminet e Mia" hint="Të gjitha terminet e tua — të ardhshme dhe të kaluara." />
+          <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
         </div>
 
         <div className="overflow-hidden rounded-xl border border-line bg-surface">
@@ -55,17 +61,17 @@ export default async function StaffAppointmentsPage() {
               </colgroup>
               <thead>
                 <tr className="border-b border-line text-xs uppercase tracking-wide text-ink-faint">
-                  <th className="overflow-hidden px-3 py-2 font-medium">Data &amp; Ora</th>
-                  <th className="overflow-hidden px-3 py-2 font-medium">Klienti</th>
-                  <th className="overflow-hidden px-3 py-2 font-medium">Shërbimi</th>
-                  <th className="overflow-hidden px-3 py-2 font-medium">Kohëz.</th>
-                  <th className="overflow-hidden px-3 py-2 font-medium">Statusi</th>
+                  <th className="overflow-hidden px-3 py-2 font-medium">{t("colDateTime")}</th>
+                  <th className="overflow-hidden px-3 py-2 font-medium">{t("colClient")}</th>
+                  <th className="overflow-hidden px-3 py-2 font-medium">{t("colService")}</th>
+                  <th className="overflow-hidden px-3 py-2 font-medium">{t("colDuration")}</th>
+                  <th className="overflow-hidden px-3 py-2 font-medium">{t("colStatus")}</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">Ende pa termine.</td>
+                    <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">{t("noAppointments")}</td>
                   </tr>
                 ) : (
                   rows.map((r) => {
@@ -87,7 +93,7 @@ export default async function StaffAppointmentsPage() {
                         <td className="overflow-hidden px-3 py-2.5">
                           <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
                             <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${pill.dot}`} />
-                            <span className="truncate">{BOOKING_STATUS_LABEL[r.status]}</span>
+                            <span className="truncate">{tStatus(r.status)}</span>
                           </span>
                         </td>
                       </tr>

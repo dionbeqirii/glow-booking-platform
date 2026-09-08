@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 import { OfferCard } from "@/components/OfferCard";
 import type { OfferListRow, OfferServiceOption } from "@/lib/offers-catalog";
@@ -26,6 +27,8 @@ export default function OfferDetailPanel({
   onCancel: () => void;
   onSaved: (offerId: string) => void;
 }) {
+  const t = useTranslations("AdminOffers");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [tab, setTab] = useState<"details" | "preview">("details");
   const [title, setTitle] = useState(existing?.title ?? "");
@@ -68,12 +71,12 @@ export default function OfferDetailPanel({
       const res = await fetch("/api/uploads", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ngarkimi i fotos dështoi");
+        setError(data.error ?? t("errorUpload"));
         return;
       }
       setImageUrl(data.url);
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setUploading(false);
     }
@@ -101,13 +104,13 @@ export default function OfferDetailPanel({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ruajtja dështoi");
+        setError(data.error ?? t("errorSave"));
         return;
       }
       router.refresh();
       onSaved(data.offer.id);
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -115,7 +118,7 @@ export default function OfferDetailPanel({
 
   async function remove() {
     if (!existing) return;
-    if (!confirm(`Të fshihet oferta "${existing.title}"?`)) return;
+    if (!confirm(t("confirmDelete", { title: existing.title }))) return;
     setBusy(true);
     try {
       await fetch(`/api/offers/${existing.id}`, { method: "DELETE" });
@@ -130,11 +133,11 @@ export default function OfferDetailPanel({
 
   const previewData = {
     id: existing?.id ?? "preview",
-    title: title || "Titulli i Ofertës",
+    title: title || t("previewTitlePlaceholder"),
     description: description || null,
     imageUrl: imageUrl || null,
     price: Number(price) || 0,
-    serviceNames: selectedServices.length > 0 ? selectedServices.map((s) => s.name) : ["Zgjidh shërbimet"],
+    serviceNames: selectedServices.length > 0 ? selectedServices.map((s) => s.name) : [t("previewChooseServices")],
     realValue,
   };
 
@@ -142,10 +145,10 @@ export default function OfferDetailPanel({
     <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface">
       <div className="flex shrink-0 items-center justify-between gap-2 border-b border-line p-2">
         <div className="flex gap-1">
-          <button type="button" className={tabBtn(tab === "details")} onClick={() => setTab("details")}>Detajet</button>
-          <button type="button" className={tabBtn(tab === "preview")} onClick={() => setTab("preview")}>Paraqitja</button>
+          <button type="button" className={tabBtn(tab === "details")} onClick={() => setTab("details")}>{t("tabDetails")}</button>
+          <button type="button" className={tabBtn(tab === "preview")} onClick={() => setTab("preview")}>{t("tabPreview")}</button>
         </div>
-        <h2 className="truncate pr-2 text-sm font-semibold text-ink">{existing ? existing.title : "Ofertë e Re"}</h2>
+        <h2 className="truncate pr-2 text-sm font-semibold text-ink">{existing ? existing.title : t("newOffer")}</h2>
       </div>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
@@ -157,7 +160,7 @@ export default function OfferDetailPanel({
           </div>
         ) : (
           <div className="flex flex-col gap-4">
-            <Field label="Foto (opsionale)">
+            <Field label={t("photoLabel")}>
               <div className="flex items-center gap-3">
                 {imageUrl ? (
                   <img src={imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-line" />
@@ -171,28 +174,28 @@ export default function OfferDetailPanel({
                   </div>
                 )}
                 <label className={`${buttonStyles.secondary} cursor-pointer`}>
-                  {uploading ? "Duke ngarkuar…" : imageUrl ? "Ndrysho foton" : "Ngarko foto"}
+                  {uploading ? t("uploading") : imageUrl ? t("changePhoto") : t("uploadPhoto")}
                   <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pickImage} disabled={uploading} />
                 </label>
               </div>
             </Field>
 
-            <Field label="Titulli">
-              <input className={inputStyles} value={title} onChange={(e) => setTitle(e.target.value)} placeholder='p.sh. "Summer Glow"' />
+            <Field label={t("titleLabel")}>
+              <input className={inputStyles} value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t("titlePlaceholder")} />
             </Field>
 
-            <Field label="Përshkrimi (opsional)">
-              <input className={inputStyles} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="p.sh. Paketë verore me zbritje" />
+            <Field label={t("descriptionLabel")}>
+              <input className={inputStyles} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("descriptionPlaceholder")} />
             </Field>
 
-            <Field label="Shërbimet e Përfshira" hint="Rezervimi i ofertës përdor oraret e shërbimit të parë.">
+            <Field label={t("includedServicesLabel")} hint={t("includedServicesHint")}>
               <div className="flex flex-col gap-2">
                 {selectedServices.length > 0 && (
                   <div className="flex flex-wrap gap-1.5">
                     {selectedServices.map((s) => (
                       <span key={s.id} className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-medium text-accent">
                         {s.name}
-                        <button type="button" onClick={() => removeService(s.id)} aria-label={`Hiq ${s.name}`} className="text-accent/70 hover:text-accent">
+                        <button type="button" onClick={() => removeService(s.id)} aria-label={t("removeServiceAria", { name: s.name })} className="text-accent/70 hover:text-accent">
                           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
                         </button>
                       </span>
@@ -201,7 +204,7 @@ export default function OfferDetailPanel({
                 )}
                 <select className={inputStyles} value="" onChange={(e) => addService(e.target.value)} disabled={availableToAdd.length === 0}>
                   <option value="" disabled>
-                    {availableToAdd.length === 0 ? "Të gjitha shërbimet u shtuan" : "+ Shto një shërbim…"}
+                    {availableToAdd.length === 0 ? t("allServicesAdded") : t("addServicePlaceholder")}
                   </option>
                   {availableToAdd.map((s) => (
                     <option key={s.id} value={s.id}>{s.name} — {s.price.toFixed(2)} €</option>
@@ -211,36 +214,36 @@ export default function OfferDetailPanel({
             </Field>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Çmimi i Ofertës (€)">
+              <Field label={t("offerPriceLabel")}>
                 <input type="number" min={0} step="0.5" className={inputStyles} value={price} onChange={(e) => setPrice(e.target.value)} />
               </Field>
-              <Field label="Kohëzgjatja (minuta)">
+              <Field label={t("durationLabel")}>
                 <input type="number" min={5} max={600} step={5} className={inputStyles} value={durationMin} onChange={(e) => setDurationMin(e.target.value)} />
               </Field>
             </div>
 
             {realValue > 0 && (
               <p className="-mt-2 text-xs text-ink-faint">
-                Vlera reale e shërbimeve: <span className="font-medium text-ink-soft">{realValue.toFixed(2)} €</span>
+                {t("realValueLabel")} <span className="font-medium text-ink-soft">{realValue.toFixed(2)} €</span>
                 {Number(price) > 0 && Number(price) < realValue && (
-                  <span className="text-ok"> — kursim prej {(realValue - Number(price)).toFixed(2)} €</span>
+                  <span className="text-ok"> {t("savingsNote", { amount: (realValue - Number(price)).toFixed(2) })}</span>
                 )}
               </p>
             )}
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Vlefshme Nga (opsionale)">
+              <Field label={t("validFromLabel")}>
                 <input type="date" className={inputStyles} value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
               </Field>
-              <Field label="Vlefshme Deri (opsionale)">
+              <Field label={t("validUntilLabel")}>
                 <input type="date" className={inputStyles} value={validUntil} onChange={(e) => setValidUntil(e.target.value)} />
               </Field>
             </div>
 
-            <Field label="Statusi">
+            <Field label={t("statusLabel")}>
               <select className={inputStyles} value={active ? "active" : "inactive"} onChange={(e) => setActive(e.target.value === "active")}>
-                <option value="active">Aktive</option>
-                <option value="inactive">Joaktive</option>
+                <option value="active">{t("statusActive")}</option>
+                <option value="inactive">{t("statusInactive")}</option>
               </select>
             </Field>
 
@@ -252,13 +255,13 @@ export default function OfferDetailPanel({
       <div className="flex shrink-0 items-center justify-between gap-2 border-t border-line p-3">
         <div>
           {existing && (
-            <button onClick={remove} disabled={busy} className={buttonStyles.danger}>Fshi</button>
+            <button onClick={remove} disabled={busy} className={buttonStyles.danger}>{tCommon("delete")}</button>
           )}
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={onCancel} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onCancel} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke ruajtur…" : existing ? "Ruaj Ndryshimet" : "Krijo Ofertën"}
+            {busy ? t("saving") : existing ? t("saveChanges") : t("createOffer")}
           </button>
         </div>
       </div>

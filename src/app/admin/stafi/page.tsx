@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, Kpi } from "@/components/ui";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 import {
   getStaffKpis,
   getStaffOverviewRows,
@@ -81,66 +82,71 @@ function IcUserPlus() {
 
 export default async function StaffPage() {
   const session = await requireRole("ADMIN");
+  const [t, tStatus, locale] = await Promise.all([
+    getTranslations("AdminStaff"),
+    getTranslations("Status.booking"),
+    getLocale(),
+  ]);
   const now = new Date();
 
   const [kpis, rows, existingTitles, schedule, ongoing, performance] = await Promise.all([
     getStaffKpis(now),
     getStaffOverviewRows(now),
     getExistingStaffTitles(),
-    getTodaySchedule(now),
-    getOngoingAppointments(),
+    getTodaySchedule(now, locale),
+    getOngoingAppointments(locale),
     getMonthPerformance(now),
   ]);
 
-  const currentTimeLabel = now.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
-  const currentDateLabel = now.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" });
+  const currentTimeLabel = now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+  const currentDateLabel = now.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
 
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-none">
-        <PageTitle title="Stafi" hint="Shiko ekipin, disponueshmërinë dhe performancën e studios." />
+        <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
 
         <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
           <div className="flex min-w-0 flex-col gap-3">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <Kpi href="/admin/kalendari" tone="accent" icon={<IcCalendar />} value={kpis.todayAppointments} label="Terminet e Sotme" sub={`↗ ${kpis.upcomingToday} së shpejti`} />
-              <Kpi href="/admin/stafi" tone="purple" icon={<IcClock />} value={currentTimeLabel} label="Ora Aktuale" sub={currentDateLabel} />
-              <Kpi href="/admin/klientet" tone="gold" icon={<IcStar />} value={kpis.studioRating || "—"} label="Vlerësimi i Studios" sub={`Bazuar në ${kpis.reviewCount} vlerësime`} />
-              <Kpi href="/admin/historiku" tone="ok" icon={<IcChart />} value={kpis.completedThisMonth} label="Shërbime të Kryera" sub="Këtë muaj" />
+              <Kpi href="/admin/kalendari" tone="accent" icon={<IcCalendar />} value={kpis.todayAppointments} label={t("kpiTodayAppts")} sub={t("kpiTodayApptsSub", { count: kpis.upcomingToday })} />
+              <Kpi href="/admin/stafi" tone="purple" icon={<IcClock />} value={currentTimeLabel} label={t("kpiCurrentTime")} sub={currentDateLabel} />
+              <Kpi href="/admin/klientet" tone="gold" icon={<IcStar />} value={kpis.studioRating || "—"} label={t("kpiStudioRating")} sub={t("kpiStudioRatingSub", { count: kpis.reviewCount })} />
+              <Kpi href="/admin/historiku" tone="ok" icon={<IcChart />} value={kpis.completedThisMonth} label={t("kpiServicesCompleted")} sub={t("kpiServicesCompletedSub")} />
             </div>
 
             <StaffOverviewTable rows={rows} existingTitles={existingTitles} />
 
             <div className="rounded-xl border border-line bg-surface p-3">
-              <p className="mb-1 text-sm font-semibold text-ink">Përmbledhja e Performancës</p>
-              <p className="mb-3 text-xs text-ink-faint">Ndiq ecurinë e studios këtë muaj.</p>
+              <p className="mb-1 text-sm font-semibold text-ink">{t("performanceTitle")}</p>
+              <p className="mb-3 text-xs text-ink-faint">{t("performanceHint")}</p>
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                 <div className="flex items-center gap-2.5 rounded-lg bg-surface-muted p-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"><IcBook /></span>
                   <div className="min-w-0">
                     <p className="text-base font-bold leading-tight text-ink">{performance.appointments}</p>
-                    <p className="truncate text-[11px] text-ink-faint">Termine Këtë Muaj</p>
+                    <p className="truncate text-[11px] text-ink-faint">{t("statAppointmentsMonth")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-lg bg-surface-muted p-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ok-soft text-ok"><IcSmile /></span>
                   <div className="min-w-0">
                     <p className="text-base font-bold leading-tight text-ink">{performance.satisfactionPct || "—"}{performance.satisfactionPct ? "%" : ""}</p>
-                    <p className="truncate text-[11px] text-ink-faint">Kënaqësia e Klientëve</p>
+                    <p className="truncate text-[11px] text-ink-faint">{t("statSatisfaction")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-lg bg-surface-muted p-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-gold-soft text-gold"><IcCoin /></span>
                   <div className="min-w-0">
                     <p className="text-base font-bold leading-tight text-ink">{performance.revenue.toFixed(0)} €</p>
-                    <p className="truncate text-[11px] text-ink-faint">Të Ardhura Këtë Muaj</p>
+                    <p className="truncate text-[11px] text-ink-faint">{t("statRevenueMonth")}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2.5 rounded-lg bg-surface-muted p-2.5">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-soft text-purple"><IcUserPlus /></span>
                   <div className="min-w-0">
                     <p className="text-base font-bold leading-tight text-ink">{performance.newClients}</p>
-                    <p className="truncate text-[11px] text-ink-faint">Klientë të Rinj</p>
+                    <p className="truncate text-[11px] text-ink-faint">{t("statNewClients")}</p>
                   </div>
                 </div>
               </div>
@@ -150,11 +156,11 @@ export default async function StaffPage() {
           <div className="flex flex-col gap-2">
             <div className="rounded-xl border border-line bg-surface p-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Orari i Sotëm</p>
-                <Link href="/admin/kalendari" className="text-[11px] font-semibold text-accent hover:underline">Kalendari</Link>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("todayScheduleTitle")}</p>
+                <Link href="/admin/kalendari" className="text-[11px] font-semibold text-accent hover:underline">{t("calendarLink")}</Link>
               </div>
               {schedule.length === 0 ? (
-                <p className="text-xs text-ink-faint">Asnjë termin sot.</p>
+                <p className="text-xs text-ink-faint">{t("noAppointmentsToday")}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {schedule.map((s) => {
@@ -165,21 +171,21 @@ export default async function StaffPage() {
                           <p className="truncate font-medium text-ink">{s.timeLabel} · {s.serviceName}</p>
                           <p className="truncate text-[11px] text-ink-faint">{s.clientName} · {s.staffName}</p>
                         </div>
-                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pill.bg} ${pill.text}`}>{BOOKING_STATUS_LABEL[s.status]}</span>
+                        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${pill.bg} ${pill.text}`}>{tStatus(s.status)}</span>
                       </div>
                     );
                   })}
                 </div>
               )}
               <Link href="/admin/terminet" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko Gjithë Kalendarin →
+                {t("viewFullCalendarLink")}
               </Link>
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Terminet Aktuale ({ongoing.length} në vazhdim)</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("ongoingTitle", { count: ongoing.length })}</p>
               {ongoing.length === 0 ? (
-                <p className="text-xs text-ink-faint">Askush në shërbim tani.</p>
+                <p className="text-xs text-ink-faint">{t("noOneInService")}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {ongoing.map((o) => (
@@ -188,7 +194,7 @@ export default async function StaffPage() {
                         {o.startedLabel}
                       </span>
                       <div className="min-w-0 flex-1">
-                        <p className="truncate font-medium text-ink">{o.clientName}</p>
+                        <p className="truncate font-medium text-ink">{o.clientName ?? t("namelessClientFallback")}</p>
                         <p className="truncate text-[11px] text-ink-faint">{o.serviceName} · {o.staffName}</p>
                       </div>
                     </div>
@@ -196,7 +202,7 @@ export default async function StaffPage() {
                 </div>
               )}
               <Link href="/admin/terminet?status=IN_SERVICE" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko të Gjitha Terminet →
+                {t("viewAllAppointmentsLink")}
               </Link>
             </div>
           </div>

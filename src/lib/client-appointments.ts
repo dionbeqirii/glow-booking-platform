@@ -23,7 +23,7 @@ export type AppointmentRow = {
   feedback: { rating: number; comment: string | null } | null;
 };
 
-export async function getClientAppointments(clientId: string, now = new Date()): Promise<AppointmentRow[]> {
+export async function getClientAppointments(clientId: string, now = new Date(), locale = "sq"): Promise<AppointmentRow[]> {
   const bookings = await prisma.booking.findMany({
     where: { clientId },
     orderBy: { startTime: "desc" },
@@ -42,8 +42,8 @@ export async function getClientAppointments(clientId: string, now = new Date()):
   return bookings.map((b) => ({
     id: b.id,
     startTime: b.startTime.toISOString(),
-    dateLabel: b.startTime.toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
-    timeLabel: b.startTime.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    dateLabel: b.startTime.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" }),
+    timeLabel: b.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     daysFromNow: Math.floor((b.startTime.getTime() - now.getTime()) / (24 * 60 * 60 * 1000)),
     status: b.status,
     serviceId: b.serviceId,

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { BookingStatus } from "@prisma/client";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -12,7 +13,8 @@ import {
   parseAppointmentFilters,
   type RawAppointmentSearchParams,
 } from "@/lib/appointments";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { monthShortLabels } from "@/lib/calendar-labels";
 import AppointmentsFilters from "@/components/admin/AppointmentsFilters";
 import AppointmentsSearch from "@/components/admin/AppointmentsSearch";
 import AppointmentsTable from "@/components/admin/AppointmentsTable";
@@ -21,10 +23,7 @@ import MiniCalendar from "@/components/admin/MiniCalendar";
 import NewAppointmentButton from "@/components/admin/NewAppointmentButton";
 
 const PAGE_SIZES = [10, 25, 50];
-const STATUS_OPTIONS = (Object.keys(BOOKING_STATUS_LABEL) as BookingStatus[]).map((s) => ({
-  value: s,
-  label: BOOKING_STATUS_LABEL[s],
-}));
+const BOOKING_STATUS_KEYS: BookingStatus[] = ["CONFIRMED", "CHECKED_IN", "IN_SERVICE", "COMPLETED", "CANCELLED", "NO_SHOW"];
 
 const stroke = {
   fill: "none",
@@ -72,27 +71,27 @@ function toISODate(d: Date): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${y}-${m}-${day}`;
 }
-const MONTHS_SHORT = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gsh", "Sht", "Tet", "Nën", "Dhj"];
 // Day + short month, no year — the table is a near-term operational view (this
 // week / this month), and dropping the year keeps every date on one line at
 // the column's real width instead of wrapping across two or three.
-function fmtRowDate(d: Date): string {
-  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
+function fmtRowDate(d: Date, monthsShort: string[]): string {
+  return `${d.getDate()} ${monthsShort[d.getMonth()]}`;
 }
 // 24-hour, no AM/PM marker — "sq" otherwise spells that out ("e pasdites"),
 // which alone was wide enough to force the row (and the whole table) to wrap.
-function fmtRowTime(d: Date): string {
-  return d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+function fmtRowTime(d: Date, locale: string): string {
+  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 function rowDurationMin(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 60000);
 }
 
-function pctDelta(curr: number, prev: number): string {
-  if (prev === 0) return curr > 0 ? "e re këtë muaj" : "asnjë muajin e kaluar";
+type DeltaTranslator = (key: string, values?: Record<string, string | number>) => string;
+function pctDelta(curr: number, prev: number, t: DeltaTranslator): string {
+  if (prev === 0) return curr > 0 ? t("deltaNewThisMonth") : t("deltaNoneLastMonth");
   const pct = Math.round(((curr - prev) / prev) * 100);
   const arrow = pct >= 0 ? "↑" : "↓";
-  return `${arrow} ${Math.abs(pct)}% krahasuar me muajin e kaluar`;
+  return t("deltaCompared", { arrow, pct: Math.abs(pct) });
 }
 
 function pageWindow(current: number, total: number): (number | "…")[] {
@@ -115,6 +114,15 @@ export default async function AdminAppointmentsPage({
   searchParams: Promise<RawAppointmentSearchParams & { page?: string; pageSize?: string }>;
 }) {
   const session = await requireRole("ADMIN");
+  const [t, tCal, tStatus, tMonth, locale] = await Promise.all([
+    getTranslations("AdminAppointments"),
+    getTranslations("AdminCalendar"),
+    getTranslations("Status.booking"),
+    getTranslations("Month"),
+    getLocale(),
+  ]);
+  const MONTHS_SHORT = monthShortLabels(tMonth);
+  const STATUS_OPTIONS = BOOKING_STATUS_KEYS.map((s) => ({ value: s, label: tStatus(s) }));
   const sp = await searchParams;
   const filters = parseAppointmentFilters(sp);
   const page = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
@@ -162,7 +170,7 @@ export default async function AdminAppointmentsPage({
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto flex h-full max-w-none flex-col">
-        <PageTitle title="Terminet" hint="Menaxho dhe shiko të gjitha terminet e studios." />
+        <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
 
         <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1fr_280px]">
           <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
@@ -172,32 +180,32 @@ export default async function AdminAppointmentsPage({
                 tone="accent"
                 icon={<IcCalendar />}
                 value={kpis.totalThisMonth}
-                label="Termine Gjithsej"
-                sub={pctDelta(kpis.totalThisMonth, kpis.totalLastMonth)}
+                label={t("kpiTotal")}
+                sub={pctDelta(kpis.totalThisMonth, kpis.totalLastMonth, t)}
               />
               <Kpi
                 href={`/admin/kalendari?view=day&date=${toISODate(now)}`}
                 tone="gold"
                 icon={<IcCalendar />}
                 value={kpis.today}
-                label="Terminet e Sotme"
-                sub="Shiko orarin e sotëm →"
+                label={t("kpiToday")}
+                sub={t("kpiTodaySub")}
               />
               <Kpi
                 href="/admin/terminet?status=IN_SERVICE"
                 tone="purple"
                 icon={<IcClock />}
                 value={kpis.inProgress}
-                label="Në Vazhdim"
-                sub="Aktualisht në shërbim"
+                label={t("kpiInProgress")}
+                sub={t("kpiInProgressSub")}
               />
               <Kpi
                 href="/admin/terminet?status=COMPLETED"
                 tone="warn"
                 icon={<IcCheck />}
                 value={kpis.completedThisMonth}
-                label="Përfunduar Muajin"
-                sub={pctDelta(kpis.completedThisMonth, kpis.completedLastMonth)}
+                label={t("kpiCompletedMonth")}
+                sub={pctDelta(kpis.completedThisMonth, kpis.completedLastMonth, t)}
               />
             </div>
 
@@ -214,14 +222,14 @@ export default async function AdminAppointmentsPage({
                   currentStatus={sp.status ?? ""}
                 />
                 <AppointmentsSearch currentQuery={sp.q ?? ""} />
-                <div className="flex w-[108px] shrink-0 flex-col gap-1.5">
+                <div className="flex shrink-0 flex-col gap-1.5">
                   <NewAppointmentButton clients={clients} services={servicesForModal} staff={staffForModal} />
                   <a
                     href={exportHref}
                     className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
                   >
                     <IcDownload />
-                    Eksporto
+                    {t("exportBtn")}
                   </a>
                 </div>
               </div>
@@ -238,8 +246,8 @@ export default async function AdminAppointmentsPage({
                   staffName: b.staffName,
                   status: b.status,
                   paymentStatus: b.paymentStatus,
-                  dateLabel: fmtRowDate(b.startTime),
-                  timeLabel: fmtRowTime(b.startTime),
+                  dateLabel: fmtRowDate(b.startTime, MONTHS_SHORT),
+                  timeLabel: fmtRowTime(b.startTime, locale),
                   durationLabel: `${rowDurationMin(b.startTime, b.endTime)} min`,
                   calendarDate: toISODate(b.startTime),
                 }))}
@@ -249,13 +257,13 @@ export default async function AdminAppointmentsPage({
 
             <div className="shrink-0 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-ink-faint">
-                Duke shfaqur {rows.length === 0 ? 0 : (page - 1) * pageSize + 1}–{Math.min(page * pageSize, total)} nga {total} termine
+                {t("showingRange", { from: rows.length === 0 ? 0 : (page - 1) * pageSize + 1, to: Math.min(page * pageSize, total), total })}
               </p>
               <div className="flex items-center gap-3">
                 <div className="flex items-center gap-1">
                   <Link
                     href={pageHref(Math.max(1, page - 1))}
-                    aria-label="Faqja e mëparshme"
+                    aria-label={t("prevPage")}
                     className={`flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors ${page <= 1 ? "pointer-events-none opacity-40" : "hover:bg-surface-muted hover:text-ink"}`}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
@@ -279,7 +287,7 @@ export default async function AdminAppointmentsPage({
                   )}
                   <Link
                     href={pageHref(Math.min(totalPages, page + 1))}
-                    aria-label="Faqja tjetër"
+                    aria-label={t("nextPage")}
                     className={`flex h-8 w-8 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors ${page >= totalPages ? "pointer-events-none opacity-40" : "hover:bg-surface-muted hover:text-ink"}`}
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -304,7 +312,7 @@ export default async function AdminAppointmentsPage({
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Terminet sipas Statusit</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("byStatusTitle")}</p>
               <div className="flex flex-col gap-1">
                 {STATUS_OPTIONS.map((s) => {
                   const pill = BOOKING_STATUS_PILL[s.value];
@@ -320,20 +328,20 @@ export default async function AdminAppointmentsPage({
                   );
                 })}
               </div>
-              {breakdownTotal === 0 && <p className="mt-2 text-xs text-ink-faint">Asnjë termin në këtë kërkim.</p>}
+              {breakdownTotal === 0 && <p className="mt-2 text-xs text-ink-faint">{t("noneInSearch")}</p>}
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Përmbledhja e Sotme</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("todaySummaryTitle")}</p>
               <div className="flex flex-col gap-1 text-xs">
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Termine</span><span className="font-semibold text-ink">{todaySummary.total}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-accent" />Konfirmuar</span><span className="font-semibold text-ink">{todaySummary.confirmed}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-gold" />Në vazhdim</span><span className="font-semibold text-ink">{todaySummary.inProgress}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-purple" />Përfunduar</span><span className="font-semibold text-ink">{todaySummary.completed}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-danger" />Anuluar</span><span className="font-semibold text-ink">{todaySummary.cancelled}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{tCal("statBookings")}</span><span className="font-semibold text-ink">{todaySummary.total}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{tCal("statConfirmed")}</span><span className="font-semibold text-ink">{todaySummary.confirmed}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-gold" />{tCal("statInProgress")}</span><span className="font-semibold text-ink">{todaySummary.inProgress}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-purple" />{tCal("statCompleted")}</span><span className="font-semibold text-ink">{todaySummary.completed}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-danger" />{tCal("statCancelled")}</span><span className="font-semibold text-ink">{todaySummary.cancelled}</span></div>
               </div>
               <Link href={`/admin/kalendari?view=day&date=${toISODate(now)}`} className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko Orarin e Sotëm →
+                {t("viewTodayScheduleLink")}
               </Link>
             </div>
           </div>

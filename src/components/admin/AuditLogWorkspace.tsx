@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { AuditLogRow } from "@/lib/audit-log";
 import { auditActionMeta, AUDIT_TONE_STYLE } from "@/lib/audit-labels";
 
@@ -51,6 +52,22 @@ function IcRefresh() {
 }
 
 export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
+  const t = useTranslations("AdminAuditLog");
+  const tAction = useTranslations("AuditAction");
+  const tModule = useTranslations("AuditModule");
+
+  // Resolves the translation-key pair from audit-labels.ts into the actual
+  // displayed strings for the current language (fallbackLabel is used
+  // as-is for an action this file hasn't mapped a key for yet).
+  function resolve(action: string) {
+    const meta = auditActionMeta(action);
+    return {
+      label: meta.labelKey ? tAction(meta.labelKey) : (meta.fallbackLabel ?? action),
+      module: tModule(meta.moduleKey),
+      tone: meta.tone,
+    };
+  }
+
   const [query, setQuery] = useState("");
   const [moduleFilter, setModuleFilter] = useState("");
   const [actionFilter, setActionFilter] = useState("");
@@ -63,20 +80,23 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
 
   const modules = useMemo(() => {
     const set = new Set<string>();
-    rows.forEach((r) => set.add(auditActionMeta(r.action).module));
+    rows.forEach((r) => set.add(resolve(r.action).module));
     return [...set].sort((a, b) => a.localeCompare(b));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
   const actionOptions = useMemo(() => {
     const map = new Map<string, string>();
-    rows.forEach((r) => map.set(r.action, auditActionMeta(r.action).label));
+    rows.forEach((r) => map.set(r.action, resolve(r.action).label));
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
   const userOptions = useMemo(() => {
     const map = new Map<string, string>();
-    rows.forEach((r) => { if (r.userId) map.set(r.userId, r.userName); });
+    rows.forEach((r) => { if (r.userId) map.set(r.userId, r.userName ?? t("systemUser")); });
     return [...map.entries()].sort((a, b) => a[1].localeCompare(b[1]));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
   function withReset<T>(setter: (v: T) => void) {
@@ -90,19 +110,20 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const list = rows.filter((r) => {
-      const meta = auditActionMeta(r.action);
+      const meta = resolve(r.action);
       if (moduleFilter && meta.module !== moduleFilter) return false;
       if (actionFilter && r.action !== actionFilter) return false;
       if (userFilter && r.userId !== userFilter) return false;
       if (from && r.createdAt.slice(0, 10) < from) return false;
       if (to && r.createdAt.slice(0, 10) > to) return false;
       if (q) {
-        const haystack = `${r.userName} ${r.userEmail ?? ""} ${meta.label} ${meta.module} ${r.details ?? ""}`.toLowerCase();
+        const haystack = `${r.userName ?? t("systemUser")} ${r.userEmail ?? ""} ${meta.label} ${meta.module} ${r.details ?? ""}`.toLowerCase();
         if (!haystack.includes(q)) return false;
       }
       return true;
     });
     return [...list].sort((a, b) => (sortDir === "desc" ? b.createdAt.localeCompare(a.createdAt) : a.createdAt.localeCompare(b.createdAt)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows, query, moduleFilter, actionFilter, userFilter, from, to, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
@@ -119,7 +140,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
           <input
             value={query}
             onChange={(e) => withReset(setQuery)(e.target.value)}
-            placeholder="Kërko…"
+            placeholder={t("searchPlaceholder")}
             className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
           />
         </div>
@@ -128,7 +149,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
           onChange={(e) => withReset(setModuleFilter)(e.target.value)}
           className="w-[92px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="">Moduli</option>
+          <option value="">{t("allModules")}</option>
           {modules.map((m) => <option key={m} value={m}>{m}</option>)}
         </select>
         <select
@@ -136,7 +157,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
           onChange={(e) => withReset(setActionFilter)(e.target.value)}
           className="w-[100px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="">Veprimi</option>
+          <option value="">{t("allActions")}</option>
           {actionOptions.map(([code, label]) => <option key={code} value={code}>{label}</option>)}
         </select>
         <select
@@ -144,7 +165,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
           onChange={(e) => withReset(setUserFilter)(e.target.value)}
           className="w-[100px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="">Përdoruesi</option>
+          <option value="">{t("allUsers")}</option>
           {userOptions.map(([id, name]) => <option key={id} value={id}>{name}</option>)}
         </select>
         <div className="flex shrink-0 items-center gap-1 rounded-lg border border-line-strong bg-surface py-1 pl-2 pr-1">
@@ -156,8 +177,8 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
         <button
           type="button"
           onClick={resetFilters}
-          title="Pastro filtrat"
-          aria-label="Pastro filtrat"
+          title={t("clearFilters")}
+          aria-label={t("clearFilters")}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line-strong text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
         >
           <IcRefresh />
@@ -178,27 +199,27 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
             <tr className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-faint [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:overflow-hidden [&>th]:bg-surface">
               <th className="px-3 py-2 font-medium">
                 <button type="button" onClick={() => setSortDir((d) => (d === "desc" ? "asc" : "desc"))} className="flex items-center gap-1 transition-colors hover:text-ink">
-                  Data &amp; Ora
+                  {t("colDateTime")}
                   <IcSort dir={sortDir} />
                 </button>
               </th>
-              <th className="px-3 py-2 font-medium">Përdoruesi</th>
-              <th className="px-3 py-2 font-medium">Veprimi</th>
-              <th className="px-3 py-2 font-medium">Moduli</th>
-              <th className="px-3 py-2 font-medium">Detajet</th>
-              <th className="px-3 py-2 font-medium">Adresa IP</th>
+              <th className="px-3 py-2 font-medium">{t("colUser")}</th>
+              <th className="px-3 py-2 font-medium">{t("colAction")}</th>
+              <th className="px-3 py-2 font-medium">{t("colModule")}</th>
+              <th className="px-3 py-2 font-medium">{t("colDetails")}</th>
+              <th className="px-3 py-2 font-medium">{t("colIp")}</th>
             </tr>
           </thead>
           <tbody>
             {pageItems.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-sm text-ink-faint">
-                  {rows.length === 0 ? "Ende s'ka regjistrime në audit log." : "Asnjë regjistrim nuk përputhet me filtrat."}
+                  {rows.length === 0 ? t("emptyNoRows") : t("emptyNoMatch")}
                 </td>
               </tr>
             ) : (
               pageItems.map((r) => {
-                const meta = auditActionMeta(r.action);
+                const meta = resolve(r.action);
                 const tone = AUDIT_TONE_STYLE[meta.tone];
                 return (
                   <tr key={r.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/60">
@@ -211,11 +232,11 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
                           <img src={r.userAvatarUrl} alt="" className="h-6 w-6 shrink-0 rounded-full object-cover" />
                         ) : (
                           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold text-accent">
-                            {initials(r.userName)}
+                            {initials(r.userName ?? t("systemUser"))}
                           </span>
                         )}
                         <div className="min-w-0">
-                          <p className="truncate font-medium text-ink">{r.userName}</p>
+                          <p className="truncate font-medium text-ink">{r.userName ?? t("systemUser")}</p>
                           {r.userEmail && <p className="truncate text-[11px] text-ink-faint">{r.userEmail}</p>}
                         </div>
                       </div>
@@ -243,14 +264,14 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line px-3 py-2 text-xs text-ink-faint">
-        <span>Duke shfaqur {rangeFrom} deri {rangeTo} nga {filtered.length} regjistrime</span>
+        <span>{t("showingRange", { from: rangeFrom, to: rangeTo, total: filtered.length })}</span>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-0.5">
             <button
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
-              aria-label="Faqja e mëparshme"
+              aria-label={t("prevPage")}
               className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
@@ -275,7 +296,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              aria-label="Faqja tjetër"
+              aria-label={t("nextPage")}
               className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -286,7 +307,7 @@ export default function AuditLogWorkspace({ rows }: { rows: AuditLogRow[] }) {
             onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}
             className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-xs text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
           >
-            {PAGE_SIZES.map((s) => <option key={s} value={s}>{s} / faqe</option>)}
+            {PAGE_SIZES.map((s) => <option key={s} value={s}>{t("perPage", { count: s })}</option>)}
           </select>
         </div>
       </div>

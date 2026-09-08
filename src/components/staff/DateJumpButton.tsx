@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 // A real native date-picker trigger: the browser's own calendar UI, jumping
 // straight to /staff/orari?date=... on pick — not a decorative icon.
 export default function DateJumpButton({ value, basePath }: { value: string; basePath: string }) {
+  const t = useTranslations("StaffSchedule");
   const router = useRouter();
   return (
     <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line-strong text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink">
@@ -17,7 +19,7 @@ export default function DateJumpButton({ value, basePath }: { value: string; bas
         onChange={(e) => {
           if (e.target.value) router.push(`${basePath}?date=${e.target.value}`);
         }}
-        aria-label="Zgjidh datën"
+        aria-label={t("pickDateAria")}
         className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
       />
     </span>

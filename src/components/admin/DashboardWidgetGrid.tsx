@@ -2,12 +2,32 @@
 
 import { useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import {
   DASHBOARD_WIDGET_IDS,
-  DASHBOARD_WIDGET_LABEL,
   type DashboardWidgetId,
   type WidgetLayoutItem,
 } from "@/lib/dashboard-widgets";
+
+type T = (key: string, values?: Record<string, string | number>) => string;
+
+// Most widget labels reuse the section-title keys already defined for the
+// dashboard sections themselves (Admin.Dashboard); the three that only ever
+// appear in this picker live under AdminDashboardWidgets.
+function widgetLabel(id: DashboardWidgetId, tDash: T, tWidgets: T): string {
+  switch (id) {
+    case "kpi": return tWidgets("widgetKpi");
+    case "scheduleQueue": return tWidgets("widgetScheduleQueue");
+    case "trend": return tDash("bookingTrend");
+    case "periodStats": return tWidgets("widgetPeriodStats");
+    case "statusBreakdown": return tDash("byStatus");
+    case "queue": return tDash("walkinQueue");
+    case "staffUtilization": return tDash("staffUtilization");
+    case "topServices": return tDash("topServices");
+    case "topClients": return tDash("topClients");
+    case "pdfExport": return tDash("exportReport");
+  }
+}
 
 const stroke = {
   fill: "none",
@@ -70,6 +90,9 @@ export default function DashboardWidgetGrid({
   widgets: Partial<Record<DashboardWidgetId, ReactNode>>;
   initialLayout: WidgetLayoutItem[];
 }) {
+  const tDash = useTranslations("Admin.Dashboard");
+  const tWidgets = useTranslations("AdminDashboardWidgets");
+  const tCommon = useTranslations("Common");
   const [layout, setLayout] = useState<WidgetLayoutItem[]>(initialLayout);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -153,8 +176,8 @@ export default function DashboardWidgetGrid({
         <button
           type="button"
           onClick={() => setModalOpen(true)}
-          aria-label="Rregullo panelin"
-          title="Rregullo panelin"
+          aria-label={tWidgets("customizeAria")}
+          title={tWidgets("customizeAria")}
           className="flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
         >
           <PencilIcon />
@@ -179,13 +202,13 @@ export default function DashboardWidgetGrid({
             <div className="flex max-h-[85vh] w-full max-w-md flex-col rounded-2xl bg-surface shadow-[0_24px_60px_-20px_rgba(31,42,34,0.35)] ring-1 ring-line">
               <div className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
                 <div>
-                  <h2 className="text-sm font-semibold text-ink">Rregullo panelin</h2>
-                  <p className="mt-0.5 text-xs text-ink-faint">Tërhiqi për të ndryshuar renditjen; fike ato që s&apos;t&apos;i duhen.</p>
+                  <h2 className="text-sm font-semibold text-ink">{tWidgets("modalTitle")}</h2>
+                  <p className="mt-0.5 text-xs text-ink-faint">{tWidgets("modalHint")}</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
-                  aria-label="Mbyll"
+                  aria-label={tCommon("close")}
                   className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                 >
                   <CloseIcon />
@@ -215,14 +238,14 @@ export default function DashboardWidgetGrid({
                       <GripIcon />
                     </span>
                     <span className={`flex-1 text-sm ${w.hidden ? "text-ink-faint" : "text-ink"}`}>
-                      {DASHBOARD_WIDGET_LABEL[w.id]}
+                      {widgetLabel(w.id, tDash, tWidgets)}
                     </span>
                     <button
                       type="button"
                       onClick={() => toggle(w.id)}
                       disabled={saving}
-                      aria-label={w.hidden ? `Shfaq: ${DASHBOARD_WIDGET_LABEL[w.id]}` : `Fshih: ${DASHBOARD_WIDGET_LABEL[w.id]}`}
-                      title={w.hidden ? "Shfaq" : "Fshih"}
+                      aria-label={w.hidden ? tWidgets("showAria", { label: widgetLabel(w.id, tDash, tWidgets) }) : tWidgets("hideAria", { label: widgetLabel(w.id, tDash, tWidgets) })}
+                      title={w.hidden ? tWidgets("showTitle") : tWidgets("hideTitle")}
                       className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors disabled:opacity-40 ${
                         w.hidden ? "text-ink-faint hover:bg-surface-muted hover:text-ink" : "text-accent hover:bg-accent-soft"
                       }`}
@@ -240,14 +263,14 @@ export default function DashboardWidgetGrid({
                   disabled={saving}
                   className="text-xs font-medium text-danger hover:underline disabled:opacity-50"
                 >
-                  Rikthe rregullimin fillestar
+                  {tWidgets("resetLayout")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setModalOpen(false)}
                   className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
                 >
-                  U bë
+                  {tWidgets("doneBtn")}
                 </button>
               </div>
             </div>

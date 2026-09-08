@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -7,7 +8,6 @@ import DashboardWidgetGrid from "@/components/admin/DashboardWidgetGrid";
 import DailyScheduleGrid from "@/components/admin/DailyScheduleGrid";
 import { computeStudioStats } from "@/lib/stats";
 import { getDaySchedule } from "@/lib/schedule";
-import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import { normalizeDashboardLayout, type DashboardWidgetId } from "@/lib/dashboard-widgets";
 import { Kpi, type Tone } from "@/components/ui";
 import type { BookingStatus } from "@prisma/client";
@@ -167,6 +167,9 @@ const STATUS_TONE: Record<BookingStatus, Tone> = {
 /* ---------------- page ---------------- */
 export default async function AdminPage({ searchParams }: { searchParams: Promise<{ days?: string }> }) {
   const session = await requireRole("ADMIN");
+  const t = await getTranslations("Admin.Dashboard");
+  const tStatus = await getTranslations("Status.booking");
+  const locale = await getLocale();
   const sp = await searchParams;
   const days = (PERIODS as readonly number[]).includes(Number(sp.days)) ? Number(sp.days) : 30;
 
@@ -268,17 +271,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const statusOrder: BookingStatus[] = ["COMPLETED", "CONFIRMED", "CHECKED_IN", "IN_SERVICE", "CANCELLED", "NO_SHOW"];
 
   const firstName = session.name.split(" ")[0];
-  const dateStr = now.toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const short = (d: Date) => d.toLocaleDateString("sq", { day: "numeric", month: "short" });
+  const dateStr = now.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const short = (d: Date) => d.toLocaleDateString(locale, { day: "numeric", month: "short" });
 
   const widgets: Partial<Record<DashboardWidgetId, ReactNode>> = {
     kpi: (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Kpi href="/admin/klientet" tone="accent" icon={<IcClients />} value={clientCount} label="Klientë" sub={newClients > 0 ? `+${newClients} të rinj` : "gjithsej"} />
-        <Kpi href="/admin/sherbimet" tone="gold" icon={<IcServices />} value={serviceCount} label="Shërbime" sub={`${activeServices} aktive`} />
-        <Kpi href="/admin/stafi" tone="ok" icon={<IcStaff />} value={staffCount} label="Staf" sub={staffWithoutHours > 0 ? `${staffWithoutHours} pa orar` : "të gjithë me orar"} />
-        <Kpi href="/admin/historiku" tone="accent" icon={<IcBookings />} value={bookingsToday} label="Rezervime sot" sub="aktive" />
-        <Kpi href="/admin/radha" tone="warn" icon={<IcQueue />} value={queueWaiting} label="Në radhë sot" sub="në pritje / thirrur" />
+        <Kpi href="/admin/klientet" tone="accent" icon={<IcClients />} value={clientCount} label={t("kpiClients")} sub={newClients > 0 ? t("kpiClientsNew", { count: newClients }) : t("kpiClientsTotal")} />
+        <Kpi href="/admin/sherbimet" tone="gold" icon={<IcServices />} value={serviceCount} label={t("kpiServices")} sub={t("kpiServicesActive", { count: activeServices })} />
+        <Kpi href="/admin/stafi" tone="ok" icon={<IcStaff />} value={staffCount} label={t("kpiStaff")} sub={staffWithoutHours > 0 ? t("kpiStaffMissingHours", { count: staffWithoutHours }) : t("kpiStaffAllScheduled")} />
+        <Kpi href="/admin/historiku" tone="accent" icon={<IcBookings />} value={bookingsToday} label={t("kpiBookingsToday")} sub={t("kpiActive")} />
+        <Kpi href="/admin/radha" tone="warn" icon={<IcQueue />} value={queueWaiting} label={t("kpiQueueToday")} sub={t("kpiQueueSub")} />
       </div>
     ),
     scheduleQueue: (
@@ -286,16 +289,16 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
         <section className="rounded-xl border border-line bg-surface p-3.5">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <h2 className="text-sm font-semibold text-ink">Orari ditor</h2>
+              <h2 className="text-sm font-semibold text-ink">{t("dailySchedule")}</h2>
               <span className="text-xs text-ink-faint">{dateStr}</span>
             </div>
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-3 text-[11px] text-ink-soft">
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" />Rezervuar</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-faint" />Përfunduar</span>
-                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-danger" />Anuluar</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-accent" />{t("legendBooked")}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ink-faint" />{t("legendCompleted")}</span>
+                <span className="flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-danger" />{t("legendCancelled")}</span>
               </div>
-              <Link href="/admin/kalendari" className="shrink-0 text-xs font-medium text-accent hover:underline">Kalendari →</Link>
+              <Link href="/admin/kalendari" className="shrink-0 text-xs font-medium text-accent hover:underline">{t("calendarLink")}</Link>
             </div>
           </div>
           <DailyScheduleGrid schedule={todaySchedule} />
@@ -303,17 +306,17 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
         <section className="rounded-xl border border-line bg-surface p-3.5">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <h2 className="text-sm font-semibold text-ink">Radha live</h2>
+            <h2 className="text-sm font-semibold text-ink">{t("liveQueue")}</h2>
             <Link
               href="/admin/radha"
               className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover"
             >
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-              Shto
+              {t("add")}
             </Link>
           </div>
           {liveQueueRows.length === 0 ? (
-            <p className="text-sm text-ink-faint">Radha është bosh për momentin.</p>
+            <p className="text-sm text-ink-faint">{t("queueEmpty")}</p>
           ) : (
             <ul className="space-y-3">
               {liveQueueRows.map((q, i) => (
@@ -322,12 +325,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-ink">{q.client?.name ?? q.clientName ?? "Klient"}</p>
+                    <p className="truncate text-sm font-semibold text-ink">{q.client?.name ?? q.clientName ?? t("clientFallback")}</p>
                     <p className="truncate text-xs text-ink-faint">{q.service.name}</p>
                   </div>
                   <span className="flex shrink-0 items-center gap-1 text-xs text-ink-soft">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></svg>
-                    {q.estimatedWaitMin} min
+                    {t("minutesShort", { count: q.estimatedWaitMin })}
                   </span>
                 </li>
               ))}
@@ -335,18 +338,18 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           )}
           <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
             <p className="text-[11px] text-ink-faint">
-              Përditësuar: {now.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" })}
+              {t("updatedAt", { time: now.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) })}
             </p>
-            <Link href="/admin/radha" className="text-xs font-medium text-accent hover:underline">Shiko radhën →</Link>
+            <Link href="/admin/radha" className="text-xs font-medium text-accent hover:underline">{t("viewQueueLink")}</Link>
           </div>
         </section>
       </div>
     ),
     trend: (
-      <Panel title="Trendi i rezervimeve" hint={`${days} ditët e fundit`}>
+      <Panel title={t("bookingTrend")} hint={t("lastNDays", { count: days })}>
         <div className="mb-2 flex items-end gap-2">
           <p className="text-2xl font-bold leading-none text-ink">{trendTotal}</p>
-          <p className="pb-0.5 text-xs text-ink-faint">rezervime gjithsej</p>
+          <p className="pb-0.5 text-xs text-ink-faint">{t("bookingsTotal")}</p>
         </div>
         <div className="h-48">
           <AreaChart data={trend} />
@@ -359,28 +362,28 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     ),
     periodStats: (
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <MiniStat label="Rezervime gjithsej" value={String(stats.bookings.total)} hint="në periudhë" tone="accent" />
+        <MiniStat label={t("statTotalBookings")} value={String(stats.bookings.total)} hint={t("statInPeriod")} tone="accent" />
         <MiniStat
-          label="Të përfunduara"
+          label={t("statCompleted")}
           value={String(stats.bookings.byStatus.COMPLETED)}
-          hint={stats.bookings.total > 0 ? pct(stats.bookings.byStatus.COMPLETED / stats.bookings.total) + " e rezervimeve" : "—"}
+          hint={stats.bookings.total > 0 ? t("statOfBookings", { pct: pct(stats.bookings.byStatus.COMPLETED / stats.bookings.total) }) : "—"}
           tone="ok"
         />
-        <MiniStat label="Norma e anulimeve" value={pct(stats.bookings.cancellationRate)} hint={`${stats.bookings.byStatus.CANCELLED} anulime`} tone="warn" />
-        <MiniStat label="Norma e no-show" value={pct(stats.bookings.noShowRate)} hint={`${stats.bookings.byStatus.NO_SHOW} raste`} tone="warn" />
+        <MiniStat label={t("statCancelRate")} value={pct(stats.bookings.cancellationRate)} hint={t("statCancelCount", { count: stats.bookings.byStatus.CANCELLED })} tone="warn" />
+        <MiniStat label={t("statNoShowRate")} value={pct(stats.bookings.noShowRate)} hint={t("statNoShowCount", { count: stats.bookings.byStatus.NO_SHOW })} tone="warn" />
       </div>
     ),
     statusBreakdown: (
-      <Panel title="Rezervimet sipas statusit" hint={`${days} ditët e fundit`}>
+      <Panel title={t("byStatus")} hint={t("lastNDays", { count: days })}>
         {stats.bookings.total === 0 ? (
-          <p className="text-sm text-ink-faint">Nuk ka rezervime në këtë periudhë.</p>
+          <p className="text-sm text-ink-faint">{t("noBookingsInPeriod")}</p>
         ) : (
           <ul className="space-y-3">
             {statusOrder.map((s) => {
               const count = stats.bookings.byStatus[s];
               const share = stats.bookings.total > 0 ? count / stats.bookings.total : 0;
               return (
-                <Bar key={s} label={BOOKING_STATUS_LABEL[s]} right={`${count} · ${pct(share)}`} share={share} tone={STATUS_TONE[s]} />
+                <Bar key={s} label={tStatus(s)} right={`${count} · ${pct(share)}`} share={share} tone={STATUS_TONE[s]} />
               );
             })}
           </ul>
@@ -388,24 +391,24 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Panel>
     ),
     queue: (
-      <Panel title="Radha pa termin" hint={`${days} ditët e fundit`}>
+      <Panel title={t("walkinQueue")} hint={t("lastNDays", { count: days })}>
         <div className="grid grid-cols-2 gap-3">
-          <MiniStat label="Check-in gjithsej" value={String(stats.queue.checkins)} tone="accent" />
-          <MiniStat label="Të shërbyer" value={String(stats.queue.completed)} tone="ok" />
-          <MiniStat label="No-show" value={String(stats.queue.noShow)} tone="warn" />
+          <MiniStat label={t("checkinsTotal")} value={String(stats.queue.checkins)} tone="accent" />
+          <MiniStat label={t("served")} value={String(stats.queue.completed)} tone="ok" />
+          <MiniStat label={t("noShow")} value={String(stats.queue.noShow)} tone="warn" />
           <MiniStat
-            label="Pritja mesatare"
-            value={stats.queue.avgWaitMin === null ? "—" : `${stats.queue.avgWaitMin} min`}
-            hint="deri te thirrja"
+            label={t("avgWait")}
+            value={stats.queue.avgWaitMin === null ? "—" : t("minutesShort", { count: stats.queue.avgWaitMin })}
+            hint={t("avgWaitHint")}
             tone="gold"
           />
         </div>
       </Panel>
     ),
     staffUtilization: (
-      <Panel title="Shfrytëzimi i stafit" hint="Minuta të rezervuara ndaj orarit">
+      <Panel title={t("staffUtilization")} hint={t("staffUtilizationHint")}>
         {utilization.length === 0 ? (
-          <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>
+          <p className="text-sm text-ink-faint">{t("noStaff")}</p>
         ) : (
           <ul className="space-y-3">
             {utilization.map((u) => (
@@ -427,9 +430,9 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Panel>
     ),
     topServices: (
-      <Panel title="Shërbimet më të kërkuara" hint={`${days} ditët e fundit`} action={<Link href="/admin/sherbimet" className="text-xs font-medium text-accent hover:underline">Shërbimet →</Link>}>
+      <Panel title={t("topServices")} hint={t("lastNDays", { count: days })} action={<Link href="/admin/sherbimet" className="text-xs font-medium text-accent hover:underline">{t("servicesLink")}</Link>}>
         {topServices.length === 0 ? (
-          <p className="text-sm text-ink-faint">Ende pa rezervime në këtë periudhë.</p>
+          <p className="text-sm text-ink-faint">{t("noTopServices")}</p>
         ) : (
           <ul className="space-y-3">
             {topServices.map((s, i) => (
@@ -452,12 +455,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     ),
     topClients: (
       <Panel
-        title="Klientët më aktivë"
-        hint={`${days} ditët e fundit`}
-        action={<Link href="/admin/klientet" className="text-xs font-medium text-accent hover:underline">Të gjithë klientët →</Link>}
+        title={t("topClients")}
+        hint={t("lastNDays", { count: days })}
+        action={<Link href="/admin/klientet" className="text-xs font-medium text-accent hover:underline">{t("allClientsLink")}</Link>}
       >
         {topClients.length === 0 ? (
-          <p className="text-sm text-ink-faint">Ende pa aktivitet klientësh në këtë periudhë.</p>
+          <p className="text-sm text-ink-faint">{t("noTopClients")}</p>
         ) : (
           <ul className="space-y-3">
             {topClients.map((c, i) => (
@@ -469,7 +472,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     {c.name}
                   </>
                 }
-                right={`${c.count} ${c.count === 1 ? "rezervim" : "rezervime"}`}
+                right={c.count === 1 ? t("bookingsCountOne", { count: c.count }) : t("bookingsCountOther", { count: c.count })}
                 share={c.count / clientMax}
                 tone="accent"
               />
@@ -479,7 +482,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
       </Panel>
     ),
     pdfExport: (
-      <Panel title="Eksporto raport" hint="Shkarko një raport PDF me statistikat e studios për periudhën e zgjedhur.">
+      <Panel title={t("exportReport")} hint={t("exportReportHint")}>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 6].map((m) => (
             <a
@@ -491,7 +494,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                 <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
                 <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
               </svg>
-              {m} muaj
+              {t("monthsShort", { count: m })}
             </a>
           ))}
         </div>
@@ -507,12 +510,12 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <p className="text-[11px] font-medium uppercase tracking-wider text-ink-soft">{dateStr}</p>
-              <h1 className="mt-1 text-xl font-bold text-ink">Mirësevjen, {firstName}</h1>
+              <h1 className="mt-1 text-xl font-bold text-ink">{t("welcome", { name: firstName })}</h1>
               <p className="mt-1 max-w-lg text-sm text-ink-soft">
-                Sot ke <strong className="font-semibold text-ink">{bookingsToday}</strong>{" "}
-                {bookingsToday === 1 ? "rezervim aktiv" : "rezervime aktive"} dhe{" "}
-                <strong className="font-semibold text-ink">{queueWaiting}</strong>{" "}
-                {queueWaiting === 1 ? "klient në radhë" : "klientë në radhë"}.
+                {t(`todaySummary_${bookingsToday === 1 ? "1" : "n"}_${queueWaiting === 1 ? "1" : "n"}` as "todaySummary_1_1", {
+                  bookings: bookingsToday,
+                  queue: queueWaiting,
+                })}
               </p>
             </div>
             {/* Period segmented control */}
@@ -525,7 +528,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
                     d === days ? "bg-accent text-white shadow-sm" : "text-ink-soft hover:text-ink"
                   }`}
                 >
-                  {d} ditë
+                  {t("daysOption", { count: d })}
                 </Link>
               ))}
             </div>

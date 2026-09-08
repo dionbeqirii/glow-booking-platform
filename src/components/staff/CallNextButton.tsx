@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 function IcPhone() {
   return (
@@ -12,6 +13,7 @@ function IcPhone() {
 }
 
 export default function CallNextButton({ entryId, clientName }: { entryId: string | null; clientName: string | null }) {
+  const t = useTranslations("StaffQueue");
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export default function CallNextButton({ entryId, clientName }: { entryId: strin
         body: JSON.stringify({ action: "call" }),
       });
       const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Veprimi dështoi");
+      if (!res.ok) setError(data.error ?? t("actionFailed"));
       else router.refresh();
     } finally {
       setBusy(false);
@@ -46,7 +48,7 @@ export default function CallNextButton({ entryId, clientName }: { entryId: strin
           <IcPhone />
         </span>
         <span className="min-w-0 flex-1 truncate text-xs font-medium text-ink">
-          {busy ? "Duke thirrur…" : entryId ? `Thirr: ${clientName}` : "Radha është bosh"}
+          {busy ? t("callingLabel") : entryId ? t("callNextLabel", { name: clientName ?? t("namelessClientFallback") }) : t("queueEmptyShort")}
         </span>
       </button>
       {error && <p className="mt-1 text-[11px] text-danger">{error}</p>}

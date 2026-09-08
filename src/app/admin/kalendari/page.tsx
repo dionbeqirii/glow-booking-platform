@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -8,6 +9,7 @@ import { getDaySchedule } from "@/lib/schedule";
 import { getMonthSchedule } from "@/lib/month-schedule";
 import { getTodaySummary } from "@/lib/appointments";
 import { serviceColorMap, staffColorMap } from "@/lib/service-colors";
+import { monthShortLabels, monthLongLabels } from "@/lib/calendar-labels";
 import WeekCalendar from "@/components/admin/WeekCalendar";
 import DailyScheduleGrid from "@/components/admin/DailyScheduleGrid";
 import MonthCalendar from "@/components/admin/MonthCalendar";
@@ -35,9 +37,7 @@ function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-const MONTHS_SHORT = ["Jan", "Shk", "Mar", "Pri", "Maj", "Qer", "Kor", "Gsh", "Sht", "Tet", "Nën", "Dhj"];
-const MONTHS_LONG = ["Janar", "Shkurt", "Mars", "Prill", "Maj", "Qershor", "Korrik", "Gusht", "Shtator", "Tetor", "Nëntor", "Dhjetor"];
-function fmtShort(d: Date): string {
+function fmtShort(d: Date, MONTHS_SHORT: string[]): string {
   return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`;
 }
 
@@ -47,6 +47,12 @@ export default async function AdminCalendarPage({
   searchParams: Promise<{ date?: string; hide?: string; service?: string; view?: string }>;
 }) {
   const session = await requireRole("ADMIN");
+  const [t, tMonth] = await Promise.all([
+    getTranslations("AdminCalendar"),
+    getTranslations("Month"),
+  ]);
+  const MONTHS_SHORT = monthShortLabels(tMonth);
+  const MONTHS_LONG = monthLongLabels(tMonth);
   const sp = await searchParams;
   const date = parseDate(sp.date);
   const view: CalendarView = sp.view === "day" || sp.view === "month" ? sp.view : "week";
@@ -101,7 +107,7 @@ export default async function AdminCalendarPage({
   let prevHref: string;
   let nextHref: string;
   if (view === "day") {
-    rangeLabel = `${fmtShort(date)}, ${date.getFullYear()}`;
+    rangeLabel = `${fmtShort(date, MONTHS_SHORT)}, ${date.getFullYear()}`;
     const prev = new Date(date);
     prev.setDate(prev.getDate() - 1);
     const next = new Date(date);
@@ -115,7 +121,7 @@ export default async function AdminCalendarPage({
     prevHref = `/admin/kalendari?view=month&date=${toISODate(prev)}`;
     nextHref = `/admin/kalendari?view=month&date=${toISODate(next)}`;
   } else {
-    rangeLabel = `${fmtShort(start)} – ${fmtShort(end)}, ${end.getFullYear()}`;
+    rangeLabel = `${fmtShort(start, MONTHS_SHORT)} – ${fmtShort(end, MONTHS_SHORT)}, ${end.getFullYear()}`;
     prevHref = `/admin/kalendari?view=week&date=${toISODate(new Date(start.getTime() - 7 * 86400000))}`;
     nextHref = `/admin/kalendari?view=week&date=${toISODate(new Date(start.getTime() + 7 * 86400000))}`;
   }
@@ -124,17 +130,17 @@ export default async function AdminCalendarPage({
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-7xl">
-        <PageTitle title="Kalendari" hint="Menaxho të gjitha terminet dhe oraret." />
+        <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
         <div className="mb-5 flex flex-wrap items-center gap-2">
           <Link
             href={todayHref}
             className="rounded-lg border border-line-strong px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
           >
-            Sot
+            {t("today")}
           </Link>
           <Link
             href={prevHref}
-            aria-label="I mëparshmi"
+            aria-label={t("prevLabel")}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
@@ -144,7 +150,7 @@ export default async function AdminCalendarPage({
           </span>
           <Link
             href={nextHref}
-            aria-label="Tjetri"
+            aria-label={t("nextLabel")}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -196,7 +202,7 @@ export default async function AdminCalendarPage({
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-3">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">Filtro Stafin</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("filterStaffTitle")}</p>
               <div className="flex flex-col gap-2">
                 {active.staff.map((s) => {
                   const hidden = hiddenIds.has(s.id);
@@ -223,7 +229,7 @@ export default async function AdminCalendarPage({
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-3">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">Legjenda e Shërbimeve</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("serviceLegendTitle")}</p>
               <div className="grid grid-cols-2 gap-x-3 gap-y-2">
                 {active.services.map((s) => {
                   const tone = colorByService.get(s.name);
@@ -238,13 +244,13 @@ export default async function AdminCalendarPage({
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-3">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">Përmbledhja e Sotme</p>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("todaySummaryTitle")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Rezervime</span><span className="font-semibold text-ink">{summary.total}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-accent" />Konfirmuar</span><span className="font-semibold text-ink">{summary.confirmed}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-gold" />Në vazhdim</span><span className="font-semibold text-ink">{summary.inProgress}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-purple" />Përfunduar</span><span className="font-semibold text-ink">{summary.completed}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-danger" />Anuluar</span><span className="font-semibold text-ink">{summary.cancelled}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{t("statBookings")}</span><span className="font-semibold text-ink">{summary.total}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-accent" />{t("statConfirmed")}</span><span className="font-semibold text-ink">{summary.confirmed}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-gold" />{t("statInProgress")}</span><span className="font-semibold text-ink">{summary.inProgress}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-purple" />{t("statCompleted")}</span><span className="font-semibold text-ink">{summary.completed}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 rounded-full bg-danger" />{t("statCancelled")}</span><span className="font-semibold text-ink">{summary.cancelled}</span></div>
               </div>
             </div>
           </div>

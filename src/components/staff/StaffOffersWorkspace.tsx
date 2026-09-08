@@ -2,21 +2,16 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations, useLocale } from "next-intl";
 import { buttonStyles } from "@/components/ui";
 import type { OfferListRow, OfferDisplayStatus } from "@/lib/offers-catalog";
 
 const PAGE_SIZE = 6;
 
-const STATUS_LABEL: Record<OfferDisplayStatus, string> = { active: "Aktive", inactive: "Joaktive", expired: "Skaduar" };
 const STATUS_PILL: Record<OfferDisplayStatus, { bg: string; text: string; dot: string }> = {
   active: { bg: "bg-ok-soft", text: "text-ok", dot: "bg-ok" },
   inactive: { bg: "bg-surface-muted", text: "text-ink-faint", dot: "bg-ink-faint" },
   expired: { bg: "bg-danger-soft", text: "text-danger", dot: "bg-danger" },
-};
-const STATUS_DESC: Record<OfferDisplayStatus, string> = {
-  active: "Oferta është e disponueshme për rezervime.",
-  inactive: "Oferta është çaktivizuar nga administratori.",
-  expired: "Periudha e vlefshmërisë së ofertës ka kaluar.",
 };
 
 function initials(title: string): string {
@@ -31,8 +26,8 @@ function initials(title: string): string {
   );
 }
 
-function fmtDate(iso: string | null): string | null {
-  return iso ? new Date(iso).toLocaleDateString("sq", { day: "2-digit", month: "short", year: "numeric" }) : null;
+function fmtDate(iso: string | null, locale: string): string | null {
+  return iso ? new Date(iso).toLocaleDateString(locale, { day: "2-digit", month: "short", year: "numeric" }) : null;
 }
 function pageNumbers(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -80,6 +75,18 @@ function IcImagePlaceholder() {
 }
 
 export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[] }) {
+  const t = useTranslations("StaffOffers");
+  const locale = useLocale();
+  const STATUS_LABEL: Record<OfferDisplayStatus, string> = {
+    active: t("statusActive"),
+    inactive: t("statusInactive"),
+    expired: t("statusExpired"),
+  };
+  const STATUS_DESC: Record<OfferDisplayStatus, string> = {
+    active: t("statusDescActive"),
+    inactive: t("statusDescInactive"),
+    expired: t("statusDescExpired"),
+  };
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState<OfferDisplayStatus | "">("");
   const [page, setPage] = useState(1);
@@ -124,7 +131,7 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
               <input
                 value={query}
                 onChange={(e) => withReset(setQuery)(e.target.value)}
-                placeholder="Kërko oferta…"
+                placeholder={t("searchPlaceholder")}
                 className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
               />
             </div>
@@ -133,16 +140,16 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
               onChange={(e) => withReset(setStatus)(e.target.value as OfferDisplayStatus | "")}
               className="w-[150px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
             >
-              <option value="">Të gjitha statuset</option>
-              <option value="active">Aktive</option>
-              <option value="inactive">Joaktive</option>
-              <option value="expired">Skaduar</option>
+              <option value="">{t("allStatusesOption")}</option>
+              <option value="active">{t("statusActive")}</option>
+              <option value="inactive">{t("statusInactive")}</option>
+              <option value="expired">{t("statusExpired")}</option>
             </select>
             <button
               type="button"
               onClick={resetFilters}
-              title="Pastro filtrat"
-              aria-label="Pastro filtrat"
+              title={t("clearFiltersTitle")}
+              aria-label={t("clearFiltersTitle")}
               className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-line-strong text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
             >
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -152,19 +159,19 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
           </div>
         </div>
 
-        <p className="shrink-0 text-xs text-ink-faint">{filtered.length} {filtered.length === 1 ? "ofertë totale" : "oferta totale"}</p>
+        <p className="shrink-0 text-xs text-ink-faint">{filtered.length === 1 ? t("totalCountOne", { count: filtered.length }) : t("totalCountOther", { count: filtered.length })}</p>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {pageItems.length === 0 ? (
             <p className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-10 text-center text-sm text-ink-faint">
-              {offers.length === 0 ? "Nuk ka ende oferta." : "Asnjë ofertë nuk përputhet me filtrat."}
+              {offers.length === 0 ? t("noOffersYet") : t("noMatch")}
             </p>
           ) : (
             <div className="flex flex-col gap-2">
               {pageItems.map((o) => {
                 const pill = STATUS_PILL[o.status];
-                const validFromLabel = fmtDate(o.validFrom);
-                const validUntilLabel = fmtDate(o.validUntil);
+                const validFromLabel = fmtDate(o.validFrom, locale);
+                const validUntilLabel = fmtDate(o.validUntil, locale);
                 return (
                   <button
                     key={o.id}
@@ -189,7 +196,7 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
                             {STATUS_LABEL[o.status]}
                           </span>
                         </div>
-                        <p className="truncate text-xs text-ink-faint">{o.services.map((s) => s.name).join(" + ") || "Pa shërbime"}</p>
+                        <p className="truncate text-xs text-ink-faint">{o.services.map((s) => s.name).join(" + ") || t("noServicesFallback")}</p>
                         <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-ink-soft">
                           <span className="flex items-center gap-1"><IcClock />{o.durationMin} min</span>
                           <span className="flex items-center gap-1"><IcTag />{o.price.toFixed(2)} €</span>
@@ -214,13 +221,13 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t border-line pt-2 text-xs text-ink-faint">
-          <span>Duke shfaqur {from}–{to} nga {filtered.length} oferta</span>
+          <span>{t("showingRange", { from, to, total: filtered.length })}</span>
           <div className="flex items-center gap-0.5">
             <button
               type="button"
               disabled={safePage <= 1}
               onClick={() => setPage((p) => p - 1)}
-              aria-label="Faqja e mëparshme"
+              aria-label={t("prevPage")}
               className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
@@ -245,7 +252,7 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
               type="button"
               disabled={safePage >= totalPages}
               onClick={() => setPage((p) => p + 1)}
-              aria-label="Faqja tjetër"
+              aria-label={t("nextPage")}
               className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink disabled:pointer-events-none disabled:opacity-30"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
@@ -258,7 +265,7 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
         {selected ? (
           <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-line bg-surface">
             <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3">
-              <span className="border-b-2 border-accent pb-3 -mb-3 text-sm font-semibold text-accent">Detajet e Ofertës</span>
+              <span className="border-b-2 border-accent pb-3 -mb-3 text-sm font-semibold text-accent">{t("offerDetailsTab")}</span>
               <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_PILL[selected.status].bg} ${STATUS_PILL[selected.status].text}`}>
                 <span className={`h-1.5 w-1.5 rounded-full ${STATUS_PILL[selected.status].dot}`} />
                 {STATUS_LABEL[selected.status]}
@@ -270,24 +277,24 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
                 <div className="flex min-w-0 flex-col gap-4">
                   <div>
                     <h2 className="text-xl font-semibold text-ink">{selected.title}</h2>
-                    <p className="text-sm text-ink-soft">{selected.services.map((s) => s.name).join(" + ") || "Pa shërbime"}</p>
+                    <p className="text-sm text-ink-soft">{selected.services.map((s) => s.name).join(" + ") || t("noServicesFallback")}</p>
                     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-soft">
                       <span className="flex items-center gap-1"><IcClock />{selected.durationMin} min</span>
                       <span className="flex items-center gap-1"><IcTag />{selected.price.toFixed(2)} €</span>
                       <span className="flex items-center gap-1">
                         <IcCalendar />
-                        {fmtDate(selected.validFrom) && fmtDate(selected.validUntil)
-                          ? `${fmtDate(selected.validFrom)} – ${fmtDate(selected.validUntil)}`
-                          : fmtDate(selected.validFrom) ?? fmtDate(selected.validUntil) ?? "Pa afat kohor"}
+                        {fmtDate(selected.validFrom, locale) && fmtDate(selected.validUntil, locale)
+                          ? `${fmtDate(selected.validFrom, locale)} – ${fmtDate(selected.validUntil, locale)}`
+                          : fmtDate(selected.validFrom, locale) ?? fmtDate(selected.validUntil, locale) ?? t("noTimeLimitShort")}
                       </span>
                     </div>
                     {selected.description && <p className="mt-2 text-sm text-ink-soft">{selected.description}</p>}
                   </div>
 
                   <div>
-                    <p className="mb-2 text-sm font-semibold text-ink">Shërbimet e Përfshira</p>
+                    <p className="mb-2 text-sm font-semibold text-ink">{t("includedServicesTitle")}</p>
                     {selected.services.length === 0 ? (
-                      <p className="text-xs text-ink-faint">Kjo ofertë s&apos;ka ende shërbime të lidhura.</p>
+                      <p className="text-xs text-ink-faint">{t("noServicesLinked")}</p>
                     ) : (
                       <div className="flex flex-col gap-2">
                         {selected.services.map((s) => (
@@ -307,23 +314,23 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Periudha e Vlefshmërisë</p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("validityPeriodTitle")}</p>
                       {selected.validFrom || selected.validUntil ? (
                         <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
                           <span className="min-w-0 truncate rounded-lg border border-line-strong bg-surface-muted px-2.5 py-1.5">
-                            {fmtDate(selected.validFrom) ?? "—"}
+                            {fmtDate(selected.validFrom, locale) ?? "—"}
                           </span>
                           <span className="shrink-0 text-ink-faint">–</span>
                           <span className="min-w-0 truncate rounded-lg border border-line-strong bg-surface-muted px-2.5 py-1.5">
-                            {fmtDate(selected.validUntil) ?? "—"}
+                            {fmtDate(selected.validUntil, locale) ?? "—"}
                           </span>
                         </div>
                       ) : (
-                        <p className="text-xs text-ink-soft">Pa afat kohor — e vlefshme derisa të çaktivizohet.</p>
+                        <p className="text-xs text-ink-soft">{t("noTimeLimit")}</p>
                       )}
                     </div>
                     <div>
-                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Statusi</p>
+                      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("statusLabel")}</p>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_PILL[selected.status].bg} ${STATUS_PILL[selected.status].text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${STATUS_PILL[selected.status].dot}`} />
                         {STATUS_LABEL[selected.status]}
@@ -344,18 +351,18 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent" />
                   {selected.realValue > selected.price && (
                     <div className="absolute right-2.5 top-2.5 rounded-xl bg-white/95 px-2.5 py-1.5 text-center shadow-[0_4px_16px_rgba(0,0,0,0.15)]">
-                      <p className="text-[8px] font-bold uppercase tracking-wide text-ink-faint">Ofertë Speciale</p>
+                      <p className="text-[8px] font-bold uppercase tracking-wide text-ink-faint">{t("specialOfferBadge")}</p>
                       <p className="text-base font-bold leading-tight text-accent">{selected.price.toFixed(2)} €</p>
-                      <p className="text-[9px] text-ink-faint">vlera reale {selected.realValue.toFixed(2)} €</p>
+                      <p className="text-[9px] text-ink-faint">{t("realValueLabel", { amount: selected.realValue.toFixed(2) })}</p>
                     </div>
                   )}
                   <div className="absolute bottom-0 left-0 right-0 p-3 text-white">
                     <p className="text-base font-bold uppercase leading-tight">{selected.title}</p>
                     {selected.description && <p className="mt-0.5 text-[11px] leading-snug opacity-90">{selected.description}</p>}
                     <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[9px] font-semibold uppercase tracking-wide opacity-90">
-                      <span>{selected.durationMin} Minuta</span>
+                      <span>{selected.durationMin} {t("minutesUnit")}</span>
                       <span>·</span>
-                      <span>{selected.services.length} Shërbime</span>
+                      <span>{selected.services.length} {t("servicesUnit")}</span>
                     </div>
                   </div>
                 </div>
@@ -365,24 +372,24 @@ export default function StaffOffersWorkspace({ offers }: { offers: OfferListRow[
             <div className="shrink-0 border-t border-line p-3">
               <div className="flex flex-wrap items-center justify-between gap-2.5 rounded-xl bg-accent-soft/40 p-3">
                 <div className="min-w-0">
-                  <p className="text-xs font-semibold text-ink">Si mund ta përdorni këtë ofertë?</p>
-                  <p className="text-xs text-ink-soft">Mund ta rezervoni për klientin direkt nga orari, kur krijoni një termin të ri.</p>
+                  <p className="text-xs font-semibold text-ink">{t("howToUseTitle")}</p>
+                  <p className="text-xs text-ink-soft">{t("howToUseBody")}</p>
                 </div>
                 <Link href="/staff/orari" className={`inline-flex shrink-0 items-center gap-1.5 ${buttonStyles.primary}`}>
                   <IcCalendar />
-                  Rezervo për Klientin
+                  {t("bookForClientLink")}
                 </Link>
               </div>
               <p className="mt-2 flex items-center gap-1.5 text-[11px] text-ink-faint">
                 <IcLock />
-                Stafi ka qasje vetëm për shikim. Menaxhimi i ofertave bëhet vetëm nga administratorët.
+                {t("viewOnlyNotice")}
               </p>
             </div>
           </div>
         ) : (
           <div className="flex h-full min-h-[300px] flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-canvas p-6 text-center">
-            <p className="text-sm font-medium text-ink-soft">Nuk ka ofertë të zgjedhur</p>
-            <p className="text-xs text-ink-faint">Zgjidh një ofertë nga lista për të parë detajet.</p>
+            <p className="text-sm font-medium text-ink-soft">{t("noOfferSelectedTitle")}</p>
+            <p className="text-xs text-ink-faint">{t("noOfferSelectedHint")}</p>
           </div>
         )}
       </div>

@@ -2,28 +2,31 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 
 type Notification = {
   id: string;
-  type: "CONFIRMATION" | "REMINDER" | "STATUS_CHANGE" | "QUEUE_CALL";
+  type: "CONFIRMATION" | "REMINDER" | "STATUS_CHANGE" | "QUEUE_CALL" | "OFFER_NEW";
   message: string;
   read: boolean;
   createdAt: string;
 };
 
 // Per-type icon (stroke SVG, matches the rest of the app) and tone chip.
-type Tone = "ok" | "gold" | "accent" | "warn";
+type Tone = "ok" | "gold" | "accent" | "warn" | "purple";
 const TYPE_TONE: Record<Notification["type"], Tone> = {
   CONFIRMATION: "ok",
   REMINDER: "gold",
   STATUS_CHANGE: "accent",
   QUEUE_CALL: "warn",
+  OFFER_NEW: "purple",
 };
 const TONE_CHIP: Record<Tone, string> = {
   ok: "bg-ok-soft text-ok",
   gold: "bg-gold-soft text-gold",
   accent: "bg-accent-soft text-accent",
   warn: "bg-warn-soft text-warn",
+  purple: "bg-purple-soft text-purple",
 };
 
 const stroke = {
@@ -64,6 +67,13 @@ function TypeIcon({ type }: { type: Notification["type"] }) {
           <path d="M10 20a2 2 0 0 0 4 0" />
         </svg>
       );
+    case "OFFER_NEW":
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" {...stroke} aria-hidden>
+          <path d="M20.6 12.3 12.7 20a2 2 0 0 1-2.8 0l-8-8V4h8l8 8a2 2 0 0 1 0 2.8Z" />
+          <circle cx="7.5" cy="7.5" r="1" />
+        </svg>
+      );
   }
 }
 
@@ -76,18 +86,22 @@ function TrashIcon({ size = 14 }: { size?: number }) {
   );
 }
 
-function timeAgo(iso: string): string {
+// `t` is passed in rather than called via the hook here — this is a plain
+// helper, not a component, so it can't call useTranslations() itself.
+function timeAgo(iso: string, t: ReturnType<typeof useTranslations>): string {
   const diff = Date.now() - new Date(iso).getTime();
   const min = Math.round(diff / 60000);
-  if (min < 1) return "tani";
-  if (min < 60) return `${min} min më parë`;
+  if (min < 1) return t("timeJustNow");
+  if (min < 60) return t("timeMinutesAgo", { count: min });
   const h = Math.round(min / 60);
-  if (h < 24) return `${h} orë më parë`;
+  if (h < 24) return t("timeHoursAgo", { count: h });
   const d = Math.round(h / 24);
-  return `${d} ditë më parë`;
+  return t("timeDaysAgo", { count: d });
 }
 
 export default function NotificationBell() {
+  const t = useTranslations("Notifications");
+  const tCommon = useTranslations("Common");
   const [items, setItems] = useState<Notification[]>([]);
   const [unread, setUnread] = useState(0);
   const [open, setOpen] = useState(false);
@@ -162,7 +176,7 @@ export default function NotificationBell() {
     try {
       const res = await fetch("/api/notifications", { method: "DELETE" });
       if (!res.ok) {
-        setClearError("Fshirja dështoi. Provo sërish.");
+        setClearError(t("clearAllError"));
         return;
       }
       setItems([]);
@@ -180,7 +194,7 @@ export default function NotificationBell() {
       <button
         type="button"
         onClick={toggle}
-        aria-label="Njoftimet"
+        aria-label={t("title")}
         className="relative flex h-9 w-9 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"
       >
         {/* Transparent, stroked bell — matches the rest of the header icons. */}
@@ -198,7 +212,7 @@ export default function NotificationBell() {
       {open && (
         <div className="absolute right-0 top-11 z-20 w-80 overflow-hidden rounded-2xl bg-surface shadow-[0_1px_2px_rgba(31,42,34,0.04),0_18px_45px_-14px_rgba(31,42,34,0.2)] ring-1 ring-line">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
-            <p className="text-sm font-semibold text-ink">Njoftimet</p>
+            <p className="text-sm font-semibold text-ink">{t("title")}</p>
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-surface-muted px-2 py-0.5 text-[11px] font-medium text-ink-soft">
                 {items.length}
@@ -213,7 +227,7 @@ export default function NotificationBell() {
                   }}
                   className="text-xs font-medium text-danger hover:underline"
                 >
-                  Fshi të gjitha
+                  {t("clearAll")}
                 </button>
               )}
             </div>
@@ -227,7 +241,7 @@ export default function NotificationBell() {
                     <path d="M10 20a2 2 0 0 0 4 0" />
                   </svg>
                 </span>
-                <p className="text-sm text-ink-faint">Nuk ke njoftime ende.</p>
+                <p className="text-sm text-ink-faint">{t("empty")}</p>
               </div>
             ) : (
               <ul className="divide-y divide-line">
@@ -238,13 +252,13 @@ export default function NotificationBell() {
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="text-sm leading-snug text-ink">{n.message}</p>
-                      <p className="mt-0.5 text-xs text-ink-faint">{timeAgo(n.createdAt)}</p>
+                      <p className="mt-0.5 text-xs text-ink-faint">{timeAgo(n.createdAt, t)}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => deleteOne(n)}
                       disabled={deletingId === n.id}
-                      aria-label="Fshi njoftimin"
+                      aria-label={t("deleteOne")}
                       className="shrink-0 self-start rounded-md p-1 text-ink-faint transition-colors hover:bg-danger-soft hover:text-danger disabled:opacity-50"
                     >
                       <TrashIcon />
@@ -274,10 +288,8 @@ export default function NotificationBell() {
               <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger-soft text-danger">
                 <TrashIcon size={22} />
               </span>
-              <h2 className="mt-4 text-lg font-semibold text-ink">Fshi të gjitha njoftimet?</h2>
-              <p className="mt-1.5 text-sm text-ink-soft">
-                Të gjitha njoftimet e tua do të fshihen. Ky veprim nuk mund të kthehet mbrapsht.
-              </p>
+              <h2 className="mt-4 text-lg font-semibold text-ink">{t("clearAllConfirmTitle")}</h2>
+              <p className="mt-1.5 text-sm text-ink-soft">{t("clearAllConfirmBody")}</p>
               {clearError && <p className="mt-3 text-sm text-danger">{clearError}</p>}
               <div className="mt-6 flex gap-3">
                 <button
@@ -286,7 +298,7 @@ export default function NotificationBell() {
                   disabled={clearing}
                   className="flex-1 rounded-xl bg-surface px-4 py-2.5 text-sm font-medium text-ink ring-1 ring-line-strong transition-colors hover:bg-surface-muted disabled:opacity-50"
                 >
-                  Anulo
+                  {tCommon("cancel")}
                 </button>
                 <button
                   type="button"
@@ -294,7 +306,7 @@ export default function NotificationBell() {
                   disabled={clearing}
                   className="flex-1 rounded-xl bg-danger px-4 py-2.5 text-sm font-medium text-white transition-opacity hover:opacity-90 disabled:opacity-50"
                 >
-                  {clearing ? "Duke fshirë…" : "Po, fshi"}
+                  {clearing ? t("clearing") : t("confirmClear")}
                 </button>
               </div>
             </div>

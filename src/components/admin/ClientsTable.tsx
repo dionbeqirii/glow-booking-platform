@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import type { ClientRow, ClientSegment } from "@/lib/clients-catalog";
 import NewClientButton from "./NewClientButton";
 
-const SEGMENT_LABEL: Record<ClientSegment, string> = { active: "Aktiv", new: "I Ri", inactive: "Joaktiv" };
 const SEGMENT_PILL: Record<ClientSegment, { bg: string; text: string; dot: string }> = {
   active: { bg: "bg-ok-soft", text: "text-ok", dot: "bg-ok" },
   new: { bg: "bg-accent-soft", text: "text-accent", dot: "bg-accent" },
@@ -25,6 +25,12 @@ function initials(name: string): string {
 }
 
 export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
+  const t = useTranslations("AdminClients");
+  const SEGMENT_LABEL: Record<ClientSegment, string> = {
+    active: t("segmentActive"),
+    new: t("segmentNew"),
+    inactive: t("segmentInactive"),
+  };
   const [query, setQuery] = useState("");
   const [segment, setSegment] = useState<ClientSegment | "">("");
 
@@ -48,7 +54,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Kërko sipas emrit, email-it ose telefonit…"
+            placeholder={t("searchPlaceholder")}
             className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
           />
         </div>
@@ -57,10 +63,10 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
           onChange={(e) => setSegment(e.target.value as ClientSegment | "")}
           className="w-[130px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="">Të gjithë Klientët</option>
-          <option value="active">Aktivë</option>
-          <option value="new">Të Rinj</option>
-          <option value="inactive">Joaktivë</option>
+          <option value="">{t("allClientsOption")}</option>
+          <option value="active">{t("segmentActive")}</option>
+          <option value="new">{t("segmentNew")}</option>
+          <option value="inactive">{t("segmentInactive")}</option>
         </select>
         <div className="ml-auto">
           <NewClientButton />
@@ -80,20 +86,20 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
           </colgroup>
           <thead>
             <tr className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-faint [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:overflow-hidden [&>th]:bg-surface">
-              <th className="px-3 py-2 font-medium">Klienti</th>
-              <th className="px-3 py-2 font-medium">Kontakti</th>
-              <th className="px-3 py-2 font-medium">Anëtar Që Nga</th>
-              <th className="px-3 py-2 font-medium">Rezervime</th>
-              <th className="px-3 py-2 font-medium">Vizita e Fundit</th>
-              <th className="px-3 py-2 font-medium">Statusi</th>
-              <th className="px-3 py-2 font-medium">Veprime</th>
+              <th className="px-3 py-2 font-medium">{t("colClient")}</th>
+              <th className="px-3 py-2 font-medium">{t("colContact")}</th>
+              <th className="px-3 py-2 font-medium">{t("colMemberSince")}</th>
+              <th className="px-3 py-2 font-medium">{t("colBookings")}</th>
+              <th className="px-3 py-2 font-medium">{t("colLastVisit")}</th>
+              <th className="px-3 py-2 font-medium">{t("colStatus")}</th>
+              <th className="px-3 py-2 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
                 <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">
-                  {rows.length === 0 ? "Ende nuk ka klientë me llogari." : "Asnjë klient nuk përputhet me kërkimin."}
+                  {rows.length === 0 ? t("noClientsYet") : t("noMatch")}
                 </td>
               </tr>
             ) : (
@@ -120,7 +126,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                       <span className="block truncate">{c.bookingsCount}{c.queueCount > 0 ? ` (+${c.queueCount})` : ""}</span>
                     </td>
                     <td className="overflow-hidden px-3 py-2 text-ink-soft">
-                      <span className="block truncate">{c.lastVisitLabel ?? <span className="text-ink-faint">Asnjë</span>}</span>
+                      <span className="block truncate">{c.lastVisitLabel ?? <span className="text-ink-faint">{t("noneLabel")}</span>}</span>
                     </td>
                     <td className="overflow-hidden px-3 py-2">
                       <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${pill.bg} ${pill.text}`}>
@@ -131,7 +137,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
                     <td className="px-3 py-2">
                       <Link
                         href={`/admin/klientet/${c.id}`}
-                        title="Shiko Profilin"
+                        title={t("viewProfileTitle")}
                         className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -149,7 +155,7 @@ export default function ClientsTable({ rows }: { rows: ClientRow[] }) {
       </div>
 
       <div className="shrink-0 border-t border-line px-3 py-2 text-xs text-ink-faint">
-        {filtered.length} nga {rows.length} klientë gjithsej
+        {t("showingCount", { shown: filtered.length, total: rows.length })}
       </div>
     </div>
   );

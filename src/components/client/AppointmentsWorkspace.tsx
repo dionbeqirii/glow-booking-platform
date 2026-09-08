@@ -3,8 +3,9 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import type { BookingStatus } from "@prisma/client";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 import { buttonStyles, inputStyles } from "@/components/ui";
 import type { AppointmentRow } from "@/lib/client-appointments";
 
@@ -14,12 +15,6 @@ type Slot = { time: string; staff: { id: string; name: string }[] };
 
 const UPCOMING_STATUSES: BookingStatus[] = ["CONFIRMED", "CHECKED_IN", "IN_SERVICE"];
 const PAST_STATUSES: BookingStatus[] = ["COMPLETED", "NO_SHOW"];
-
-const TABS: { key: Tab; label: string }[] = [
-  { key: "upcoming", label: "Të Ardhshme" },
-  { key: "past", label: "Të Kaluara" },
-  { key: "cancelled", label: "Të Anuluara" },
-];
 
 function initials(name: string): string {
   return (
@@ -77,6 +72,9 @@ function EmptyRow({ text }: { text: string }) {
 // a component function during render — it would reset this state on every
 // keystroke in the search box above).
 function AppointmentCard({ b }: { b: AppointmentRow }) {
+  const t = useTranslations("ClientAppointments");
+  const tStatus = useTranslations("Status.booking");
+  const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [reschedOpen, setReschedOpen] = useState(false);
@@ -122,7 +120,7 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Riplanifikimi dështoi");
+        setError(data.error ?? t("rescheduleFailed"));
         return;
       }
       setReschedOpen(false);
@@ -133,7 +131,7 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
   }
 
   async function cancelBooking() {
-    if (!confirm(`Të anulohet rezervimi për ${b.serviceName}?`)) return;
+    if (!confirm(t("confirmCancel", { service: b.serviceName }))) return;
     setBusy(true);
     setError(null);
     try {
@@ -143,7 +141,7 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
         body: JSON.stringify({ action: "cancel" }),
       });
       const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Anulimi dështoi");
+      if (!res.ok) setError(data.error ?? t("cancelFailed"));
       else router.refresh();
     } finally {
       setBusy(false);
@@ -168,14 +166,14 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
         <div className="flex shrink-0 flex-col items-end gap-2">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
             <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-            {BOOKING_STATUS_LABEL[b.status]}
+            {tStatus(b.status)}
           </span>
           <button
             type="button"
             onClick={() => setOpen((v) => !v)}
             className="flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted"
           >
-            Shiko Detajet
+            {t("viewDetails")}
             <IcChevron open={open} />
           </button>
         </div>
@@ -193,16 +191,16 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
                   disabled={busy}
                   className={`${buttonStyles.secondary} px-3 py-1.5 text-xs`}
                 >
-                  Riplanifiko
+                  {t("rescheduleButton")}
                 </button>
                 <button type="button" onClick={cancelBooking} disabled={busy} className={`${buttonStyles.danger} px-3 py-1.5 text-xs`}>
-                  Anulo Terminin
+                  {t("cancelButton")}
                 </button>
               </div>
               {reschedOpen && (
                 <div className="mt-3">
                   <label className="flex max-w-xs flex-col gap-1.5">
-                    <span className="text-xs font-medium text-ink">Data e re</span>
+                    <span className="text-xs font-medium text-ink">{t("newDateLabel")}</span>
                     <input
                       type="date"
                       value={reschedDate}
@@ -212,13 +210,13 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
                   </label>
                   <div className="mt-2.5">
                     {loadingSlots ? (
-                      <p className="text-xs text-ink-faint">Duke ngarkuar oraret…</p>
+                      <p className="text-xs text-ink-faint">{t("loadingSlots")}</p>
                     ) : slots.length === 0 ? (
-                      <p className="text-xs text-ink-faint">Nuk ka orare të lira për këtë ditë.</p>
+                      <p className="text-xs text-ink-faint">{t("noSlotsForDay")}</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {slots.map((s) => {
-                          const label = new Date(s.time).toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+                          const label = new Date(s.time).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
                           return (
                             <button
                               key={s.time}
@@ -238,7 +236,7 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
               )}
             </>
           ) : (
-            <p className="text-xs text-ink-faint">Ky termin nuk mund të menaxhohet më.</p>
+            <p className="text-xs text-ink-faint">{t("cannotManageAnymore")}</p>
           )}
         </div>
       )}
@@ -247,11 +245,18 @@ function AppointmentCard({ b }: { b: AppointmentRow }) {
 }
 
 export default function AppointmentsWorkspace({ bookings }: { bookings: AppointmentRow[] }) {
+  const t = useTranslations("ClientAppointments");
   const [tab, setTab] = useState<Tab>("upcoming");
   const [query, setQuery] = useState("");
   const [range, setRange] = useState<Range>("all");
   const [staffFilter, setStaffFilter] = useState("");
   const [filterOpen, setFilterOpen] = useState(false);
+
+  const TABS: { key: Tab; label: string }[] = [
+    { key: "upcoming", label: t("tabUpcoming") },
+    { key: "past", label: t("tabPast") },
+    { key: "cancelled", label: t("tabCancelled") },
+  ];
 
   const staffOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -311,7 +316,7 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Kërko sipas shërbimit ose terapistes…"
+            placeholder={t("searchPlaceholder")}
             className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
           />
         </div>
@@ -320,9 +325,9 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
           onChange={(e) => setRange(e.target.value as Range)}
           className="w-[190px] shrink-0 truncate rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="all">{tab === "upcoming" ? "Të Gjitha të Ardhshme" : tab === "past" ? "Të Gjitha të Kaluara" : "Të Gjitha të Anuluara"}</option>
-          <option value="week">Këtë Javë</option>
-          <option value="month">Këtë Muaj</option>
+          <option value="all">{tab === "upcoming" ? t("allUpcomingOption") : tab === "past" ? t("allPastOption") : t("allCancelledOption")}</option>
+          <option value="week">{t("thisWeekOption")}</option>
+          <option value="month">{t("thisMonthOption")}</option>
         </select>
         <div className="relative">
           <button
@@ -333,17 +338,17 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
             }`}
           >
             <IcFilter />
-            Filtro
+            {t("filterButton")}
           </button>
           {filterOpen && (
             <div className="absolute right-0 top-full z-20 mt-1.5 w-56 rounded-xl border border-line-strong bg-surface p-2.5 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
-              <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Terapistja</p>
+              <p className="mb-1.5 px-1 text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("staffFilterTitle")}</p>
               <button
                 type="button"
                 onClick={() => { setStaffFilter(""); setFilterOpen(false); }}
                 className={`block w-full rounded-lg px-2 py-1.5 text-left text-sm transition-colors ${!staffFilter ? "bg-accent-soft text-accent" : "text-ink hover:bg-surface-muted"}`}
               >
-                Të gjitha
+                {t("allStaffOption")}
               </button>
               {staffOptions.map(([id, name]) => (
                 <button
@@ -363,9 +368,9 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
       {tab === "upcoming" && (
         <>
           <div>
-            <p className="mb-2 text-sm font-semibold text-ink">Terminet e Ardhshme</p>
+            <p className="mb-2 text-sm font-semibold text-ink">{t("upcomingSectionTitle")}</p>
             {filteredUpcoming.length === 0 ? (
-              <EmptyRow text={upcoming.length === 0 ? "Ende s'ke termine të ardhshme." : "Asnjë termin nuk përputhet me filtrat."} />
+              <EmptyRow text={upcoming.length === 0 ? t("noUpcomingAppts") : t("noApptsMatchFilters")} />
             ) : (
               <div className="flex flex-col gap-2.5">
                 {filteredUpcoming.map((b) => <AppointmentCard key={b.id} b={b} />)}
@@ -376,9 +381,9 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
           {past.length > 0 && (
             <div>
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-semibold text-ink">Terminet e Kaluara</p>
+                <p className="text-sm font-semibold text-ink">{t("pastSectionTitle")}</p>
                 <button type="button" onClick={() => setTab("past")} className="text-xs font-semibold text-accent hover:underline">
-                  Shiko të Gjitha →
+                  {t("viewAllLink")}
                 </button>
               </div>
               <div className="flex flex-col gap-2.5">
@@ -392,7 +397,7 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
       {tab === "past" && (
         <div>
           {filteredPast.length === 0 ? (
-            <EmptyRow text={past.length === 0 ? "Ende pa termine të kaluara." : "Asnjë termin nuk përputhet me filtrat."} />
+            <EmptyRow text={past.length === 0 ? t("noPastAppts") : t("noApptsMatchFilters")} />
           ) : (
             <div className="flex flex-col gap-2.5">
               {filteredPast.map((b) => <AppointmentCard key={b.id} b={b} />)}
@@ -404,7 +409,7 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
       {tab === "cancelled" && (
         <div>
           {filteredCancelled.length === 0 ? (
-            <EmptyRow text={cancelled.length === 0 ? "Ende pa termine të anuluara." : "Asnjë termin nuk përputhet me filtrat."} />
+            <EmptyRow text={cancelled.length === 0 ? t("noCancelledAppts") : t("noApptsMatchFilters")} />
           ) : (
             <div className="flex flex-col gap-2.5">
               {filteredCancelled.map((b) => <AppointmentCard key={b.id} b={b} />)}
@@ -414,11 +419,11 @@ export default function AppointmentsWorkspace({ bookings }: { bookings: Appointm
       )}
 
       <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-soft to-accent-soft p-4">
-        <p className="text-base font-bold text-ink">Gati për shkëlqimin tënd tjetër?</p>
-        <p className="mt-1 max-w-md text-sm text-ink-soft">Rezervo terminin tënd të ardhshëm dhe lëre kujdesin tënd në duart tona.</p>
+        <p className="text-base font-bold text-ink">{t("ctaTitle")}</p>
+        <p className="mt-1 max-w-md text-sm text-ink-soft">{t("ctaHint")}</p>
         <Link href="/client/rezervo" className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-purple px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:brightness-95">
           <IcCalendar />
-          Rezervo Termin të Ri
+          {t("ctaButton")}
         </Link>
       </div>
     </div>

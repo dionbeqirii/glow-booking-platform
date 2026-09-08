@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { getTranslations } from "next-intl/server";
 import type { DaySchedule } from "@/lib/schedule";
 import { BOOKING_STATUS_TONE } from "@/lib/booking-labels";
 
@@ -12,7 +13,7 @@ function fmtHour(h: number): string {
   return `${String(h).padStart(2, "0")}:00`;
 }
 
-export default function DailyScheduleGrid({
+export default async function DailyScheduleGrid({
   schedule,
   hiddenStaff,
   serviceFilter,
@@ -21,15 +22,16 @@ export default function DailyScheduleGrid({
   hiddenStaff?: Set<string>;
   serviceFilter?: string;
 }) {
+  const t = await getTranslations("AdminSchedule");
   const { hours } = schedule;
   const staff = hiddenStaff ? schedule.staff.filter((s) => !hiddenStaff.has(s.id)) : schedule.staff;
   const bookings = serviceFilter ? schedule.bookings.filter((b) => b.serviceName === serviceFilter) : schedule.bookings;
 
   if (staff.length === 0) {
-    return <p className="text-sm text-ink-faint">Nuk ka staf të regjistruar.</p>;
+    return <p className="text-sm text-ink-faint">{t("noStaff")}</p>;
   }
   if (hours.length === 0) {
-    return <p className="text-sm text-ink-faint">Asnjë punonjës nuk ka orar për këtë ditë.</p>;
+    return <p className="text-sm text-ink-faint">{t("noHoursToday")}</p>;
   }
 
   return (
@@ -38,7 +40,7 @@ export default function DailyScheduleGrid({
         className="grid min-w-[560px]"
         style={{ gridTemplateColumns: `56px repeat(${staff.length}, minmax(120px, 1fr))` }}
       >
-        <div className="sticky top-0 z-10 border-b border-r border-line bg-surface-muted p-1.5 text-[10px] font-medium text-ink-faint">Ora</div>
+        <div className="sticky top-0 z-10 border-b border-r border-line bg-surface-muted p-1.5 text-[10px] font-medium text-ink-faint">{t("hourColumn")}</div>
         {staff.map((s) => {
           const initials = s.name.slice(0, 2).toUpperCase();
           return (

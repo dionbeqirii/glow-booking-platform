@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 import type { StaffOverviewRow } from "@/lib/staff-catalog";
 
@@ -15,6 +16,8 @@ export default function StaffFormModal({
   existingTitles: string[];
   onClose: () => void;
 }) {
+  const t = useTranslations("AdminStaff");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [name, setName] = useState(existing?.name ?? "");
   const [email, setEmail] = useState(existing?.email ?? "");
@@ -47,13 +50,13 @@ export default function StaffFormModal({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ruajtja dështoi");
+        setError(data.error ?? t("errorSave"));
         return;
       }
       onClose();
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -73,10 +76,10 @@ export default function StaffFormModal({
     >
       <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_24px_64px_-24px_rgba(31,42,34,0.35)]">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">{existing ? "Ndrysho Punonjësin" : "Punonjës i Ri"}</h2>
+          <h2 className="text-lg font-semibold text-ink">{existing ? t("editStaff") : t("newStaff")}</h2>
           <button
             onClick={onClose}
-            aria-label="Mbyll"
+            aria-label={tCommon("close")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -84,39 +87,39 @@ export default function StaffFormModal({
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
-          <Field label="Emri dhe Mbiemri">
-            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder="p.sh. Arta Krasniqi" />
+          <Field label={t("fullNameLabel")}>
+            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("fullNamePlaceholder")} />
           </Field>
 
-          <Field label="Email" hint={existing ? "Email-i nuk mund të ndryshohet." : undefined}>
+          <Field label={t("emailLabel")} hint={existing ? t("emailImmutableHint") : undefined}>
             <input
               type="email"
               className={inputStyles}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               disabled={!!existing}
-              placeholder="emri@glowbydiellza.demo"
+              placeholder={t("emailPlaceholder")}
             />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Telefoni (opsional)">
-              <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+383 4X XXX XXX" />
+            <Field label={t("phoneLabel")}>
+              <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("phonePlaceholder")} />
             </Field>
-            <Field label="Roli (opsional)">
+            <Field label={t("roleLabel")}>
               {addingNewTitle ? (
                 <div className="flex items-center gap-1.5">
                   <input
                     className={inputStyles}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder="Emri i rolit të ri"
+                    placeholder={t("newRolePlaceholder")}
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={() => { setAddingNewTitle(false); setTitle(existing?.title ?? ""); }}
-                    title="Anulo rol të ri"
+                    title={t("cancelNewRoleTitle")}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -131,27 +134,27 @@ export default function StaffFormModal({
                     else setTitle(e.target.value);
                   }}
                 >
-                  <option value="">— Pa rol —</option>
-                  {existingTitles.map((t) => (
-                    <option key={t} value={t}>{t}</option>
+                  <option value="">{t("noRoleOption")}</option>
+                  {existingTitles.map((ti) => (
+                    <option key={ti} value={ti}>{ti}</option>
                   ))}
-                  <option value="__new__">+ Rol i Ri</option>
+                  <option value="__new__">{t("addNewRoleOption")}</option>
                 </select>
               )}
             </Field>
           </div>
 
-          <Field label={existing ? "Fjalëkalimi i ri (opsional)" : "Fjalëkalimi fillestar"} hint="Të paktën 8 karaktere.">
-            <input type="password" className={inputStyles} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={existing ? "Lëre bosh për ta ruajtur të pandryshuar" : undefined} />
+          <Field label={existing ? t("newPasswordLabel") : t("initialPasswordLabel")} hint={t("passwordHint")}>
+            <input type="password" className={inputStyles} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={existing ? t("passwordKeepPlaceholder") : undefined} />
           </Field>
 
           {error && <Alert message={error} />}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
-          <button onClick={onClose} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onClose} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke ruajtur…" : existing ? "Ruaj Ndryshimet" : "Krijo Llogarinë"}
+            {busy ? t("saving") : existing ? t("saveChanges") : t("createAccount")}
           </button>
         </div>
       </div>

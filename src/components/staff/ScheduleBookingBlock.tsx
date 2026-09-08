@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { BookingStatus } from "@prisma/client";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 
 function initials(name: string): string {
   return (
@@ -36,6 +37,8 @@ export default function ScheduleBookingBlock({
   topPx: number;
   heightPx: number;
 }) {
+  const t = useTranslations("StaffSchedule");
+  const tStatus = useTranslations("Status.booking");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -51,7 +54,7 @@ export default function ScheduleBookingBlock({
   }, [open]);
 
   async function cancel() {
-    if (!confirm(`Ta anulosh terminin me ${clientName}?`)) return;
+    if (!confirm(t("confirmCancelBooking", { name: clientName }))) return;
     setBusy(true);
     setOpen(false);
     try {
@@ -82,7 +85,7 @@ export default function ScheduleBookingBlock({
         <p className="truncate text-xs text-ink-faint">{serviceName}</p>
       </div>
       <span className={`hidden shrink-0 rounded-full bg-surface px-2 py-0.5 text-[11px] font-semibold sm:inline ${pill.text}`}>
-        {BOOKING_STATUS_LABEL[status]}
+        {tStatus(status)}
       </span>
       <span className="hidden shrink-0 text-xs text-ink-faint md:inline">{timeRangeLabel}</span>
       <div className="relative shrink-0" ref={menuRef}>
@@ -90,7 +93,7 @@ export default function ScheduleBookingBlock({
           type="button"
           onClick={() => setOpen((v) => !v)}
           disabled={busy}
-          aria-label="Më shumë veprime"
+          aria-label={t("moreActionsAria")}
           className="flex h-6 w-6 items-center justify-center rounded text-ink-faint transition-colors hover:bg-surface hover:text-ink disabled:opacity-50"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
@@ -99,10 +102,10 @@ export default function ScheduleBookingBlock({
           <div className="absolute right-0 top-7 z-20 w-44 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
             {canCancel ? (
               <button type="button" onClick={cancel} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft">
-                Anulo Terminin
+                {t("cancelBookingAction")}
               </button>
             ) : (
-              <p className="px-3.5 py-2 text-xs text-ink-faint">Ky termin nuk mund të anulohet më</p>
+              <p className="px-3.5 py-2 text-xs text-ink-faint">{t("cannotCancelAnymore")}</p>
             )}
           </div>
         )}

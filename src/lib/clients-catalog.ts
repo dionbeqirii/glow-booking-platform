@@ -63,7 +63,7 @@ export type ClientListFilters = {
   segment?: ClientSegment;
 };
 
-export async function getClientRows(now = new Date()): Promise<ClientRow[]> {
+export async function getClientRows(now = new Date(), locale = "sq"): Promise<ClientRow[]> {
   const activitySince = new Date(now.getTime() - ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const clients = await prisma.user.findMany({
@@ -95,10 +95,10 @@ export async function getClientRows(now = new Date()): Promise<ClientRow[]> {
       name: c.name,
       email: c.email,
       phone: c.phone,
-      joinedLabel: c.createdAt.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }),
+      joinedLabel: c.createdAt.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" }),
       bookingsCount: activeBookings.length,
       queueCount: c._count.queueAsClient,
-      lastVisitLabel: lastVisit ? lastVisit.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" }) : null,
+      lastVisitLabel: lastVisit ? lastVisit.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" }) : null,
       segment,
     };
   });
@@ -145,8 +145,7 @@ export type StaffClientRow = {
   phone: string | null;
   lastVisitDate: string | null;
   lastVisitLabel: string | null;
-  daysSinceVisit: number | null;
-  daysSinceVisitLabel: string | null;
+  daysSinceVisit: number | null; // caller renders the localized "N days ago" text
   visitsCount: number;
   favoriteService: string | null;
   status: ClientListStatus;
@@ -158,19 +157,12 @@ function daysSince(date: Date | null, now: Date): number | null {
   return Math.floor((now.getTime() - date.getTime()) / (24 * 60 * 60 * 1000));
 }
 
-function daysAgoLabel(days: number | null): string | null {
-  if (days === null) return null;
-  if (days <= 0) return "Sot";
-  if (days === 1) return "1 ditë më parë";
-  return `${days} ditë më parë`;
-}
-
 // The staff-facing client list (adds favorite service, visit recency and a
 // simpler 2-way status than the admin table's 3-way segment, to match the
 // reference design). "Visits" here means COMPLETED bookings specifically —
 // a future confirmed appointment hasn't happened yet, so it doesn't count
 // as one.
-export async function getStaffClientRows(now = new Date()): Promise<StaffClientRow[]> {
+export async function getStaffClientRows(now = new Date(), locale = "sq"): Promise<StaffClientRow[]> {
   const activitySince = new Date(now.getTime() - ACTIVITY_WINDOW_DAYS * 24 * 60 * 60 * 1000);
 
   const clients = await prisma.user.findMany({
@@ -214,10 +206,9 @@ export async function getStaffClientRows(now = new Date()): Promise<StaffClientR
       phone: c.phone,
       lastVisitDate: lastVisitDate ? lastVisitDate.toISOString() : null,
       lastVisitLabel: lastVisitDate
-        ? lastVisitDate.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" })
+        ? lastVisitDate.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" })
         : null,
       daysSinceVisit,
-      daysSinceVisitLabel: daysAgoLabel(daysSinceVisit),
       visitsCount: completed.length,
       favoriteService: favorite?.name ?? null,
       status: recentlyVisited || recentlyJoined ? "active" : "inactive",

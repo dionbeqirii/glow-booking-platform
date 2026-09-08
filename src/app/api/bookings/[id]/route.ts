@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/rbac";
+import { requireSession, requireRole } from "@/lib/rbac";
 import { bookingUpdateSchema } from "@/lib/validation";
 import { isSlotBookable, ACTIVE_BOOKING_STATUSES } from "@/lib/availability";
 import { handle, readJson, ApiError, isPgError } from "@/lib/api";
@@ -233,5 +233,30 @@ export async function PATCH(req: Request, { params }: Ctx) {
     }
 
     return { ok: true };
+  });
+}
+
+// Permanently removes a booking record (admin-only, from the studio history
+// view). Unlike "cancel" (a status change that keeps the record), this is a
+// hard delete — any feedback left on it goes with it (schema cascade) — so
+// it's for correcting mistaken/duplicate entries, not routine cancellation.
+export async function DELETE(_req: Request, { params }: Ctx) {
+  return handle(async () => {
+    const session = await requireRole("ADMIN");
+    const { id } = await params;
+
+    const booking = await prisma.booking.findUnique({ where: { id }, include: { service: true } });
+    if (!booking) throw new ApiError(404, "Rezervimi nuk u gjet");
+
+    await prisma.booking.delete({ where: { id } });
+    await audit({
+      userId: session.userId,
+      action: "BOOKING_DELETE",
+      entity: "Booking",
+      entityId: id,
+      details: booking.service.name,
+    });
+
+    return { deleted: true };
   });
 }

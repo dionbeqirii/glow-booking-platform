@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { ServiceListRow } from "@/lib/services-catalog";
 import ServiceFormModal from "./ServiceFormModal";
 
@@ -39,6 +40,8 @@ export default function ServicesTable({
   allCategories: string[];
   existingCategories: string[];
 }) {
+  const t = useTranslations("AdminServices");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [bulkBusy, setBulkBusy] = useState(false);
@@ -104,7 +107,7 @@ export default function ServicesTable({
 
   async function remove(s: ServiceListRow) {
     setOpenMenu(null);
-    if (!confirm(`Të fshihet shërbimi "${s.name}"?`)) return;
+    if (!confirm(t("confirmDelete", { name: s.name }))) return;
     await fetch(`/api/services/${s.id}`, { method: "DELETE" });
     router.refresh();
   }
@@ -113,13 +116,13 @@ export default function ServicesTable({
     <div className="flex h-full flex-col overflow-hidden rounded-xl border border-line bg-surface ring-1 ring-line/0">
       {selected.size > 0 && (
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-accent-soft px-4 py-2">
-          <span className="text-sm font-medium text-accent">{selected.size} të zgjedhur</span>
+          <span className="text-sm font-medium text-accent">{t("bulkSelectedCount", { count: selected.size })}</span>
           <div className="flex items-center gap-2">
             <button onClick={() => bulkSetActive(true)} disabled={bulkBusy} className="rounded-lg bg-ok px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:opacity-90 disabled:opacity-60">
-              Aktivizo
+              {t("activate")}
             </button>
             <button onClick={() => bulkSetActive(false)} disabled={bulkBusy} className="rounded-lg bg-surface-muted px-3 py-1.5 text-xs font-semibold text-ink-soft transition-colors hover:bg-line disabled:opacity-60">
-              Çaktivizo
+              {t("deactivate")}
             </button>
           </div>
         </div>
@@ -141,22 +144,22 @@ export default function ServicesTable({
           <thead>
             <tr className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-faint [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:bg-surface">
               <th className="px-2 py-1.5">
-                <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label="Zgjidh të gjitha" className="h-3.5 w-3.5 rounded border-line-strong accent-accent" />
+                <input type="checkbox" checked={allSelected} onChange={toggleAll} aria-label={t("selectAllAria")} className="h-3.5 w-3.5 rounded border-line-strong accent-accent" />
               </th>
-              <th className="px-2 py-1.5 font-medium">#</th>
-              <th className="px-2 py-1.5 font-medium">Shërbimi</th>
-              <th className="px-2 py-1.5 font-medium">Kategoria</th>
-              <th className="px-2 py-1.5 font-medium">Kohëzgjatja</th>
-              <th className="px-2 py-1.5 font-medium">Çmimi</th>
-              <th className="px-2 py-1.5 font-medium">Statusi</th>
-              <th className="px-2 py-1.5 font-medium">Rezervime</th>
-              <th className="px-2 py-1.5 font-medium">Veprime</th>
+              <th className="px-2 py-1.5 font-medium">{t("colIndex")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colService")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colCategory")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colDuration")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colPrice")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colStatus")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colBookings")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-faint">Asnjë shërbim nuk përputhet me filtrat.</td>
+                <td colSpan={9} className="px-4 py-10 text-center text-sm text-ink-faint">{t("noMatch")}</td>
               </tr>
             ) : (
               rows.map((s, i) => {
@@ -164,7 +167,7 @@ export default function ServicesTable({
                 return (
                   <tr key={s.id} className="border-b border-line last:border-0 transition-colors hover:bg-surface-muted/60">
                     <td className="px-2 py-1">
-                      <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleOne(s.id)} aria-label={`Zgjidh ${s.name}`} className="h-3.5 w-3.5 rounded border-line-strong accent-accent" />
+                      <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggleOne(s.id)} aria-label={t("selectRowAria", { name: s.name })} className="h-3.5 w-3.5 rounded border-line-strong accent-accent" />
                     </td>
                     <td className="px-2 py-1 text-ink-faint">{i + 1}</td>
                     <td className="overflow-hidden px-2 py-1">
@@ -199,7 +202,7 @@ export default function ServicesTable({
                         disabled={toggleBusy === s.id}
                         className={`rounded-full px-2 py-0.5 text-[11px] font-medium transition-opacity disabled:opacity-60 ${s.active ? "bg-ok-soft text-ok" : "bg-surface-muted text-ink-faint"}`}
                       >
-                        {s.active ? "Aktiv" : "Joaktiv"}
+                        {s.active ? t("statusActive") : t("statusInactive")}
                       </button>
                     </td>
                     <td className="whitespace-nowrap px-2 py-1 text-ink-soft">{s.bookingCount}</td>
@@ -207,7 +210,7 @@ export default function ServicesTable({
                       <div className="flex items-center gap-0.5">
                         <button
                           onClick={() => setEditing(s)}
-                          title="Ndrysho"
+                          title={t("editTitle")}
                           className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -219,7 +222,7 @@ export default function ServicesTable({
                           <button
                             type="button"
                             onClick={() => setOpenMenu(openMenu === s.id ? null : s.id)}
-                            aria-label="Më shumë veprime"
+                            aria-label={t("moreActionsAria")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -231,7 +234,7 @@ export default function ServicesTable({
                           {openMenu === s.id && (
                             <div ref={menuRef} className="absolute right-0 top-7 z-20 w-36 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
                               <button onClick={() => remove(s)} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft">
-                                Fshi
+                                {tCommon("delete")}
                               </button>
                             </div>
                           )}

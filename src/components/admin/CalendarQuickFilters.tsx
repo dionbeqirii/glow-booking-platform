@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type StaffOption = { id: string; name: string };
 type ServiceOption = { id: string; name: string };
@@ -25,6 +26,7 @@ export default function CalendarQuickFilters({
   currentStaffId: string;
   currentService: string;
 }) {
+  const t = useTranslations("AdminCalendar");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -56,13 +58,13 @@ export default function CalendarQuickFilters({
   return (
     <div className="flex items-center gap-2">
       <select className={selectCls} value={currentStaffId} onChange={(e) => onStaffChange(e.target.value)}>
-        <option value="">Të gjithë Stafi</option>
+        <option value="">{t("allStaff")}</option>
         {staff.map((s) => (
           <option key={s.id} value={s.id}>{s.name}</option>
         ))}
       </select>
       <select className={selectCls} value={currentService} onChange={(e) => onServiceChange(e.target.value)}>
-        <option value="">Të gjitha Shërbimet</option>
+        <option value="">{t("allServices")}</option>
         {services.map((s) => (
           <option key={s.id} value={s.name}>{s.name}</option>
         ))}

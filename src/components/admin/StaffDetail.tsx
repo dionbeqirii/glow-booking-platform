@@ -2,17 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Card, SectionTitle, Field, Alert, EmptyState, buttonStyles, inputStyles } from "../ui";
-
-const WEEKDAYS = [
-  "E diel",
-  "E hënë",
-  "E martë",
-  "E mërkurë",
-  "E enjte",
-  "E premte",
-  "E shtunë",
-];
+import { weekdayFullLabelsSundayFirst } from "@/lib/calendar-labels";
 
 export type HourRow = { weekday: number; startTime: string; endTime: string };
 export type TimeOffRow = { id: string; from: string; until: string; reason: string | null };
@@ -32,6 +24,10 @@ export default function StaffDetail({
   initialHours: HourRow[];
   timeOff: TimeOffRow[];
 }) {
+  const t = useTranslations("AdminStaff");
+  const tWeekday = useTranslations("Weekday");
+  const locale = useLocale();
+  const WEEKDAYS = weekdayFullLabelsSundayFirst(tWeekday);
   const router = useRouter();
   const [skills, setSkills] = useState<string[]>(initialSkills);
   const [hours, setHours] = useState<HourRow[]>(initialHours);
@@ -52,14 +48,14 @@ export default function StaffDetail({
       });
       const data = await res.json();
       if (!res.ok) {
-        setMsg({ text: data.error ?? "Veprimi dështoi", tone: "error" });
+        setMsg({ text: data.error ?? t("actionFailed"), tone: "error" });
         return false;
       }
       if (okText) setMsg({ text: okText, tone: "success" });
       router.refresh();
       return true;
     } catch {
-      setMsg({ text: "Nuk u lidh dot me serverin", tone: "error" });
+      setMsg({ text: t("errorNetwork"), tone: "error" });
       return false;
     } finally {
       setBusy(false);
@@ -84,7 +80,7 @@ export default function StaffDetail({
 
   async function addTimeOff(e: React.FormEvent) {
     e.preventDefault();
-    const ok = await send(`/api/staff/${staffId}/timeoff`, "POST", off, "Mungesa u shtua.");
+    const ok = await send(`/api/staff/${staffId}/timeoff`, "POST", off, t("timeOffAdded"));
     if (ok) setOff({ from: "", until: "", reason: "" });
   }
 
@@ -94,7 +90,7 @@ export default function StaffDetail({
       `/api/staff/${staffId}`,
       "PATCH",
       { password: newPassword },
-      "Fjalëkalimi u ndryshua."
+      t("passwordChanged")
     );
     if (ok) setNewPassword("");
   }
@@ -106,11 +102,11 @@ export default function StaffDetail({
       {/* ---- Skills (FR-02) ---- */}
       <Card>
         <SectionTitle
-          title="Aftësitë"
-          hint={`Shërbimet që ${staffName} mund t'i kryejë. Ndikojnë te oraret e lira që i shfaqen klientit.`}
+          title={t("skillsTitle")}
+          hint={t("skillsHint", { name: staffName })}
         />
         {services.length === 0 ? (
-          <EmptyState text="Nuk ka shërbime të regjistruara. Shtoji te faqja e shërbimeve." />
+          <EmptyState text={t("noServicesRegistered")} />
         ) : (
           <>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -136,13 +132,13 @@ export default function StaffDetail({
                   `/api/staff/${staffId}/services`,
                   "PUT",
                   { serviceIds: skills },
-                  "Aftësitë u ruajtën."
+                  t("skillsSaved")
                 )
               }
               disabled={busy}
               className={`mt-4 ${buttonStyles.primary}`}
             >
-              Ruaj aftësitë
+              {t("saveSkills")}
             </button>
           </>
         )}
@@ -151,8 +147,8 @@ export default function StaffDetail({
       {/* ---- Working hours (FR-03) ---- */}
       <Card>
         <SectionTitle
-          title="Orari i punës"
-          hint="Intervalet javore mbi të cilat llogariten terminet e lira."
+          title={t("workingHoursTitle")}
+          hint={t("workingHoursHint")}
         />
         <div className="flex flex-col gap-3">
           {WEEKDAYS.map((label, weekday) => {
@@ -165,7 +161,7 @@ export default function StaffDetail({
                 <span className="w-24 text-sm font-medium text-ink">{label}</span>
 
                 {dayRows.length === 0 && (
-                  <span className="text-sm text-ink-faint">i lirë</span>
+                  <span className="text-sm text-ink-faint">{t("dayOff")}</span>
                 )}
 
                 {dayRows.map(({ h, index }) => (
@@ -186,7 +182,7 @@ export default function StaffDetail({
                     <button
                       onClick={() => removeInterval(index)}
                       className="px-1 text-sm text-danger hover:underline"
-                      title="Hiq intervalin"
+                      title={t("removeIntervalTitle")}
                     >
                       ×
                     </button>
@@ -197,46 +193,46 @@ export default function StaffDetail({
                   onClick={() => addInterval(weekday)}
                   className="ml-auto text-sm font-medium text-ink hover:underline"
                 >
-                  + interval
+                  {t("addInterval")}
                 </button>
               </div>
             );
           })}
         </div>
         <button
-          onClick={() => send(`/api/staff/${staffId}/hours`, "PUT", { hours }, "Orari u ruajt.")}
+          onClick={() => send(`/api/staff/${staffId}/hours`, "PUT", { hours }, t("hoursSaved"))}
           disabled={busy}
           className={`mt-4 ${buttonStyles.primary}`}
         >
-          Ruaj orarin
+          {t("saveHours")}
         </button>
       </Card>
 
       {/* ---- Time off (FR-03) ---- */}
       <Card>
-        <SectionTitle title="Pushimet dhe mungesat" hint="Periudha në të cilat punonjësi nuk pranon termine." />
+        <SectionTitle title={t("timeOffTitle")} hint={t("timeOffHint")} />
 
         {timeOff.length === 0 ? (
-          <EmptyState text="Nuk ka mungesa të regjistruara." />
+          <EmptyState text={t("noTimeOff")} />
         ) : (
           <ul className="mb-4 flex flex-col gap-2">
-            {timeOff.map((t) => (
+            {timeOff.map((row) => (
               <li
-                key={t.id}
+                key={row.id}
                 className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm"
               >
                 <span>
                   <span className="font-medium text-ink">
-                    {new Date(t.from).toLocaleDateString("sq")} – {new Date(t.until).toLocaleDateString("sq")}
+                    {new Date(row.from).toLocaleDateString(locale)} – {new Date(row.until).toLocaleDateString(locale)}
                   </span>
-                  {t.reason && <span className="ml-2 text-ink-faint">{t.reason}</span>}
+                  {row.reason && <span className="ml-2 text-ink-faint">{row.reason}</span>}
                 </span>
                 <button
-                  onClick={() => send(`/api/timeoff/${t.id}`, "DELETE", undefined, "Mungesa u hoq.")}
+                  onClick={() => send(`/api/timeoff/${row.id}`, "DELETE", undefined, t("timeOffRemoved"))}
                   disabled={busy}
                   className="text-sm font-medium text-danger hover:underline"
                 >
-                  Hiq
+                  {t("remove")}
                 </button>
               </li>
             ))}
@@ -244,7 +240,7 @@ export default function StaffDetail({
         )}
 
         <form onSubmit={addTimeOff} className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-end">
-          <Field label="Nga">
+          <Field label={t("fromLabel")}>
             <input
               type="date"
               className={inputStyles}
@@ -253,7 +249,7 @@ export default function StaffDetail({
               required
             />
           </Field>
-          <Field label="Deri">
+          <Field label={t("untilLabel")}>
             <input
               type="date"
               className={inputStyles}
@@ -262,7 +258,7 @@ export default function StaffDetail({
               required
             />
           </Field>
-          <Field label="Arsyeja (opsional)">
+          <Field label={t("reasonLabel")}>
             <input
               className={inputStyles}
               value={off.reason}
@@ -270,7 +266,7 @@ export default function StaffDetail({
             />
           </Field>
           <button type="submit" disabled={busy} className={buttonStyles.secondary}>
-            Shto
+            {t("add")}
           </button>
         </form>
       </Card>
@@ -278,11 +274,11 @@ export default function StaffDetail({
       {/* ---- Password reset (2.4) ---- */}
       <Card>
         <SectionTitle
-          title="Fjalëkalimi"
-          hint={`Vendos një fjalëkalim të ri për ${staffName}. Do t'i duhet ta përdorë këtë herën tjetër që kyçet.`}
+          title={t("passwordTitle")}
+          hint={t("passwordChangeHint", { name: staffName })}
         />
         <form onSubmit={changePassword} className="flex flex-col gap-3 sm:max-w-sm">
-          <Field label="Fjalëkalimi i ri" hint="Të paktën 8 karaktere.">
+          <Field label={t("newPasswordFieldLabel")} hint={t("passwordHint")}>
             <input
               type="password"
               autoComplete="new-password"
@@ -294,7 +290,7 @@ export default function StaffDetail({
             />
           </Field>
           <button type="submit" disabled={busy} className={`${buttonStyles.primary} self-start`}>
-            Ndrysho fjalëkalimin
+            {t("changePassword")}
           </button>
         </form>
       </Card>

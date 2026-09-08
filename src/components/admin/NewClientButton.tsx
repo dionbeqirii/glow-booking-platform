@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 function NewClientModal({ onClose }: { onClose: () => void }) {
+  const t = useTranslations("AdminClients");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -25,13 +28,13 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Regjistrimi dështoi");
+        setError(data.error ?? t("errorRegister"));
         return;
       }
       onClose();
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -48,10 +51,10 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
     >
       <div className="flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_24px_64px_-24px_rgba(31,42,34,0.35)]">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">Klient i Ri</h2>
+          <h2 className="text-lg font-semibold text-ink">{t("newClient")}</h2>
           <button
             onClick={onClose}
-            aria-label="Mbyll"
+            aria-label={tCommon("close")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -60,27 +63,27 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 
         <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Emri">
-              <input className={inputStyles} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Arta" />
+            <Field label={t("firstNameLabel")}>
+              <input className={inputStyles} value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder={t("firstNamePlaceholder")} />
             </Field>
-            <Field label="Mbiemri">
-              <input className={inputStyles} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Krasniqi" />
+            <Field label={t("lastNameLabel")}>
+              <input className={inputStyles} value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder={t("lastNamePlaceholder")} />
             </Field>
           </div>
-          <Field label="Numri i Telefonit">
-            <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+383 4X XXX XXX" />
+          <Field label={t("phoneLabel")}>
+            <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("phonePlaceholder")} />
           </Field>
-          <Field label="Email (opsional)">
-            <input type="email" className={inputStyles} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="arta@example.com" />
+          <Field label={t("emailOptionalLabel")}>
+            <input type="email" className={inputStyles} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t("emailPlaceholder")} />
           </Field>
 
           {error && <Alert message={error} />}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
-          <button onClick={onClose} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onClose} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke regjistruar…" : "Regjistro Klientin"}
+            {busy ? t("registering") : t("registerClient")}
           </button>
         </div>
       </div>
@@ -90,6 +93,7 @@ function NewClientModal({ onClose }: { onClose: () => void }) {
 }
 
 export default function NewClientButton({ variant = "pill" }: { variant?: "pill" | "row" }) {
+  const t = useTranslations("AdminClients");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -99,7 +103,7 @@ export default function NewClientButton({ variant = "pill" }: { variant?: "pill"
           className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-          Klient i Ri
+          {t("newClient")}
         </button>
       ) : (
         <button
@@ -109,7 +113,7 @@ export default function NewClientButton({ variant = "pill" }: { variant?: "pill"
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
           </span>
-          <span className="min-w-0 flex-1 truncate">Klient i Ri</span>
+          <span className="min-w-0 flex-1 truncate">{t("newClient")}</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-faint" aria-hidden><path d="m9 18 6-6-6-6" /></svg>
         </button>
       )}

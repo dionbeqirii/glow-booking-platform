@@ -10,6 +10,7 @@ export async function GET(req: Request) {
     const serviceId = url.searchParams.get("serviceId");
     const date = url.searchParams.get("date");
     const staffId = url.searchParams.get("staffId") || undefined;
+    const includeUnavailable = url.searchParams.get("includeUnavailable") === "true";
 
     if (!serviceId || !date) {
       throw new ApiError(400, "serviceId dhe date janë të detyrueshme");
@@ -23,6 +24,7 @@ export async function GET(req: Request) {
       date,
       staffId,
       requestingClientId: session.role === "CLIENT" ? session.userId : undefined,
+      includeUnavailable,
     });
   });
 }

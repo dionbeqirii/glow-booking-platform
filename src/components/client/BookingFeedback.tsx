@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Alert, Badge, buttonStyles } from "../ui";
 import { BOOKING_STATUS_LABEL, BOOKING_STATUS_TONE } from "@/lib/booking-labels";
 import type { BookingStatus } from "@prisma/client";
@@ -35,6 +36,7 @@ function Star({ filled }: { filled: boolean }) {
 }
 
 function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+  const t = useTranslations("ClientHistory");
   return (
     <div className="flex gap-1 text-gold">
       {[1, 2, 3, 4, 5].map((n) => (
@@ -42,7 +44,7 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
           key={n}
           type="button"
           onClick={() => onChange(n)}
-          aria-label={`${n} yje`}
+          aria-label={t("starAriaLabel", { n })}
           className="transition-transform hover:scale-110"
         >
           <Star filled={n <= value} />
@@ -53,8 +55,9 @@ function StarPicker({ value, onChange }: { value: number; onChange: (n: number) 
 }
 
 export function ReadOnlyStars({ value }: { value: number }) {
+  const t = useTranslations("ClientHistory");
   return (
-    <div className="flex gap-0.5 text-gold" aria-label={`${value} nga 5 yje`}>
+    <div className="flex gap-0.5 text-gold" aria-label={t("starsOutOfFiveAriaLabel", { value })}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star key={n} filled={n <= value} />
       ))}
@@ -63,6 +66,7 @@ export function ReadOnlyStars({ value }: { value: number }) {
 }
 
 export function FeedbackForm({ bookingId }: { bookingId: string }) {
+  const t = useTranslations("ClientHistory");
   const router = useRouter();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -72,7 +76,7 @@ export function FeedbackForm({ bookingId }: { bookingId: string }) {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (rating === 0) {
-      setError("Zgjidh një vlerësim");
+      setError(t("selectRatingError"));
       return;
     }
     setBusy(true);
@@ -85,12 +89,12 @@ export function FeedbackForm({ bookingId }: { bookingId: string }) {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Dërgimi dështoi");
+        setError(data.error ?? t("submitFailed"));
         return;
       }
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("serverUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -102,20 +106,21 @@ export function FeedbackForm({ bookingId }: { bookingId: string }) {
       <textarea
         value={comment}
         onChange={(e) => setComment(e.target.value)}
-        placeholder="Si ishte përvoja jote? (opsionale — përdore edhe për ankesa)"
+        placeholder={t("commentPlaceholder")}
         rows={2}
         maxLength={1000}
         className="w-full rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm text-ink outline-none transition-colors placeholder:text-ink-faint focus:border-accent focus:ring-2 focus:ring-accent/15"
       />
       {error && <Alert message={error} />}
       <button type="submit" disabled={busy} className={`self-start ${buttonStyles.primary}`}>
-        {busy ? "Duke dërguar…" : "Dërgo feedback"}
+        {busy ? t("sending") : t("sendFeedback")}
       </button>
     </form>
   );
 }
 
 export function FeedbackDisplay({ rating, comment, bookingId }: { rating: number; comment: string | null; bookingId: string }) {
+  const t = useTranslations("ClientHistory");
   const [editing, setEditing] = useState(false);
   if (editing) return <FeedbackForm bookingId={bookingId} />;
   return (
@@ -125,7 +130,7 @@ export function FeedbackDisplay({ rating, comment, bookingId }: { rating: number
         {comment && <p className="mt-1.5 text-sm text-ink-soft">{comment}</p>}
       </div>
       <button type="button" onClick={() => setEditing(true)} className="shrink-0 text-xs font-medium text-accent hover:underline">
-        Ndrysho
+        {t("editButton")}
       </button>
     </div>
   );

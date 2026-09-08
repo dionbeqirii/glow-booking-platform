@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Option = { id: string; name: string };
 
@@ -27,6 +28,7 @@ export default function AppointmentsFilters({
   currentServiceId: string;
   currentStatus: string;
 }) {
+  const t = useTranslations("AdminAppointments");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -46,7 +48,7 @@ export default function AppointmentsFilters({
   return (
     <>
       <div className="flex shrink-0 flex-col gap-1">
-        <span className={label}>Intervali i Datave</span>
+        <span className={label}>{t("dateRangeLabel")}</span>
         <div className="flex items-center gap-1 rounded-lg border border-line-strong bg-surface py-1 pl-2 pr-1">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-ink-faint" aria-hidden>
             <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -69,9 +71,9 @@ export default function AppointmentsFilters({
       </div>
 
       <div className="flex w-[92px] shrink-0 flex-col gap-1">
-        <span className={label}>Stafi</span>
+        <span className={label}>{t("staffLabel")}</span>
         <select className={`${selectCls} w-full truncate`} value={currentStaffId} onChange={(e) => setParam("staff", e.target.value)}>
-          <option value="">Të gjithë</option>
+          <option value="">{t("allStaffOption")}</option>
           {staff.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
@@ -79,9 +81,9 @@ export default function AppointmentsFilters({
       </div>
 
       <div className="flex w-[100px] shrink-0 flex-col gap-1">
-        <span className={label}>Shërbimi</span>
+        <span className={label}>{t("serviceLabel")}</span>
         <select className={`${selectCls} w-full truncate`} value={currentServiceId} onChange={(e) => setParam("service", e.target.value)}>
-          <option value="">Të gjitha</option>
+          <option value="">{t("allOption")}</option>
           {services.map((s) => (
             <option key={s.id} value={s.id}>{s.name}</option>
           ))}
@@ -89,9 +91,9 @@ export default function AppointmentsFilters({
       </div>
 
       <div className="flex w-[92px] shrink-0 flex-col gap-1">
-        <span className={label}>Statusi</span>
+        <span className={label}>{t("statusLabel")}</span>
         <select className={`${selectCls} w-full truncate`} value={currentStatus} onChange={(e) => setParam("status", e.target.value)}>
-          <option value="">Të gjitha</option>
+          <option value="">{t("allOption")}</option>
           {statuses.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
           ))}

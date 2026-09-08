@@ -1,8 +1,9 @@
+import { getTranslations } from "next-intl/server";
 import type { WeekSchedule } from "@/lib/week-schedule";
 import { serviceColorMap, serviceTone } from "@/lib/service-colors";
+import { weekdayShortLabels } from "@/lib/calendar-labels";
 
 const ROW_PX = 56;
-const DAY_LABELS = ["Hën", "Mar", "Mër", "Enj", "Pre", "Sht", "Die"];
 
 function addDays(d: Date, n: number): Date {
   const next = new Date(d);
@@ -10,7 +11,7 @@ function addDays(d: Date, n: number): Date {
   return next;
 }
 
-export default function WeekCalendar({
+export default async function WeekCalendar({
   schedule,
   weekStartDate,
   hiddenStaff,
@@ -23,6 +24,8 @@ export default function WeekCalendar({
   serviceFilter?: string;
   now: Date;
 }) {
+  const tWeekday = await getTranslations("Weekday");
+  const DAY_LABELS = weekdayShortLabels(tWeekday);
   const visibleBookings = schedule.bookings.filter(
     (b) => !hiddenStaff.has(b.staffName) && (!serviceFilter || b.serviceName === serviceFilter)
   );

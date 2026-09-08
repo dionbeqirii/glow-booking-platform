@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -11,6 +12,7 @@ type Search = { searchParams: Promise<{ service?: string; offer?: string }> };
 
 export default async function BookPage({ searchParams }: Search) {
   const session = await requireRole("CLIENT");
+  const [t, locale] = await Promise.all([getTranslations("ClientBooking"), getLocale()]);
   const sp = await searchParams;
 
   const [services, staff, waitlist, offers] = await Promise.all([
@@ -29,7 +31,7 @@ export default async function BookPage({ searchParams }: Search) {
       orderBy: { createdAt: "asc" },
       select: { id: true, service: { select: { name: true } }, staff: { select: { name: true } } },
     }),
-    getBookableOffers(),
+    getBookableOffers(new Date(), locale),
   ]);
 
   const serviceRows = services.map((s) => ({ ...s, price: Number(s.price) }));
@@ -48,17 +50,17 @@ export default async function BookPage({ searchParams }: Search) {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-none">
         <Link href="/client" className="text-sm text-ink-soft hover:underline">
-          ← Paneli
+          {t("backToPanel")}
         </Link>
         <div className="mt-2 mb-4">
-          <h1 className="text-xl font-bold text-ink">Rezervo një termin</h1>
-          <p className="text-sm text-ink-soft">Zgjidh shërbimin, punonjësen dhe orarin që të përshtatet.</p>
+          <h1 className="text-xl font-bold text-ink">{t("pageTitle")}</h1>
+          <p className="text-sm text-ink-soft">{t("pageHint")}</p>
         </div>
 
         <WaitlistPanel initial={waitlistRows} />
 
         {serviceRows.length === 0 ? (
-          <EmptyState text="Studioja nuk ka ende shërbime të disponueshme." />
+          <EmptyState text={t("noServicesAvailable")} />
         ) : (
           <BookingFlow
             services={serviceRows}

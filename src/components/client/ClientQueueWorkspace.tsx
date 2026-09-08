@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { QUEUE_STATUS_LABEL, QUEUE_STATUS_PILL } from "@/lib/booking-labels";
+import { useTranslations } from "next-intl";
+import { QUEUE_STATUS_PILL } from "@/lib/booking-labels";
 import { buttonStyles } from "@/components/ui";
 import type { ClientQueueView } from "@/lib/client-queue";
 
@@ -68,6 +69,8 @@ function QueueProgressRing({ fraction, position }: { fraction: number; position:
 }
 
 export default function ClientQueueWorkspace({ services, view }: { services: Service[]; view: ClientQueueView }) {
+  const t = useTranslations("ClientQueue");
+  const tQueueStatus = useTranslations("Status.queue");
   const router = useRouter();
   const [serviceId, setServiceId] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -95,12 +98,12 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Check-in dështoi");
+        setError(data.error ?? t("checkinFailed"));
         return;
       }
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("serverUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -119,7 +122,7 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
       if (res.ok) router.refresh();
       else {
         const data = await res.json();
-        setError(data.error ?? "Largimi dështoi");
+        setError(data.error ?? t("leaveFailed"));
       }
     } finally {
       setBusy(false);
@@ -133,18 +136,18 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
     <div className="rounded-xl border border-line bg-surface p-3.5">
       <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <p className="text-sm font-semibold text-ink">Radha Live</p>
-          <p className="text-xs text-ink-faint">Klientë duke pritur për shërbim pa termin.</p>
+          <p className="text-sm font-semibold text-ink">{t("liveQueueTitle")}</p>
+          <p className="text-xs text-ink-faint">{t("liveQueueHint")}</p>
         </div>
         {myEntry && myEntry.status === "WAITING" && (
           <button type="button" onClick={leave} disabled={busy} className={`${buttonStyles.secondary} px-3 py-1.5 text-xs`}>
-            Largohu nga Radha
+            {t("leaveQueueButton")}
           </button>
         )}
       </div>
       {liveQueue.length === 0 ? (
         <p className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-8 text-center text-sm text-ink-faint">
-          Radha është bosh për momentin.
+          {t("queueEmpty")}
         </p>
       ) : (
         <div className="overflow-x-auto">
@@ -152,10 +155,10 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
             <thead>
               <tr className="border-b border-line text-[11px] uppercase tracking-wide text-ink-faint">
                 <th className="py-1.5 pr-2 font-medium">#</th>
-                <th className="py-1.5 pr-2 font-medium">Klienti</th>
-                <th className="py-1.5 pr-2 font-medium">Shërbimi</th>
-                <th className="py-1.5 pr-2 font-medium">Pritja</th>
-                <th className="py-1.5 pr-2 font-medium">Statusi</th>
+                <th className="py-1.5 pr-2 font-medium">{t("colClient")}</th>
+                <th className="py-1.5 pr-2 font-medium">{t("colService")}</th>
+                <th className="py-1.5 pr-2 font-medium">{t("colWait")}</th>
+                <th className="py-1.5 pr-2 font-medium">{t("colStatus")}</th>
               </tr>
             </thead>
             <tbody>
@@ -168,13 +171,15 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
                         {r.position}
                       </span>
                     </td>
-                    <td className={`py-2 pr-2 font-medium ${r.isMe ? "text-purple" : "text-ink"}`}>{r.label}</td>
+                    <td className={`py-2 pr-2 font-medium ${r.isMe ? "text-purple" : "text-ink"}`}>
+                      {r.isMe ? t("youLabel", { name: r.clientName ?? "" }) : t("clientLabel", { position: r.position })}
+                    </td>
                     <td className="py-2 pr-2 text-ink-soft">{r.serviceName ?? "—"}</td>
-                    <td className="py-2 pr-2 text-ink-soft">{r.status === "IN_SERVICE" ? "—" : `~ ${r.waitMin} min`}</td>
+                    <td className="py-2 pr-2 text-ink-soft">{r.status === "IN_SERVICE" ? "—" : t("waitMinValue", { min: r.waitMin })}</td>
                     <td className="py-2 pr-2">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${pill.bg} ${pill.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${pill.dot}`} />
-                        {QUEUE_STATUS_LABEL[r.status]}
+                        {tQueueStatus(r.status)}
                       </span>
                     </td>
                   </tr>
@@ -189,27 +194,27 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
 
   const QueueTips = (
     <div className="rounded-xl border border-line bg-surface p-3.5">
-      <p className="mb-2.5 text-sm font-semibold text-ink">Këshilla për Radhën</p>
+      <p className="mb-2.5 text-sm font-semibold text-ink">{t("tipsTitle")}</p>
       <div className="flex flex-col gap-3">
         <div className="flex items-start gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"><IcClock /></span>
           <div>
-            <p className="text-xs font-semibold text-ink">Arrij në Kohë</p>
-            <p className="text-xs text-ink-faint">Qëndro pranë studios që të mos e humbasësh radhën tënde.</p>
+            <p className="text-xs font-semibold text-ink">{t("tipArriveTitle")}</p>
+            <p className="text-xs text-ink-faint">{t("tipArriveBody")}</p>
           </div>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-ok-soft text-ok"><IcPhone /></span>
           <div>
-            <p className="text-xs font-semibold text-ink">Mbaje Telefonin Pranë</p>
-            <p className="text-xs text-ink-faint">Do të njoftohesh kur të vijë radha jote.</p>
+            <p className="text-xs font-semibold text-ink">{t("tipPhoneTitle")}</p>
+            <p className="text-xs text-ink-faint">{t("tipPhoneBody")}</p>
           </div>
         </div>
         <div className="flex items-start gap-2.5">
           <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-purple-soft text-purple"><IcUsers /></span>
           <div>
-            <p className="text-xs font-semibold text-ink">E Drejtë, Sipas Radhës</p>
-            <p className="text-xs text-ink-faint">Klientët shërbehen sipas rendit të mbërritjes.</p>
+            <p className="text-xs font-semibold text-ink">{t("tipFairTitle")}</p>
+            <p className="text-xs text-ink-faint">{t("tipFairBody")}</p>
           </div>
         </div>
       </div>
@@ -218,11 +223,11 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
 
   const BookBanner = (
     <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-purple-soft to-accent-soft p-3.5">
-      <p className="text-sm font-bold text-ink">Do të Anashkalosh Pritjen?</p>
-      <p className="mt-1 max-w-[75%] text-xs text-ink-soft">Rezervo termin online dhe zgjidh orarin që të përshtatet.</p>
+      <p className="text-sm font-bold text-ink">{t("skipWaitTitle")}</p>
+      <p className="mt-1 max-w-[75%] text-xs text-ink-soft">{t("skipWaitHint")}</p>
       <Link href="/client/rezervo" className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-purple px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:brightness-95">
         <IcCalendar />
-        Rezervo Termin
+        {t("bookAppointmentButton")}
       </Link>
       <div className="absolute -bottom-2 -right-2 opacity-70">
         <LeafDecoration />
@@ -238,13 +243,13 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
         {myEntry.status === "CALLED" ? (
           <div className="rounded-xl bg-ok-soft p-4 text-center">
             <p className="text-sm font-semibold text-ok">
-              Radha jote erdhi{myEntry.staffName ? ` te ${myEntry.staffName}` : ""}! Paraqitu te studioja.
+              {myEntry.staffName ? t("calledWithStaff", { staff: myEntry.staffName }) : t("calledNoStaff")}
             </p>
             <p className="mt-1 text-xs text-ink-soft">{myEntry.serviceName} · {myEntry.serviceDurationMin} min</p>
           </div>
         ) : (
           <div className="rounded-xl bg-accent-soft p-4 text-center">
-            <p className="text-sm font-semibold text-accent">Je duke u shërbyer. Faleminderit për durimin!</p>
+            <p className="text-sm font-semibold text-accent">{t("inServiceMessage")}</p>
             <p className="mt-1 text-xs text-ink-soft">{myEntry.serviceName} · {myEntry.serviceDurationMin} min</p>
           </div>
         )}
@@ -268,42 +273,42 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-purple-soft text-purple"><IcUsers /></span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Numri Yt në Radhë</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("yourQueueNumberLabel")}</p>
               <p className="text-xl font-bold leading-tight text-ink">#{myEntry.position}</p>
-              <p className="text-xs text-ink-faint">Je në radhë</p>
+              <p className="text-xs text-ink-faint">{t("inQueueLabel")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent-soft text-accent"><IcClock /></span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Koha e Pritjes</p>
-              <p className="text-xl font-bold leading-tight text-ink">~ {myEntry.estimatedWaitMin} min</p>
-              <p className="text-xs text-ink-faint">E përafërt</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("waitTimeLabel")}</p>
+              <p className="text-xl font-bold leading-tight text-ink">{t("waitMinValue", { min: myEntry.estimatedWaitMin })}</p>
+              <p className="text-xs text-ink-faint">{t("approxLabel")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-gold-soft text-gold"><IcClock /></span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">U Bashkove Në</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("joinedAtLabel")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{myEntry.joinedAtLabel}</p>
-              <p className="text-xs text-ink-faint">Sot</p>
+              <p className="text-xs text-ink-faint">{t("todayLabel")}</p>
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-ok-soft text-ok"><IcWalk /></span>
             <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Njerëz Përpara Teje</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("peopleAheadLabel")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{myEntry.peopleAhead}</p>
-              <p className="text-xs text-ink-faint">Në pritje</p>
+              <p className="text-xs text-ink-faint">{t("waitingLabel")}</p>
             </div>
           </div>
         </div>
       ) : (
         <div className="rounded-xl border border-line bg-surface p-3.5">
-          <p className="text-sm font-semibold text-ink">Bëj Check-in</p>
-          <p className="mb-3 text-xs text-ink-faint">Erdhe pa termin? Zgjidh shërbimin dhe futu në radhë.</p>
+          <p className="text-sm font-semibold text-ink">{t("checkinTitle")}</p>
+          <p className="mb-3 text-xs text-ink-faint">{t("checkinHint")}</p>
           {services.length === 0 ? (
-            <p className="text-xs text-ink-faint">Studioja nuk ka ende shërbime të disponueshme.</p>
+            <p className="text-xs text-ink-faint">{t("noServicesAvailable")}</p>
           ) : (
             <div className="flex flex-col gap-3">
               <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -323,7 +328,7 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
               </div>
               <div>
                 <button type="button" onClick={checkin} disabled={!serviceId || busy} className={buttonStyles.primary}>
-                  {busy ? "Duke u regjistruar…" : "Fut Check-in"}
+                  {busy ? t("checkinInProgress") : t("checkinButton")}
                 </button>
               </div>
             </div>
@@ -338,8 +343,8 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
             <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
               <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ok-soft"><IcBell /></span>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-semibold text-ink">Do të Njoftohesh</p>
-                <p className="text-xs text-ink-faint">Do të marrësh një njoftim kur të vijë radha jote.</p>
+                <p className="text-sm font-semibold text-ink">{t("notifiedTitle")}</p>
+                <p className="text-xs text-ink-faint">{t("notifiedHint")}</p>
               </div>
             </div>
           )}
@@ -348,12 +353,12 @@ export default function ClientQueueWorkspace({ services, view }: { services: Ser
         <div className="flex flex-col gap-3">
           {myEntry && myEntry.status === "WAITING" && (
             <div className="rounded-xl border border-line bg-surface p-3.5">
-              <p className="mb-2.5 text-sm font-semibold text-ink">Statusi i Radhës</p>
+              <p className="mb-2.5 text-sm font-semibold text-ink">{t("queueStatusTitle")}</p>
               <div className="flex items-center gap-3">
                 <QueueProgressRing fraction={progressFraction} position={myEntry.position} />
                 <div className="min-w-0">
-                  <p className="text-xs text-ink-faint">{myEntry.peopleAhead} klientë përpara teje</p>
-                  <p className="text-xs text-ink-faint">Pritje e përllogaritur ~{myEntry.estimatedWaitMin} min</p>
+                  <p className="text-xs text-ink-faint">{t("peopleAheadCount", { count: myEntry.peopleAhead })}</p>
+                  <p className="text-xs text-ink-faint">{t("estimatedWaitApprox", { min: myEntry.estimatedWaitMin })}</p>
                 </div>
               </div>
             </div>

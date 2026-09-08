@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { BookingStatus, PaymentStatus } from "@prisma/client";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 import { serviceColorMap } from "@/lib/service-colors";
 import PaymentStatusCell from "./PaymentStatusCell";
 
@@ -42,6 +43,8 @@ function initials(name: string): string {
 }
 
 export default function AppointmentsTable({ rows, serviceNames }: { rows: AppointmentTableRow[]; serviceNames: string[] }) {
+  const t = useTranslations("AdminAppointments");
+  const tStatus = useTranslations("Status.booking");
   const router = useRouter();
   const colorByService = serviceColorMap(serviceNames);
 
@@ -114,13 +117,13 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
     <div className="flex h-full flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_1px_2px_rgba(43,38,34,0.04)]">
       {selected.size > 0 && (
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line bg-accent-soft px-4 py-2.5">
-          <span className="text-sm font-medium text-accent">{selected.size} të zgjedhur</span>
+          <span className="text-sm font-medium text-accent">{t("bulkSelectedCount", { count: selected.size })}</span>
           <button
             onClick={cancelSelected}
             disabled={bulkBusy}
             className="rounded-lg bg-danger px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-danger/90 disabled:opacity-60"
           >
-            {bulkBusy ? "Duke anuluar…" : "Anulo të Zgjedhurat"}
+            {bulkBusy ? t("cancelling") : t("bulkCancelSelected")}
           </button>
         </div>
       )}
@@ -153,26 +156,26 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                   type="checkbox"
                   checked={allSelected}
                   onChange={toggleAll}
-                  aria-label="Zgjidh të gjitha"
+                  aria-label={t("selectAllAria")}
                   className="h-3.5 w-3.5 rounded border-line-strong accent-accent"
                 />
               </th>
-              <th className="px-2 py-1 font-medium">Termini</th>
-              <th className="px-2 py-1 font-medium">Klienti</th>
-              <th className="px-2 py-1 font-medium">Shërbimi</th>
-              <th className="px-2 py-1 font-medium">Stafi</th>
-              <th className="px-2 py-1 font-medium">Data &amp; Ora</th>
-              <th className="px-2 py-1 font-medium">Kohëz.</th>
-              <th className="px-2 py-1 font-medium">Statusi</th>
-              <th className="px-2 py-1 font-medium">Pagesa</th>
-              <th className="px-2 py-1 font-medium">Veprime</th>
+              <th className="px-2 py-1 font-medium">{t("colBooking")}</th>
+              <th className="px-2 py-1 font-medium">{t("colClient")}</th>
+              <th className="px-2 py-1 font-medium">{t("colService")}</th>
+              <th className="px-2 py-1 font-medium">{t("colStaff")}</th>
+              <th className="px-2 py-1 font-medium">{t("colDateTime")}</th>
+              <th className="px-2 py-1 font-medium">{t("colDuration")}</th>
+              <th className="px-2 py-1 font-medium">{t("colStatus")}</th>
+              <th className="px-2 py-1 font-medium">{t("colPayment")}</th>
+              <th className="px-2 py-1 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
                 <td colSpan={10} className="px-4 py-10 text-center text-sm text-ink-faint">
-                  Asnjë termin nuk përputhet me filtrat.
+                  {t("noMatch")}
                 </td>
               </tr>
             ) : (
@@ -186,7 +189,7 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                         type="checkbox"
                         checked={selected.has(b.id)}
                         onChange={() => toggleOne(b.id)}
-                        aria-label={`Zgjidh ${b.clientName}`}
+                        aria-label={t("selectRowAria", { name: b.clientName })}
                         className="h-3.5 w-3.5 rounded border-line-strong accent-accent"
                       />
                     </td>
@@ -227,7 +230,7 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                     <td className="overflow-hidden px-2 py-1">
                       <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${pill.dot}`} />
-                        <span className="truncate">{BOOKING_STATUS_LABEL[b.status]}</span>
+                        <span className="truncate">{tStatus(b.status)}</span>
                       </span>
                     </td>
                     <td className="overflow-hidden px-2 py-1">
@@ -237,7 +240,7 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                       <div className="flex items-center gap-0.5">
                         <Link
                           href={`/admin/kalendari?view=day&date=${b.calendarDate}`}
-                          title="Shiko në kalendar"
+                          title={t("viewInCalendarTitle")}
                           className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -249,7 +252,7 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                           <button
                             type="button"
                             onClick={() => setOpenMenu(openMenu === b.id ? null : b.id)}
-                            aria-label="Më shumë veprime"
+                            aria-label={t("moreActionsAria")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -269,7 +272,7 @@ export default function AppointmentsTable({ rows, serviceNames }: { rows: Appoin
                                 onClick={() => cancelBooking(b.id)}
                                 className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft disabled:cursor-not-allowed disabled:opacity-50"
                               >
-                                {rowBusy === b.id ? "Duke anuluar…" : "Anulo Terminin"}
+                                {rowBusy === b.id ? t("cancelling") : t("cancelBooking")}
                               </button>
                             </div>
                           )}

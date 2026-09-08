@@ -1,17 +1,18 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { Kpi, EmptyState } from "@/components/ui";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL, PAYMENT_STATUS_LABEL, PAYMENT_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL, PAYMENT_STATUS_PILL } from "@/lib/booking-labels";
 import { serviceColorMap } from "@/lib/service-colors";
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" });
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
-function fmtDateTime(d: Date): string {
-  return d.toLocaleString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function fmtDateTime(d: Date, locale: string): string {
+  return d.toLocaleString(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function initials(name: string): string {
   return (
@@ -65,9 +66,9 @@ function Star({ filled }: { filled: boolean }) {
     </svg>
   );
 }
-function Stars({ value }: { value: number }) {
+function Stars({ value, ariaLabel }: { value: number; ariaLabel: string }) {
   return (
-    <div className="flex gap-0.5 text-gold" aria-label={`${value} nga 5 yje`}>
+    <div className="flex gap-0.5 text-gold" aria-label={ariaLabel}>
       {[1, 2, 3, 4, 5].map((n) => (
         <Star key={n} filled={n <= value} />
       ))}
@@ -83,6 +84,12 @@ type Ctx = { params: Promise<{ id: string }> };
 // posture as the rest of the staff-facing pages this session.
 export default async function StaffClientProfilePage({ params }: Ctx) {
   const session = await requireRole("STAFF");
+  const [t, tStatus, tPayment, locale] = await Promise.all([
+    getTranslations("StaffClients"),
+    getTranslations("Status.booking"),
+    getTranslations("Status.payment"),
+    getLocale(),
+  ]);
   const { id } = await params;
 
   const client = await prisma.user.findFirst({
@@ -128,7 +135,7 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-4xl">
         <Link href="/staff/klientet" className="text-sm text-ink-soft hover:underline">
-          ← Klientët
+          {t("backToClients")}
         </Link>
 
         <div className="mt-2 mb-5 flex items-center gap-3">
@@ -137,8 +144,8 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
           </span>
           <div className="min-w-0">
             <h1 className="truncate text-2xl font-semibold text-ink">{client.name}</h1>
-            <p className="text-sm text-ink-soft">{client.email} · {client.phone ?? "Pa telefon"}</p>
-            <p className="text-xs text-ink-faint">Klient që nga {fmtDate(client.createdAt)}</p>
+            <p className="text-sm text-ink-soft">{client.email} · {client.phone ?? t("noPhone")}</p>
+            <p className="text-xs text-ink-faint">{t("clientSince", { date: fmtDate(client.createdAt, locale) })}</p>
           </div>
         </div>
 
@@ -148,44 +155,44 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
             tone="accent"
             icon={<IcCalendar />}
             value={activeBookings.length}
-            label="Rezervime Gjithsej"
-            sub="Të gjitha kohërat"
+            label={t("kpiTotalBookings")}
+            sub={t("kpiTotalBookingsSub")}
           />
           <Kpi
             href={`/staff/klientet/${id}`}
             tone="gold"
             icon={<IcClock />}
-            value={lastVisit ? fmtDate(lastVisit) : "—"}
-            label="Vizita e Fundit"
-            sub={lastVisit ? "Rezervimi më i fundit" : "Ende pa vizitë"}
+            value={lastVisit ? fmtDate(lastVisit, locale) : "—"}
+            label={t("kpiLastVisit")}
+            sub={lastVisit ? t("kpiLastVisitSub") : t("kpiNoVisitSub")}
           />
           <Kpi
             href={`/staff/klientet/${id}`}
             tone="purple"
             icon={<IcStar />}
             value={avgRating !== null ? avgRating.toFixed(1) : "—"}
-            label="Vlerësimi Mesatar"
-            sub={feedback.length > 0 ? `${feedback.length} vlerësime` : "Ende pa vlerësime"}
+            label={t("kpiAvgRating")}
+            sub={feedback.length > 0 ? t("kpiRatingsCount", { count: feedback.length }) : t("kpiNoRatings")}
           />
           <Kpi
             href={`/staff/klientet/${id}`}
             tone="warn"
             icon={<IcAlert />}
             value={complaints.length}
-            label="Ankesa"
-            sub="Vlerësime të ulëta"
+            label={t("kpiComplaints")}
+            sub={t("kpiComplaintsSub")}
           />
         </div>
 
         <div className="mb-5 rounded-xl border border-line bg-surface p-4">
-          <h2 className="mb-1 text-sm font-semibold text-ink">Feedback &amp; Ankesa</h2>
+          <h2 className="mb-1 text-sm font-semibold text-ink">{t("feedbackTitle")}</h2>
           <p className="mb-4 text-xs text-ink-faint">
             {complaints.length > 0
-              ? `${complaints.length} vlerësim${complaints.length === 1 ? "" : "e"} i ulët — trajtoji si ankesa.`
-              : "Vlerësimet e klientit pas rezervimeve të përfunduara ose të anuluara."}
+              ? (complaints.length === 1 ? t("complaintsSummaryOne") : t("complaintsSummary", { count: complaints.length }))
+              : t("feedbackHint")}
           </p>
           {feedback.length === 0 ? (
-            <EmptyState text="Ende nuk ka lënë feedback." />
+            <EmptyState text={t("noFeedbackYet")} />
           ) : (
             <ul className="flex flex-col gap-2.5">
               {feedback.map((f) => {
@@ -197,15 +204,15 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
-                        <Stars value={f.rating} />
+                        <Stars value={f.rating} ariaLabel={t("starsAriaLabel", { value: f.rating })} />
                         {isComplaint && (
                           <span className="rounded-full bg-danger px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                            Ankesë
+                            {t("complaintBadge")}
                           </span>
                         )}
                       </div>
                       <span className="text-xs text-ink-faint">
-                        {f.booking.service.name} · {fmtDate(f.booking.startTime)}
+                        {f.booking.service.name} · {fmtDate(f.booking.startTime, locale)}
                       </span>
                     </div>
                     {f.comment && <p className="mt-2 text-sm text-ink">{f.comment}</p>}
@@ -217,9 +224,9 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
         </div>
 
         <div className="rounded-xl border border-line bg-surface p-4">
-          <h2 className="mb-3 text-sm font-semibold text-ink">Historiku i Rezervimeve</h2>
+          <h2 className="mb-3 text-sm font-semibold text-ink">{t("bookingHistoryTitle")}</h2>
           {bookings.length === 0 ? (
-            <EmptyState text="Ende pa rezervime." />
+            <EmptyState text={t("noBookingsYet")} />
           ) : (
             <ul className="flex flex-col gap-1.5">
               {bookings.map((b) => {
@@ -232,17 +239,17 @@ export default async function StaffClientProfilePage({ params }: Ctx) {
                       <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${tone?.dot ?? "bg-ink-faint"}`} />
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium text-ink">{b.service.name}</p>
-                        <p className="truncate text-xs text-ink-faint">{fmtDateTime(b.startTime)} · {b.staff.name}</p>
+                        <p className="truncate text-xs text-ink-faint">{fmtDateTime(b.startTime, locale)} · {b.staff.name}</p>
                       </div>
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${statusPill.bg} ${statusPill.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${statusPill.dot}`} />
-                        {BOOKING_STATUS_LABEL[b.status]}
+                        {tStatus(b.status)}
                       </span>
                       <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-[11px] font-semibold ${paymentPill.bg} ${paymentPill.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${paymentPill.dot}`} />
-                        {PAYMENT_STATUS_LABEL[b.paymentStatus]}
+                        {tPayment(b.paymentStatus)}
                       </span>
                     </div>
                   </li>

@@ -72,7 +72,7 @@ export async function getQueueSummary(now = new Date()): Promise<QueueSummary> {
 export type QueueTableRow = {
   id: string;
   queueNumber: number;
-  clientName: string;
+  clientName: string | null; // null = no real or typed-in name; caller renders the localized "walk-in" fallback
   clientPhone: string | null;
   notes: string | null;
   serviceId: string;
@@ -88,7 +88,7 @@ export type QueueTableRow = {
 
 // Every still-active entry (waiting, called, or mid-visit) in one flat,
 // check-in-ordered list — the unified "Current Queue" table.
-export async function getCurrentQueueRows(): Promise<QueueTableRow[]> {
+export async function getCurrentQueueRows(locale = "sq"): Promise<QueueTableRow[]> {
   const entries = await prisma.queueEntry.findMany({
     where: { status: { in: DISPLAY_QUEUE_STATUSES } },
     orderBy: { checkinAt: "asc" },
@@ -103,13 +103,13 @@ export async function getCurrentQueueRows(): Promise<QueueTableRow[]> {
   return entries.map((e) => ({
     id: e.id,
     queueNumber: e.queueNumber,
-    clientName: e.client?.name ?? e.clientName ?? "Klient pa emër",
+    clientName: e.client?.name ?? e.clientName ?? null,
     clientPhone: e.client?.phone ?? e.phone,
     notes: e.notes,
     serviceId: e.serviceId,
     serviceName: e.service.name,
     durationMin: e.service.durationMin,
-    addedAtLabel: e.checkinAt.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    addedAtLabel: e.checkinAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     estWaitMin: e.estimatedWaitMin,
     status: e.status,
     staffId: e.staff?.id ?? null,
@@ -120,14 +120,14 @@ export async function getCurrentQueueRows(): Promise<QueueTableRow[]> {
 
 export type QueueSlot = { timeLabel: string };
 
-export async function getQueueSlots(now = new Date(), limit = 5): Promise<QueueSlot[]> {
+export async function getQueueSlots(now = new Date(), limit = 5, locale = "sq"): Promise<QueueSlot[]> {
   const slots = await getNextAvailableSlots(now, limit);
-  return slots.map((s) => ({ timeLabel: s.time.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }) }));
+  return slots.map((s) => ({ timeLabel: s.time.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }) }));
 }
 
-export type RecentlyServed = { id: string; clientName: string; serviceName: string; servedAtLabel: string };
+export type RecentlyServed = { id: string; clientName: string | null; serviceName: string; servedAtLabel: string };
 
-export async function getRecentlyServed(limit = 5): Promise<RecentlyServed[]> {
+export async function getRecentlyServed(limit = 5, locale = "sq"): Promise<RecentlyServed[]> {
   const entries = await prisma.queueEntry.findMany({
     where: { status: "COMPLETED", completedAt: { not: null } },
     orderBy: { completedAt: "desc" },
@@ -142,20 +142,29 @@ export async function getRecentlyServed(limit = 5): Promise<RecentlyServed[]> {
   });
   return entries.map((e) => ({
     id: e.id,
-    clientName: e.client?.name ?? e.clientName ?? "Klient pa emër",
+    clientName: e.client?.name ?? e.clientName ?? null,
     serviceName: e.service.name,
-    servedAtLabel: e.completedAt!.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    servedAtLabel: e.completedAt!.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
   }));
 }
 
-export type QueueInsight = { icon: "walkin" | "alert" | "slot"; text: string; timeLabel: string };
+// Structured facts, not pre-rendered text — the caller (a Server Component
+// with a real translator) renders the localized sentence per `kind`. This
+// keeps the insight feed genuinely multilingual instead of baking Albanian
+// text into the data layer (the same class of issue notification bodies
+// have — flagged separately — but this one is computed live on every
+// request, never stored, so it can be fixed outright here).
+export type QueueInsight =
+  | { icon: "walkin"; kind: "walkinAdded"; clientName: string | null; checkinTimeLabel: string }
+  | { icon: "alert"; kind: "longWait"; count: number; thresholdMin: number }
+  | { icon: "slot"; kind: "nextSlot"; slotTimeLabel: string };
 
 const LONG_WAIT_THRESHOLD_MIN = 45;
 
 // Live, computed facts (never stored rows) standing in for the reference's
 // notification feed — each one reads straight off current queue state, so
 // it is always real and never stale.
-export async function getQueueInsights(now = new Date()): Promise<QueueInsight[]> {
+export async function getQueueInsights(now = new Date(), locale = "sq"): Promise<QueueInsight[]> {
   const insights: QueueInsight[] = [];
 
   const [lastCheckin, longWaiting, [nextSlot]] = await Promise.all([
@@ -168,27 +177,23 @@ export async function getQueueInsights(now = new Date()): Promise<QueueInsight[]
   ]);
 
   if (lastCheckin) {
-    const name = lastCheckin.client?.name ?? lastCheckin.clientName ?? "Një klient";
     insights.push({
       icon: "walkin",
-      text: `${name} u shtua në radhë`,
-      timeLabel: lastCheckin.checkinAt.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+      kind: "walkinAdded",
+      clientName: lastCheckin.client?.name ?? lastCheckin.clientName ?? null,
+      checkinTimeLabel: lastCheckin.checkinAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     });
   }
 
   if (longWaiting > 0) {
-    insights.push({
-      icon: "alert",
-      text: `${longWaiting} ${longWaiting === 1 ? "klient duke pritur" : "klientë duke pritur"} mbi ${LONG_WAIT_THRESHOLD_MIN} min`,
-      timeLabel: "tani",
-    });
+    insights.push({ icon: "alert", kind: "longWait", count: longWaiting, thresholdMin: LONG_WAIT_THRESHOLD_MIN });
   }
 
   if (nextSlot) {
     insights.push({
       icon: "slot",
-      text: `Vend i lirë pas ${nextSlot.time.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false })}`,
-      timeLabel: "",
+      kind: "nextSlot",
+      slotTimeLabel: nextSlot.time.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     });
   }
 

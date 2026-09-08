@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 export default function StatsTipBanner({ message }: { message: string }) {
+  const t = useTranslations("StaffStats");
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
 
@@ -15,13 +17,13 @@ export default function StatsTipBanner({ message }: { message: string }) {
         </svg>
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-ok">Këshillë për ju</p>
+        <p className="text-sm font-semibold text-ok">{t("tipForYouTitle")}</p>
         <p className="text-xs text-ink-soft">{message}</p>
       </div>
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        aria-label="Mbyll këshillën"
+        aria-label={t("closeTipAria")}
         className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface hover:text-ink"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M18 6 6 18M6 6l12 12" /></svg>

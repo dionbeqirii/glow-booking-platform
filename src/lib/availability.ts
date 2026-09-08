@@ -14,7 +14,7 @@ export const ACTIVE_BOOKING_STATUSES: BookingStatus[] = [
 const SLOT_STEP_MIN = 15;
 
 export type SlotStaff = { id: string; name: string };
-export type Slot = { time: string; staff: SlotStaff[] };
+export type Slot = { time: string; staff: SlotStaff[]; available: boolean };
 
 function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
@@ -49,6 +49,12 @@ export async function availableSlots(params: {
   // Slots held with priority for someone else (3.3) are left off the list
   // entirely; the requester's own hold, if any, is exempted.
   requestingClientId?: string;
+  // When true, every candidate start time within a qualified staff member's
+  // working hours is returned — including taken ones, marked
+  // `available: false` with an empty `staff` list — instead of silently
+  // omitting them. Used where the UI shows a full grid with closed slots
+  // disabled rather than just a shorter list of open ones.
+  includeUnavailable?: boolean;
 }): Promise<{ durationMin: number; slots: Slot[] }> {
   const service = await prisma.service.findUnique({ where: { id: params.serviceId } });
   if (!service || !service.active) return { durationMin: 0, slots: [] };
@@ -99,6 +105,10 @@ export async function availableSlots(params: {
 
   // Collect available start minutes per staff, then invert into slots.
   const byTime = new Map<number, SlotStaff[]>();
+  // Every candidate time that falls inside *some* qualified staff member's
+  // shift for the day, open or not — only populated when the caller asked
+  // to see closed slots too, since it costs an extra pass otherwise unused.
+  const allCandidateMinutes = new Set<number>();
 
   for (const member of staff) {
     const busy = member.bookingsAsStaff.map((b) => ({
@@ -122,6 +132,7 @@ export async function availableSlots(params: {
         const end = start + duration;
 
         if (at(params.date, start) < now) continue; // no past slots
+        if (params.includeUnavailable) allCandidateMinutes.add(start);
         if (busy.some((b) => overlaps(start, end, b.start, b.end))) continue;
         if (off.some((o) => overlaps(start, end, o.start, o.end))) continue;
         if (held.some((h) => overlaps(start, end, h.start, h.end))) continue;
@@ -133,12 +144,14 @@ export async function availableSlots(params: {
     }
   }
 
-  const slots: Slot[] = [...byTime.keys()]
+  const minutesToReturn = params.includeUnavailable ? allCandidateMinutes : new Set(byTime.keys());
+
+  const slots: Slot[] = [...minutesToReturn]
     .sort((a, b) => a - b)
-    .map((minutes) => ({
-      time: at(params.date, minutes).toISOString(),
-      staff: byTime.get(minutes)!,
-    }));
+    .map((minutes) => {
+      const staffList = byTime.get(minutes) ?? [];
+      return { time: at(params.date, minutes).toISOString(), staff: staffList, available: staffList.length > 0 };
+    });
 
   return { durationMin: duration, slots };
 }

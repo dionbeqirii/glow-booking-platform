@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import {
@@ -8,6 +9,7 @@ import {
   getMyServices,
   type StaffStatsKpis,
 } from "@/lib/staff-stats";
+import { weekdayFullLabelsMondayFirst } from "@/lib/calendar-labels";
 import WeeklyPerformanceChart from "@/components/staff/WeeklyPerformanceChart";
 import MyServicesPanel from "@/components/staff/MyServicesPanel";
 import StatsTipBanner from "@/components/staff/StatsTipBanner";
@@ -48,45 +50,51 @@ function IcTrend() {
   );
 }
 
-function DeltaBadge({ pct }: { pct: number | null }) {
-  if (pct === null) return <span className="text-xs text-ink-faint">Periudha e parë e krahasueshme</span>;
-  if (pct === 0) return <span className="text-xs text-ink-faint">Njësoj si periudha e kaluar</span>;
+type T = (key: string, values?: Record<string, string | number>) => string;
+
+function DeltaBadge({ pct, t }: { pct: number | null; t: T }) {
+  if (pct === null) return <span className="text-xs text-ink-faint">{t("deltaFirstPeriod")}</span>;
+  if (pct === 0) return <span className="text-xs text-ink-faint">{t("deltaSame")}</span>;
   const up = pct > 0;
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-medium ${up ? "text-ok" : "text-danger"}`}>
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         {up ? <path d="M12 19V5M5 12l7-7 7 7" /> : <path d="M12 5v14M5 12l7 7 7-7" />}
       </svg>
-      {Math.abs(pct)}% nga periudha e kaluar
+      {t("deltaChange", { pct: Math.abs(pct) })}
     </span>
   );
 }
 
-function tipMessage(kpis: StaffStatsKpis): string {
+function tipMessage(kpis: StaffStatsKpis, t: T): string {
   const diff = kpis.utilizationPct - kpis.studioAvgUtilizationPct;
-  if (diff > 3) {
-    return `Vazhdoni punën e mirë! Shfrytëzimi juaj (${kpis.utilizationPct}%) është mbi mesataren e stafit (${kpis.studioAvgUtilizationPct}%). Synoni 75% për rezultate edhe më të mira.`;
-  }
-  if (diff < -3) {
-    return `Shfrytëzimi juaj (${kpis.utilizationPct}%) është nën mesataren e stafit (${kpis.studioAvgUtilizationPct}%). Kontrollo orarin tënd të punës për më shumë mundësi rezervimi.`;
-  }
-  return `Shfrytëzimi juaj (${kpis.utilizationPct}%) është afër mesatares së stafit (${kpis.studioAvgUtilizationPct}%). Synoni 75% për rezultate edhe më të mira.`;
+  const values = { pct: kpis.utilizationPct, avg: kpis.studioAvgUtilizationPct };
+  if (diff > 3) return t("tipGoodWork", values);
+  if (diff < -3) return t("tipBelowAvg", values);
+  return t("tipNearAvg", values);
 }
 
 type Search = { searchParams: Promise<{ days?: string }> };
 
 export default async function StaffStatsPage({ searchParams }: Search) {
   const session = await requireRole("STAFF");
+  const [t, tWeekday, locale] = await Promise.all([
+    getTranslations("StaffStats"),
+    getTranslations("Weekday"),
+    getLocale(),
+  ]);
+  const weekdayLabels = weekdayFullLabelsMondayFirst(tWeekday);
   const sp = await searchParams;
   const days = (PERIODS as readonly number[]).includes(Number(sp.days)) ? Number(sp.days) : 30;
   const now = new Date();
 
-  const [kpis, weekly, requested, myServices] = await Promise.all([
-    getStaffStatsKpis(session.userId, days, now),
+  const [kpis, weeklyRaw, requested, myServices] = await Promise.all([
+    getStaffStatsKpis(session.userId, days, now, locale),
     getWeeklyPerformance(session.userId, days, now),
     getMostRequestedServices(session.userId, days, now),
     getMyServices(session.userId),
   ]);
+  const weekly = weeklyRaw.map((p) => ({ label: weekdayLabels[p.weekday], current: p.current, prior: p.prior }));
 
   const requestedMax = Math.max(1, ...requested.map((r) => r.count));
 
@@ -95,8 +103,8 @@ export default async function StaffStatsPage({ searchParams }: Search) {
       <div className="mx-auto flex h-full max-w-none flex-col gap-3">
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-bold text-ink">Statistikat e mia</h1>
-            <p className="text-sm text-ink-soft">Performanca juaj dhe shërbimet tuaja.</p>
+            <h1 className="text-xl font-bold text-ink">{t("pageTitle")}</h1>
+            <p className="text-sm text-ink-soft">{t("pageHint")}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex gap-1 rounded-xl bg-surface-muted p-1">
@@ -108,7 +116,7 @@ export default async function StaffStatsPage({ searchParams }: Search) {
                     d === days ? "bg-accent text-white" : "text-ink-soft hover:text-ink"
                   }`}
                 >
-                  {d} ditë
+                  {t("daysOption", { count: d })}
                 </Link>
               ))}
             </div>
@@ -123,37 +131,37 @@ export default async function StaffStatsPage({ searchParams }: Search) {
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-ok-soft text-ok"><IcCalendar /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Shërbime të Kryera</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("kpiCompleted")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{kpis.completedCount}</p>
-              <p className="truncate text-xs text-ink-faint">{days} ditët e fundit</p>
-              <DeltaBadge pct={kpis.completedDeltaPct} />
+              <p className="truncate text-xs text-ink-faint">{t("kpiCompletedSub", { count: days })}</p>
+              <DeltaBadge pct={kpis.completedDeltaPct} t={t} />
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-teal-soft text-teal"><IcEuro /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Të Ardhura të Gjeneruara</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("kpiRevenue")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{kpis.revenue.toFixed(2)} €</p>
-              <p className="truncate text-xs text-ink-faint">nga shërbimet e përfunduara</p>
-              <DeltaBadge pct={kpis.revenueDeltaPct} />
+              <p className="truncate text-xs text-ink-faint">{t("kpiRevenueSub")}</p>
+              <DeltaBadge pct={kpis.revenueDeltaPct} t={t} />
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent"><IcClock /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Orë të Rezervuara</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("kpiBookedHours")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{kpis.bookedHours.toFixed(1)}</p>
-              <p className="truncate text-xs text-ink-faint">nga {kpis.availableHours.toFixed(1)} orë të disponueshme</p>
-              <DeltaBadge pct={kpis.bookedHoursDeltaPct} />
+              <p className="truncate text-xs text-ink-faint">{t("kpiBookedHoursSub", { hours: kpis.availableHours.toFixed(1) })}</p>
+              <DeltaBadge pct={kpis.bookedHoursDeltaPct} t={t} />
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3.5">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-soft text-purple"><IcTrend /></span>
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">Shfrytëzimi</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-faint">{t("kpiUtilization")}</p>
               <p className="text-xl font-bold leading-tight text-ink">{kpis.utilizationPct}%</p>
-              <p className="truncate text-xs text-ink-faint">orari i punuar ndaj orarit</p>
-              <DeltaBadge pct={kpis.utilizationDeltaPct} />
+              <p className="truncate text-xs text-ink-faint">{t("kpiUtilizationSub")}</p>
+              <DeltaBadge pct={kpis.utilizationDeltaPct} t={t} />
             </div>
           </div>
         </div>
@@ -165,7 +173,7 @@ export default async function StaffStatsPage({ searchParams }: Search) {
 
           <div className="flex flex-col gap-3 lg:min-h-0">
             <div className="h-[280px] shrink-0 rounded-xl border border-line bg-surface p-3.5">
-              <p className="text-sm font-semibold text-ink">Performanca Javore</p>
+              <p className="text-sm font-semibold text-ink">{t("weeklyPerformanceTitle")}</p>
               <div className="h-[calc(100%-24px)]">
                 <WeeklyPerformanceChart points={weekly} />
               </div>
@@ -173,11 +181,11 @@ export default async function StaffStatsPage({ searchParams }: Search) {
 
             <div className="min-h-0 flex-1 rounded-xl border border-line bg-surface p-3.5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-semibold text-ink">Shërbimet më të Kërkuara</p>
-                <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">Të Kryera</p>
+                <p className="text-sm font-semibold text-ink">{t("mostRequestedTitle")}</p>
+                <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">{t("completedLabel")}</p>
               </div>
               {requested.length === 0 ? (
-                <p className="text-xs text-ink-faint">Ende pa shërbime të përfunduara në këtë periudhë.</p>
+                <p className="text-xs text-ink-faint">{t("noCompletedInPeriod")}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {requested.map((r, i) => (
@@ -196,7 +204,7 @@ export default async function StaffStatsPage({ searchParams }: Search) {
           </div>
         </div>
 
-        <StatsTipBanner message={tipMessage(kpis)} />
+        <StatsTipBanner message={tipMessage(kpis, t)} />
       </div>
     </DashboardShell>
   );

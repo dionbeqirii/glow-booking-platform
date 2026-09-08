@@ -16,18 +16,10 @@ export const DASHBOARD_WIDGET_IDS = [
 
 export type DashboardWidgetId = (typeof DASHBOARD_WIDGET_IDS)[number];
 
-export const DASHBOARD_WIDGET_LABEL: Record<DashboardWidgetId, string> = {
-  kpi: "Kartat kryesore (KPI)",
-  scheduleQueue: "Orari ditor & Radha live",
-  trend: "Trendi i rezervimeve",
-  periodStats: "Performanca e periudhës",
-  statusBreakdown: "Rezervimet sipas statusit",
-  queue: "Radha pa termin",
-  staffUtilization: "Shfrytëzimi i stafit",
-  topServices: "Shërbimet më të kërkuara",
-  topClients: "Klientët më aktivë",
-  pdfExport: "Eksporto raport",
-};
+// Labels live as translation keys, not here — see DashboardWidgetGrid.tsx's
+// `widgetLabel()`, which resolves each id via the real translator (most
+// reuse the existing Admin.Dashboard section-title keys; three widget-picker
+// -only ones live under AdminDashboardWidgets).
 
 export type WidgetLayoutItem = { id: DashboardWidgetId; hidden: boolean };
 

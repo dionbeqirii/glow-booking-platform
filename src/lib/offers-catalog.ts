@@ -85,7 +85,7 @@ export type BookableOffer = {
 // window (when one is set), and at least one of its bundled services is
 // still active — so toggling `active` off (or letting validUntil pass)
 // removes it from booking immediately, no separate sync step needed.
-export async function getBookableOffers(now = new Date()): Promise<BookableOffer[]> {
+export async function getBookableOffers(now = new Date(), locale = "sq"): Promise<BookableOffer[]> {
   const offers = await prisma.offer.findMany({
     where: {
       active: true,
@@ -106,7 +106,7 @@ export async function getBookableOffers(now = new Date()): Promise<BookableOffer
       price: Number(o.price),
       realValue: o.services.reduce((sum, os) => sum + Number(os.service.price), 0),
       serviceNames: o.services.map((os) => os.service.name),
-      validUntilLabel: o.validUntil ? o.validUntil.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" }) : null,
+      validUntilLabel: o.validUntil ? o.validUntil.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" }) : null,
       bookingServiceId: firstActive.serviceId,
     });
   }

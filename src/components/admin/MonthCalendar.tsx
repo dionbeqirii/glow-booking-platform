@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import type { MonthSchedule } from "@/lib/month-schedule";
 import { serviceColorMap, serviceTone } from "@/lib/service-colors";
+import { weekdayShortLabels } from "@/lib/calendar-labels";
 
-const DAY_LABELS = ["Hën", "Mar", "Mër", "Enj", "Pre", "Sht", "Die"];
 const MAX_SHOWN = 3;
 
 function toISODate(d: Date): string {
@@ -12,7 +13,7 @@ function toISODate(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export default function MonthCalendar({
+export default async function MonthCalendar({
   schedule,
   monthOf,
   hiddenStaff,
@@ -27,6 +28,11 @@ export default function MonthCalendar({
   today: Date;
   hideParam: string;
 }) {
+  const [tWeekday, tCal] = await Promise.all([
+    getTranslations("Weekday"),
+    getTranslations("AdminCalendar"),
+  ]);
+  const DAY_LABELS = weekdayShortLabels(tWeekday);
   const visibleBookings = schedule.bookings.filter(
     (b) => !hiddenStaff.has(b.staffName) && (!serviceFilter || b.serviceName === serviceFilter)
   );
@@ -81,7 +87,7 @@ export default function MonthCalendar({
                   </span>
                 );
               })}
-              {extra > 0 && <span className="text-[10px] text-ink-faint">+{extra} më shumë</span>}
+              {extra > 0 && <span className="text-[10px] text-ink-faint">{tCal("moreCount", { count: extra })}</span>}
             </div>
           </Link>
         );

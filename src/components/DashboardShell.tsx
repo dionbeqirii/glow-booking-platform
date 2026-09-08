@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import NotificationBell from "./NotificationBell";
@@ -7,6 +8,7 @@ import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
 import SettingsMenu from "./SettingsMenu";
 import CommandPalette from "./admin/CommandPalette";
+import LanguageSwitcher from "./LanguageSwitcher";
 import { Wordmark } from "./ui";
 
 function homeFor(role: string): string {
@@ -26,6 +28,7 @@ export default async function DashboardShell({
   // change on their own schedule, so both are read fresh here rather than
   // trusting the cookie. Cheap: getSession() is just a cookie read, and
   // this is one indexed lookup per page render.
+  const t = await getTranslations("Nav");
   const session = await getSession();
   const profile = session
     ? await prisma.user.findUnique({ where: { id: session.userId }, select: { name: true, avatarUrl: true } })
@@ -54,10 +57,10 @@ export default async function DashboardShell({
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
               <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
-            Nevojitet ndihmë?
+            {t("helpTitle")}
           </div>
-          <p className="mt-1 mb-2.5 text-xs text-ink-faint">Jemi këtu për ju.</p>
-          <div className="rounded-lg bg-accent px-3 py-1.5 text-center text-xs font-semibold text-white">Na Kontaktoni</div>
+          <p className="mt-1 mb-2.5 text-xs text-ink-faint">{t("helpSubtitle")}</p>
+          <div className="rounded-lg bg-accent px-3 py-1.5 text-center text-xs font-semibold text-white">{t("contactUs")}</div>
         </div>
       </aside>
 
@@ -72,6 +75,7 @@ export default async function DashboardShell({
 
             <div className="flex items-center gap-1.5">
               {role === "ADMIN" && <CommandPalette />}
+              <LanguageSwitcher />
               <NotificationBell />
               <SettingsMenu name={displayName} role={role} avatarUrl={avatarUrl} />
               <MobileNav role={role} />

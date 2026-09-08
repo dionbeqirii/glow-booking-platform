@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 export type ServiceOption = { id: string; name: string };
 
 export default function AddWalkinForm({ services }: { services: ServiceOption[] }) {
+  const t = useTranslations("AdminQueue");
   const router = useRouter();
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -34,17 +36,17 @@ export default function AddWalkinForm({ services }: { services: ServiceOption[] 
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Shtimi në radhë dështoi");
+        setError(data.error ?? t("errorAddFailed"));
         return;
       }
-      setSuccess(`${name || "Klienti"} u shtua në radhë me numrin ${data.entry.queueNumber}.`);
+      setSuccess(t("successAdded", { name: name || t("clientFallback"), number: data.entry.queueNumber }));
       setName("");
       setPhone("");
       setServiceId("");
       setNotes("");
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -54,24 +56,24 @@ export default function AddWalkinForm({ services }: { services: ServiceOption[] 
 
   return (
     <form onSubmit={submit} className="rounded-xl border border-line bg-surface p-3">
-      <p className="text-sm font-semibold text-ink">Shto Klient në Radhë</p>
-      <p className="mb-3 text-xs text-ink-faint">Shto shpejt një klient në listën e pritjes.</p>
+      <p className="text-sm font-semibold text-ink">{t("addClientTitle")}</p>
+      <p className="mb-3 text-xs text-ink-faint">{t("addClientHint")}</p>
 
       <div className="flex flex-wrap items-end gap-2">
         <div className="min-w-[130px] flex-1 basis-40">
-          <Field label="Emri i Plotë">
-            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder="Emri i klientit" />
+          <Field label={t("fullNameLabel")}>
+            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} />
           </Field>
         </div>
         <div className="min-w-[110px] flex-1 basis-32">
-          <Field label="Numri i Telefonit">
-            <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+383 4X XXX XXX" />
+          <Field label={t("phoneLabel")}>
+            <input className={inputStyles} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t("phonePlaceholder")} />
           </Field>
         </div>
         <div className="min-w-[130px] flex-1 basis-40">
-          <Field label="Shërbimi i Kërkuar">
+          <Field label={t("requestedServiceLabel")}>
             <select className={inputStyles} value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-              <option value="">Zgjidh shërbimin</option>
+              <option value="">{t("chooseServiceOption")}</option>
               {services.map((s) => (
                 <option key={s.id} value={s.id}>{s.name}</option>
               ))}
@@ -79,12 +81,12 @@ export default function AddWalkinForm({ services }: { services: ServiceOption[] 
           </Field>
         </div>
         <div className="min-w-[130px] flex-1 basis-40">
-          <Field label="Shënime (Opsionale)">
-            <input className={inputStyles} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Shto një shënim…" />
+          <Field label={t("notesOptionalLabel")}>
+            <input className={inputStyles} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder={t("notesPlaceholder")} />
           </Field>
         </div>
         <button type="submit" disabled={!canSubmit} className={`${buttonStyles.primary} shrink-0`}>
-          {busy ? "Duke shtuar…" : "+ Shto në Radhë"}
+          {busy ? t("adding") : t("addToQueueBtn")}
         </button>
       </div>
 

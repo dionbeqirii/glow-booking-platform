@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole, AuthError } from "@/lib/rbac";
 import { computeStudioStats } from "@/lib/stats";
@@ -24,13 +25,16 @@ export async function GET(req: Request) {
     const from = new Date(now);
     from.setMonth(from.getMonth() - months);
 
-    const [stats, completedBookings, business] = await Promise.all([
+    const [stats, completedBookings, business, t, tStatus, locale] = await Promise.all([
       computeStudioStats(Math.round((now.getTime() - from.getTime()) / 86400000), now),
       prisma.booking.findMany({
         where: { startTime: { gte: from, lte: now }, status: "COMPLETED" },
         select: { service: { select: { name: true, price: true } } },
       }),
       prisma.businessSettings.findUnique({ where: { id: "business" }, select: { name: true } }),
+      getTranslations("AdminReportPdf"),
+      getTranslations("Status.booking"),
+      getLocale(),
     ]);
 
     const svcMap = new Map<string, TopService>();
@@ -56,6 +60,9 @@ export async function GET(req: Request) {
           topServices,
           revenueTotal,
         },
+        locale,
+        t,
+        tStatus,
       })
     );
 

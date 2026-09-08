@@ -65,7 +65,12 @@ export type StaffOverviewRow = {
   phone: string | null;
   title: string | null;
   status: StaffStatus;
-  scheduleLabel: string;
+  // The real "HH:MM – HH:MM" shift range, or null when there's nothing to
+  // show (on approved time off, or no working hours configured today) —
+  // the caller renders the localized fallback text, distinguishing the two
+  // via `onLeaveToday`.
+  scheduleLabel: string | null;
+  onLeaveToday: boolean;
   appointmentsToday: number;
   skillCount: number;
 };
@@ -102,15 +107,13 @@ export async function getStaffOverviewRows(now = new Date()): Promise<StaffOverv
 
   return staff.map((s) => {
     const onTimeOff = s.timeOff.length > 0;
-    let scheduleLabel = "Jashtë orarit sot";
+    let scheduleLabel: string | null = null;
     let withinShift = false;
     if (!onTimeOff && s.workingHours.length > 0) {
       const shiftStart = Math.min(...s.workingHours.map((h) => toMinutes(h.startTime)));
       const shiftEnd = Math.max(...s.workingHours.map((h) => toMinutes(h.endTime)));
       scheduleLabel = `${fromMinutesLabel(shiftStart)} – ${fromMinutesLabel(shiftEnd)}`;
       withinShift = nowMin >= shiftStart && nowMin < shiftEnd;
-    } else if (onTimeOff) {
-      scheduleLabel = "Në mungesë sot";
     }
 
     const busyNow = s.queueAsStaff.length > 0 || s.bookingsAsStaff.some((b) => now >= b.startTime && now < b.endTime);
@@ -124,6 +127,7 @@ export async function getStaffOverviewRows(now = new Date()): Promise<StaffOverv
       title: s.title,
       status,
       scheduleLabel,
+      onLeaveToday: onTimeOff,
       appointmentsToday: s.bookingsAsStaff.length,
       skillCount: s._count.staffServices,
     };
@@ -148,7 +152,7 @@ export type TodayScheduleItem = {
   status: BookingStatus;
 };
 
-export async function getTodaySchedule(now = new Date(), limit = 6): Promise<TodayScheduleItem[]> {
+export async function getTodaySchedule(now = new Date(), locale = "sq", limit = 6): Promise<TodayScheduleItem[]> {
   const { start, end } = dayBounds(now);
   const bookings = await prisma.booking.findMany({
     where: { startTime: { gte: start, lte: end }, status: { in: ACTIVE_BOOKING } },
@@ -165,7 +169,7 @@ export async function getTodaySchedule(now = new Date(), limit = 6): Promise<Tod
   });
   return bookings.map((b) => ({
     id: b.id,
-    timeLabel: b.startTime.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    timeLabel: b.startTime.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
     serviceName: b.service.name,
     clientName: b.client.name,
     staffName: b.staff.name,
@@ -176,7 +180,7 @@ export async function getTodaySchedule(now = new Date(), limit = 6): Promise<Tod
 export type OngoingItem = {
   id: string;
   serviceName: string;
-  clientName: string;
+  clientName: string | null; // null = no real or typed-in name; caller renders the localized fallback
   staffName: string;
   startedLabel: string;
 };
@@ -184,7 +188,7 @@ export type OngoingItem = {
 // Merges both real sources of "happening right now" — a booked appointment
 // actually in progress, and a walk-in queue visit in progress. Both are
 // found purely by status, so no timestamp parameter is needed.
-export async function getOngoingAppointments(): Promise<OngoingItem[]> {
+export async function getOngoingAppointments(locale = "sq"): Promise<OngoingItem[]> {
   const [bookings, queueEntries] = await Promise.all([
     prisma.booking.findMany({
       where: { status: "IN_SERVICE" },
@@ -210,7 +214,7 @@ export async function getOngoingAppointments(): Promise<OngoingItem[]> {
     }),
   ]);
 
-  const fmt = (d: Date) => d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const fmt = (d: Date) => d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
 
   const fromBookings: OngoingItem[] = bookings.map((b) => ({
     id: `booking-${b.id}`,
@@ -222,7 +226,7 @@ export async function getOngoingAppointments(): Promise<OngoingItem[]> {
   const fromQueue: OngoingItem[] = queueEntries.map((q) => ({
     id: `queue-${q.id}`,
     serviceName: q.service.name,
-    clientName: q.client?.name ?? q.clientName ?? "Klient pa emër",
+    clientName: q.client?.name ?? q.clientName ?? null,
     staffName: q.staff?.name ?? "—",
     startedLabel: fmt(q.startedAt ?? q.checkinAt),
   }));

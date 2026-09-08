@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import type { StaffOverviewRow, StaffStatus } from "@/lib/staff-catalog";
 import StaffFormModal from "./StaffFormModal";
 import NewStaffButton from "./NewStaffButton";
 
-const STATUS_LABEL: Record<StaffStatus, string> = { active: "Aktiv", busy: "Në Shërbim", off_duty: "Jashtë Orarit" };
 const STATUS_PILL: Record<StaffStatus, { bg: string; text: string; dot: string }> = {
   active: { bg: "bg-ok-soft", text: "text-ok", dot: "bg-ok" },
   busy: { bg: "bg-gold-soft", text: "text-gold", dot: "bg-gold" },
@@ -33,6 +33,13 @@ export default function StaffOverviewTable({
   rows: StaffOverviewRow[];
   existingTitles: string[];
 }) {
+  const t = useTranslations("AdminStaff");
+  const tCommon = useTranslations("Common");
+  const STATUS_LABEL: Record<StaffStatus, string> = {
+    active: t("statusActive"),
+    busy: t("statusBusy"),
+    off_duty: t("statusOffDuty"),
+  };
   const router = useRouter();
   const [roleFilter, setRoleFilter] = useState("");
   const [openMenu, setOpenMenu] = useState<string | null>(null);
@@ -56,12 +63,12 @@ export default function StaffOverviewTable({
 
   async function remove(r: StaffOverviewRow) {
     setOpenMenu(null);
-    if (!confirm(`Të fshihet punonjësja/i "${r.name}"?`)) return;
+    if (!confirm(t("confirmDelete", { name: r.name }))) return;
     setBusyId(r.id);
     try {
       const res = await fetch(`/api/staff/${r.id}`, { method: "DELETE" });
       const data = await res.json();
-      if (!res.ok) alert(data.error ?? "Fshirja dështoi");
+      if (!res.ok) alert(data.error ?? t("deleteFailed"));
       else router.refresh();
     } finally {
       setBusyId(null);
@@ -72,8 +79,8 @@ export default function StaffOverviewTable({
     <div className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line p-3">
         <div>
-          <p className="text-sm font-semibold text-ink">Pasqyra e Stafit</p>
-          <p className="text-xs text-ink-faint">Shiko anëtarët e ekipit dhe disponueshmërinë e tyre.</p>
+          <p className="text-sm font-semibold text-ink">{t("overviewTitle")}</p>
+          <p className="text-xs text-ink-faint">{t("overviewHint")}</p>
         </div>
         <div className="flex items-center gap-2">
           <select
@@ -81,7 +88,7 @@ export default function StaffOverviewTable({
             onChange={(e) => setRoleFilter(e.target.value)}
             className="rounded-lg border border-line-strong bg-surface px-2.5 py-2 text-sm text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
           >
-            <option value="">Të gjitha Rolet</option>
+            <option value="">{t("allRolesOption")}</option>
             {existingTitles.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
@@ -101,17 +108,17 @@ export default function StaffOverviewTable({
           </colgroup>
           <thead>
             <tr className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-faint">
-              <th className="px-3 py-2 font-medium">Punonjësi</th>
-              <th className="px-3 py-2 font-medium">Roli</th>
-              <th className="px-3 py-2 font-medium">Statusi</th>
-              <th className="px-3 py-2 font-medium">Orari i Sotëm</th>
-              <th className="px-3 py-2 font-medium">Veprime</th>
+              <th className="px-3 py-2 font-medium">{t("colStaff")}</th>
+              <th className="px-3 py-2 font-medium">{t("colRole")}</th>
+              <th className="px-3 py-2 font-medium">{t("colStatus")}</th>
+              <th className="px-3 py-2 font-medium">{t("colTodaySchedule")}</th>
+              <th className="px-3 py-2 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">Asnjë punonjës nuk përputhet.</td>
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-ink-faint">{t("noMatch")}</td>
               </tr>
             ) : (
               filtered.map((r) => {
@@ -143,14 +150,16 @@ export default function StaffOverviewTable({
                       </span>
                     </td>
                     <td className="overflow-hidden px-3 py-2 text-ink-soft">
-                      <div className="truncate">{r.scheduleLabel}</div>
-                      <div className="truncate text-[11px] text-ink-faint">{r.appointmentsToday} {r.appointmentsToday === 1 ? "termin sot" : "termine sot"}</div>
+                      <div className="truncate">{r.scheduleLabel ?? (r.onLeaveToday ? t("onLeaveTodayLabel") : t("offDutyToday"))}</div>
+                      <div className="truncate text-[11px] text-ink-faint">
+                        {r.appointmentsToday === 1 ? t("appointmentsTodayOne", { count: r.appointmentsToday }) : t("appointmentsTodayOther", { count: r.appointmentsToday })}
+                      </div>
                     </td>
                     <td className="px-3 py-2">
                       <div className="flex items-center gap-0.5">
                         <Link
                           href={`/admin/stafi/${r.id}`}
-                          title="Konfiguro orarin"
+                          title={t("configureScheduleTitle")}
                           className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                         >
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -160,7 +169,7 @@ export default function StaffOverviewTable({
                         </Link>
                         <button
                           onClick={() => setEditing(r)}
-                          title="Ndrysho"
+                          title={t("editTitle")}
                           className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                         >
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -172,7 +181,7 @@ export default function StaffOverviewTable({
                           <button
                             type="button"
                             onClick={() => setOpenMenu(openMenu === r.id ? null : r.id)}
-                            aria-label="Më shumë veprime"
+                            aria-label={t("moreActionsAria")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -184,7 +193,7 @@ export default function StaffOverviewTable({
                           {openMenu === r.id && (
                             <div ref={menuRef} className="absolute right-0 top-7 z-20 w-36 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
                               <button onClick={() => remove(r)} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft">
-                                Fshi
+                                {tCommon("delete")}
                               </button>
                             </div>
                           )}
@@ -200,7 +209,7 @@ export default function StaffOverviewTable({
       </div>
 
       <div className="border-t border-line px-3 py-2 text-xs text-ink-faint">
-        {filtered.length === 0 ? "0" : `1–${filtered.length}`} nga {rows.length} punonjës gjithsej
+        {t("showingCount", { shown: filtered.length === 0 ? "0" : `1–${filtered.length}`, total: rows.length })}
       </div>
 
       {editing && <StaffFormModal existing={editing} existingTitles={existingTitles} onClose={() => setEditing(null)} />}

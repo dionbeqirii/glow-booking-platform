@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { PageTitle, Kpi } from "@/components/ui";
@@ -52,6 +53,7 @@ export default async function ServicesPage({
   searchParams: Promise<{ q?: string; category?: string; status?: string }>;
 }) {
   const session = await requireRole("ADMIN");
+  const t = await getTranslations("AdminServices");
   const sp = await searchParams;
   const status = sp.status === "active" || sp.status === "inactive" ? sp.status : undefined;
   const now = new Date();
@@ -63,27 +65,27 @@ export default async function ServicesPage({
     getServicesList({ q: sp.q, category: sp.category, status }),
   ]);
 
-  const realCategories = categoryCounts.filter((c) => c.category !== "Pa kategori").map((c) => c.category);
+  const realCategories = categoryCounts.filter((c): c is { category: string; count: number } => c.category !== null).map((c) => c.category);
 
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto flex h-full max-w-none flex-col">
-        <PageTitle title="Shërbimet" hint="Menaxho të gjitha shërbimet e ofruara në studio." />
+        <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
 
         <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[1fr_260px]">
           <div className="flex h-full min-h-0 min-w-0 flex-col gap-3">
             <div className="shrink-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <Kpi href="/admin/sherbimet" tone="accent" icon={<IcCatalog />} value={kpis.total} label="Shërbime Gjithsej" sub="Të gjitha shërbimet" />
-              <Kpi href="/admin/sherbimet?status=active" tone="purple" icon={<IcTag />} value={kpis.active} label="Shërbime Aktive" sub="Aktualisht të disponueshme" />
+              <Kpi href="/admin/sherbimet" tone="accent" icon={<IcCatalog />} value={kpis.total} label={t("kpiTotal")} sub={t("kpiTotalSub")} />
+              <Kpi href="/admin/sherbimet?status=active" tone="purple" icon={<IcTag />} value={kpis.active} label={t("kpiActive")} sub={t("kpiActiveSub")} />
               <Kpi
                 href="/admin/sherbimet"
                 tone="gold"
                 icon={<IcStar />}
                 value={kpis.mostBooked?.name ?? "—"}
-                label="Më i Kërkuari"
-                sub={kpis.mostBooked ? `${kpis.mostBooked.count} rezervime` : "Ende pa rezervime"}
+                label={t("kpiMostBooked")}
+                sub={kpis.mostBooked ? t("kpiMostBookedCount", { count: kpis.mostBooked.count }) : t("kpiMostBookedNone")}
               />
-              <Kpi href="/admin/sherbimet" tone="warn" icon={<IcCoin />} value={`${kpis.averagePrice.toFixed(0)} €`} label="Çmimi Mesatar" sub="Mbi të gjitha shërbimet" />
+              <Kpi href="/admin/sherbimet" tone="warn" icon={<IcCoin />} value={`${kpis.averagePrice.toFixed(0)} €`} label={t("kpiAvgPrice")} sub={t("kpiAvgPriceSub")} />
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-3">
@@ -105,15 +107,15 @@ export default async function ServicesPage({
 
           <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto">
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Kategoritë e Shërbimeve</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("categoriesTitle")}</p>
               {categoryCounts.length === 0 ? (
-                <p className="text-xs text-ink-faint">Ende pa shërbime.</p>
+                <p className="text-xs text-ink-faint">{t("noServicesYet")}</p>
               ) : (
                 <div className="flex flex-col gap-1">
                   {categoryCounts.map((c) => (
-                    <div key={c.category} className="flex items-center justify-between text-xs">
-                      <span className="truncate text-ink-soft">{c.category}</span>
-                      <span className="shrink-0 font-semibold text-ink">{c.count} {c.count === 1 ? "shërbim" : "shërbime"}</span>
+                    <div key={c.category ?? "__none__"} className="flex items-center justify-between text-xs">
+                      <span className="truncate text-ink-soft">{c.category ?? t("noCategoryFallback")}</span>
+                      <span className="shrink-0 font-semibold text-ink">{c.count === 1 ? t("serviceCountOne", { count: c.count }) : t("serviceCountOther", { count: c.count })}</span>
                     </div>
                   ))}
                 </div>
@@ -121,16 +123,16 @@ export default async function ServicesPage({
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Më të Kërkuarat (Këtë Muaj)</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("topServicesTitle")}</p>
               {topServices.length === 0 ? (
-                <p className="text-xs text-ink-faint">Ende pa rezervime këtë muaj.</p>
+                <p className="text-xs text-ink-faint">{t("noTopServicesMonth")}</p>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {topServices.map((s, i) => (
                     <div key={s.id} className="flex items-center gap-2 text-xs">
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-muted text-[9px] font-bold text-ink-soft">{i + 1}</span>
                       <span className="min-w-0 flex-1 truncate text-ink">{s.name}</span>
-                      <span className="shrink-0 text-ink-faint">{s.count} rez.</span>
+                      <span className="shrink-0 text-ink-faint">{t("bookingsAbbrev", { count: s.count })}</span>
                     </div>
                   ))}
                 </div>
@@ -140,9 +142,9 @@ export default async function ServicesPage({
             <div className="rounded-xl border border-line bg-accent-soft p-2.5">
               <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold text-accent">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 2a7 7 0 0 0-4 12.7V17h8v-2.3A7 7 0 0 0 12 2Z" /><path d="M9 21h6" /></svg>
-                Këshillë e Shpejtë
+                {t("tipTitle")}
               </p>
-              <p className="text-xs text-ink-soft">Mbaji shërbimet të përditësuara — çmime, kohëzgjatje dhe përshkrime të sakta tërheqin më shumë klientë.</p>
+              <p className="text-xs text-ink-soft">{t("tipBody")}</p>
             </div>
           </div>
         </div>

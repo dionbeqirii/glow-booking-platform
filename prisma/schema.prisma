@@ -47,6 +47,7 @@ enum NotificationType {
   REMINDER
   STATUS_CHANGE
   QUEUE_CALL
+  OFFER_NEW
 }
 
 // ---------- Core entities ----------
@@ -57,8 +58,11 @@ model User {
   phone        String?
   avatarUrl    String?
   title        String?  // staff-only: job title/specialization (e.g. "Terapiste e Lëkurës")
+  titleEn      String?  // staff-only: optional EN translation of `title`, falls back to `title` when blank
+  titleDe      String?  // staff-only: optional DE translation of `title`, falls back to `title` when blank
   passwordHash String
   role         Role     @default(CLIENT)
+  locale       String   @default("sq") // preferred UI language: "sq" | "en" | "de"
   createdAt    DateTime @default(now())
   loyaltyPoints Int     @default(0) // client-only: earned on completed visits, 1 point per €1 spent
 
@@ -89,7 +93,11 @@ model User {
 model Service {
   id           String   @id @default(cuid())
   name         String
+  nameEn       String?  // optional EN translation of `name`, falls back to `name` when blank
+  nameDe       String?  // optional DE translation of `name`, falls back to `name` when blank
   description  String?
+  descriptionEn String? // optional EN translation of `description`, falls back to `description` when blank
+  descriptionDe String? // optional DE translation of `description`, falls back to `description` when blank
   category     String?
   imageUrl     String?
   durationMin  Int
@@ -151,7 +159,11 @@ model PriorityHold {
 model Offer {
   id          String    @id @default(cuid())
   title       String
+  titleEn     String?   // optional EN translation of `title`, falls back to `title` when blank
+  titleDe     String?   // optional DE translation of `title`, falls back to `title` when blank
   description String?
+  descriptionEn String? // optional EN translation of `description`, falls back to `description` when blank
+  descriptionDe String? // optional DE translation of `description`, falls back to `description` when blank
   imageUrl    String?
   price       Decimal   @db.Decimal(10, 2)
   durationMin Int       @default(60)

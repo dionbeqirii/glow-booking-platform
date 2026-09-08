@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 import type { ServiceListRow } from "@/lib/services-catalog";
 
@@ -18,6 +19,8 @@ export default function ServiceFormModal({
   existingCategories: string[];
   onClose: () => void;
 }) {
+  const t = useTranslations("AdminServices");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
   const [name, setName] = useState(existing?.name ?? "");
   const [category, setCategory] = useState(existing?.category ?? "");
@@ -51,12 +54,12 @@ export default function ServiceFormModal({
       const res = await fetch("/api/uploads", { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ngarkimi i fotos dështoi");
+        setError(data.error ?? t("errorUpload"));
         return;
       }
       setImageUrl(data.url);
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setUploading(false);
     }
@@ -82,13 +85,13 @@ export default function ServiceFormModal({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ruajtja dështoi");
+        setError(data.error ?? t("errorSave"));
         return;
       }
       onClose();
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -105,10 +108,10 @@ export default function ServiceFormModal({
     >
       <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_24px_64px_-24px_rgba(31,42,34,0.35)]">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">{existing ? "Ndrysho Shërbimin" : "Shërbim i Ri"}</h2>
+          <h2 className="text-lg font-semibold text-ink">{existing ? t("editService") : t("newService")}</h2>
           <button
             onClick={onClose}
-            aria-label="Mbyll"
+            aria-label={tCommon("close")}
             className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -116,7 +119,7 @@ export default function ServiceFormModal({
         </div>
 
         <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
-          <Field label="Foto (opsionale)">
+          <Field label={t("photoLabel")}>
             <div className="flex items-center gap-3">
               {imageUrl ? (
                 <img src={imageUrl} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover ring-1 ring-line" />
@@ -130,25 +133,25 @@ export default function ServiceFormModal({
                 </div>
               )}
               <label className={`${buttonStyles.secondary} cursor-pointer`}>
-                {uploading ? "Duke ngarkuar…" : imageUrl ? "Ndrysho foton" : "Ngarko foto"}
+                {uploading ? t("uploading") : imageUrl ? t("changePhoto") : t("uploadPhoto")}
                 <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={pickImage} disabled={uploading} />
               </label>
             </div>
           </Field>
 
-          <Field label="Emri">
-            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder="p.sh. HydraFacial" />
+          <Field label={t("nameLabel")}>
+            <input className={inputStyles} value={name} onChange={(e) => setName(e.target.value)} placeholder={t("namePlaceholder")} />
           </Field>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Kategoria (opsionale)">
+            <Field label={t("categoryLabel")}>
               {addingNewCategory ? (
                 <div className="flex items-center gap-1.5">
                   <input
                     className={inputStyles}
                     value={category}
                     onChange={(e) => setCategory(e.target.value)}
-                    placeholder="Emri i kategorisë së re"
+                    placeholder={t("newCategoryPlaceholder")}
                     autoFocus
                   />
                   <button
@@ -157,7 +160,7 @@ export default function ServiceFormModal({
                       setAddingNewCategory(false);
                       setCategory(existing?.category ?? "");
                     }}
-                    title="Anulo kategori të re"
+                    title={t("cancelNewCategoryTitle")}
                     className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                   >
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -176,42 +179,42 @@ export default function ServiceFormModal({
                     }
                   }}
                 >
-                  <option value="">— Pa kategori —</option>
+                  <option value="">{t("noCategoryOption")}</option>
                   {existingCategories.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
-                  <option value="__new__">+ Kategori e Re</option>
+                  <option value="__new__">{t("addNewCategoryOption")}</option>
                 </select>
               )}
             </Field>
-            <Field label="Statusi">
+            <Field label={t("statusLabel")}>
               <select className={inputStyles} value={active ? "active" : "inactive"} onChange={(e) => setActive(e.target.value === "active")}>
-                <option value="active">Aktiv</option>
-                <option value="inactive">Joaktiv</option>
+                <option value="active">{t("statusActive")}</option>
+                <option value="inactive">{t("statusInactive")}</option>
               </select>
             </Field>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Kohëzgjatja (minuta)">
+            <Field label={t("durationLabel")}>
               <input type="number" min={5} max={600} step={5} className={inputStyles} value={durationMin} onChange={(e) => setDurationMin(e.target.value)} />
             </Field>
-            <Field label="Çmimi (€)">
+            <Field label={t("priceLabel")}>
               <input type="number" min={0} step="0.5" className={inputStyles} value={price} onChange={(e) => setPrice(e.target.value)} />
             </Field>
           </div>
 
-          <Field label="Përshkrimi (opsional)">
-            <input className={inputStyles} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="p.sh. Pastrim i thellë & shkëlqim" />
+          <Field label={t("descriptionLabel")}>
+            <input className={inputStyles} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={t("descriptionPlaceholder")} />
           </Field>
 
           {error && <Alert message={error} />}
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
-          <button onClick={onClose} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onClose} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke ruajtur…" : existing ? "Ruaj Ndryshimet" : "Shto Shërbimin"}
+            {busy ? t("saving") : existing ? t("saveChanges") : t("addService")}
           </button>
         </div>
       </div>

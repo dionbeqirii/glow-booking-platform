@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -9,6 +10,7 @@ import {
   getCurrentQueueRows,
   getQueueSlots,
   getQueueInsights,
+  type QueueInsight,
 } from "@/lib/queue-catalog";
 import { waitTone } from "@/lib/booking-labels";
 import QueueTable from "@/components/admin/QueueTable";
@@ -77,16 +79,42 @@ function IcInsightSlot() {
 const INSIGHT_ICON = { walkin: IcInsightWalkin, alert: IcInsightAlert, slot: IcInsightSlot };
 const INSIGHT_TONE = { walkin: "bg-accent-soft text-accent", alert: "bg-warn-soft text-warn", slot: "bg-ok-soft text-ok" };
 
+type InsightTranslator = (key: string, values?: Record<string, string | number>) => string;
+
+// Renders the structured QueueInsight facts from the data layer into a
+// localized sentence + time label — see the type's own comment for why the
+// text isn't pre-rendered there.
+function renderInsight(ins: QueueInsight, t: InsightTranslator): { text: string; timeLabel: string } {
+  switch (ins.kind) {
+    case "walkinAdded":
+      return {
+        text: t("insightWalkinAdded", { name: ins.clientName ?? t("insightSomeClientFallback") }),
+        timeLabel: ins.checkinTimeLabel,
+      };
+    case "longWait":
+      return {
+        text: ins.count === 1
+          ? t("insightLongWaitOne", { threshold: ins.thresholdMin })
+          : t("insightLongWaitOther", { count: ins.count, threshold: ins.thresholdMin }),
+        timeLabel: t("nowLabel"),
+      };
+    case "nextSlot":
+      return { text: t("insightNextSlot", { time: ins.slotTimeLabel }), timeLabel: "" };
+  }
+}
+
 export default async function AdminQueuePage() {
   const session = await requireRole("ADMIN");
+  const t = await getTranslations("AdminQueue");
+  const locale = await getLocale();
   const now = new Date();
 
   const [kpis, summary, rows, slots, insights, staff, activeServices] = await Promise.all([
     getQueueKpis(now),
     getQueueSummary(now),
-    getCurrentQueueRows(),
-    getQueueSlots(now),
-    getQueueInsights(now),
+    getCurrentQueueRows(locale),
+    getQueueSlots(now, 5, locale),
+    getQueueInsights(now, locale),
     prisma.user.findMany({
       where: { role: "STAFF" },
       orderBy: { name: "asc" },
@@ -103,36 +131,34 @@ export default async function AdminQueuePage() {
   return (
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto max-w-none">
-        <PageTitle title="Radha" hint="Menaxho radhën e klientëve pa termin dhe listën e pritjes." />
+        <PageTitle title={t("pageTitle")} hint={t("pageHint")} />
 
         <div className="grid gap-3 lg:grid-cols-[1fr_280px]">
           <div className="flex min-w-0 flex-col gap-3">
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <Kpi href="/admin/radha" tone="purple" icon={<IcUsers />} value={kpis.liveInQueue} label="Në Radhë Tani" sub="Duke pritur" />
-              <Kpi href="/admin/radha" tone="accent" icon={<IcClock />} value={`${kpis.avgWaitMin} min`} label="Koha Mesatare e Pritjes" sub="Sot" />
-              <Kpi href="/admin/terminet?status=COMPLETED" tone="ok" icon={<IcCheck />} value={kpis.servedToday} label="Shërbyer Sot" sub="Termine" />
-              <Kpi href="/admin/radha" tone="warn" icon={<IcWalk />} value={kpis.walkInsToday} label="Klientë pa Termin Sot" sub="Pa termin" />
+              <Kpi href="/admin/radha" tone="purple" icon={<IcUsers />} value={kpis.liveInQueue} label={t("kpiLiveNow")} sub={t("kpiLiveNowSub")} />
+              <Kpi href="/admin/radha" tone="accent" icon={<IcClock />} value={`${kpis.avgWaitMin} min`} label={t("kpiAvgWait")} sub={t("kpiAvgWaitSub")} />
+              <Kpi href="/admin/terminet?status=COMPLETED" tone="ok" icon={<IcCheck />} value={kpis.servedToday} label={t("kpiServedToday")} sub={t("kpiServedTodaySub")} />
+              <Kpi href="/admin/radha" tone="warn" icon={<IcWalk />} value={kpis.walkInsToday} label={t("kpiWalkinsToday")} sub={t("kpiWalkinsTodaySub")} />
             </div>
 
             <div>
-              <p className="mb-1.5 text-sm font-semibold text-ink">Radha Aktuale</p>
-              <p className="mb-2 text-xs text-ink-faint">Klientë duke pritur për shërbim pa termin ose termin e ardhshëm.</p>
-              <div className="max-h-[420px]">
-                <QueueTable rows={rows} staffOptions={staffOptions} services={serviceOptions} />
-              </div>
+              <p className="mb-1.5 text-sm font-semibold text-ink">{t("currentQueueTitle")}</p>
+              <p className="mb-2 text-xs text-ink-faint">{t("currentQueueHint")}</p>
+              <QueueTable rows={rows} staffOptions={staffOptions} services={serviceOptions} />
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-3">
-              <p className="text-sm font-semibold text-ink">Orare të Lira së Shpejti</p>
-              <p className="mb-2.5 text-xs text-ink-faint">Oraret e ardhshme të disponueshme për klientë pa termin.</p>
+              <p className="text-sm font-semibold text-ink">{t("freeSlotsTitle")}</p>
+              <p className="mb-2.5 text-xs text-ink-faint">{t("freeSlotsHint")}</p>
               {slots.length === 0 ? (
-                <p className="text-xs text-ink-faint">Asnjë punonjës i disponueshëm sot.</p>
+                <p className="text-xs text-ink-faint">{t("noStaffAvailableToday")}</p>
               ) : (
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
                   {slots.map((s, i) => (
                     <div key={i} className="rounded-lg border border-line-strong px-2 py-2 text-center">
                       <div className="text-xs font-semibold text-ink">{s.timeLabel}</div>
-                      <div className="text-[10px] text-ink-faint">Sot</div>
+                      <div className="text-[10px] text-ink-faint">{t("todayLabel")}</div>
                     </div>
                   ))}
                   <Link
@@ -143,7 +169,7 @@ export default async function AdminQueuePage() {
                       <rect x="3" y="4" width="18" height="18" rx="2" />
                       <path d="M16 2v4M8 2v4M3 10h18" />
                     </svg>
-                    Kalendari
+                    {t("calendarLink")}
                   </Link>
                 </div>
               )}
@@ -155,55 +181,56 @@ export default async function AdminQueuePage() {
           <div className="flex flex-col gap-2">
             <div className="rounded-xl border border-line bg-surface p-2.5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">Radha Live (Tani)</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("liveQueueTitle")}</p>
               </div>
               {liveQueue.length === 0 ? (
-                <p className="text-xs text-ink-faint">Askush në pritje.</p>
+                <p className="text-xs text-ink-faint">{t("noOneWaiting")}</p>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {liveQueue.map((r, i) => (
                     <div key={r.id} className="flex items-center gap-2 text-xs">
                       <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-surface-muted text-[9px] font-bold text-ink-soft">{i + 1}</span>
-                      <span className="min-w-0 flex-1 truncate text-ink">{r.clientName}</span>
+                      <span className="min-w-0 flex-1 truncate text-ink">{r.clientName ?? t("namelessClientFallback")}</span>
                       <span className={`shrink-0 font-medium ${waitTone(r.estWaitMin)}`}>~{r.estWaitMin} min</span>
                     </div>
                   ))}
                 </div>
               )}
               <Link href="/admin/radha" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko Gjithë Radhën →
+                {t("viewFullQueueLink")}
               </Link>
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Përmbledhja e Sotme</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("todaySummaryTitle")}</p>
               <div className="flex flex-col gap-1 text-xs">
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Klientë pa Termin</span><span className="font-semibold text-ink">{summary.walkInsToday}</span></div>
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Aktualisht në Pritje</span><span className="font-semibold text-ink">{summary.liveInQueue}</span></div>
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Shërbyer</span><span className="font-semibold text-ink">{summary.servedToday}</span></div>
-                <div className="flex items-center justify-between"><span className="text-ink-soft">Nuk u Paraqit</span><span className="font-semibold text-ink">{summary.noShowToday}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{t("walkinsToday")}</span><span className="font-semibold text-ink">{summary.walkInsToday}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{t("currentlyWaiting")}</span><span className="font-semibold text-ink">{summary.liveInQueue}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{t("served")}</span><span className="font-semibold text-ink">{summary.servedToday}</span></div>
+                <div className="flex items-center justify-between"><span className="text-ink-soft">{t("noShow")}</span><span className="font-semibold text-ink">{summary.noShowToday}</span></div>
               </div>
               <Link href="/admin/historiku" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko Historikun →
+                {t("viewHistoryLink")}
               </Link>
             </div>
 
             <div className="rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Njoftime</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("insightsTitle")}</p>
               {insights.length === 0 ? (
-                <p className="text-xs text-ink-faint">Asnjë njoftim aktualisht.</p>
+                <p className="text-xs text-ink-faint">{t("noInsights")}</p>
               ) : (
                 <div className="flex flex-col gap-2">
                   {insights.map((ins, i) => {
                     const Icon = INSIGHT_ICON[ins.icon];
+                    const rendered = renderInsight(ins, t);
                     return (
                       <div key={i} className="flex items-start gap-2">
                         <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${INSIGHT_TONE[ins.icon]}`}>
                           <Icon />
                         </span>
                         <div className="min-w-0">
-                          <p className="truncate text-xs text-ink">{ins.text}</p>
-                          {ins.timeLabel && <p className="text-[10px] text-ink-faint">{ins.timeLabel}</p>}
+                          <p className="truncate text-xs text-ink">{rendered.text}</p>
+                          {rendered.timeLabel && <p className="text-[10px] text-ink-faint">{rendered.timeLabel}</p>}
                         </div>
                       </div>
                     );

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PAYMENT_STATUS_LABEL, PAYMENT_STATUS_PILL } from "@/lib/booking-labels";
+import { useTranslations } from "next-intl";
+import { PAYMENT_STATUS_PILL } from "@/lib/booking-labels";
 import type { PaymentStatus } from "@prisma/client";
 
 const OPTIONS: PaymentStatus[] = ["UNPAID", "PAID", "REFUNDED"];
@@ -11,6 +12,7 @@ const OPTIONS: PaymentStatus[] = ["UNPAID", "PAID", "REFUNDED"];
 // just a status the studio toggles by hand against cash/in-person payment.
 // Optimistic: flips immediately, reverts if the PATCH fails.
 export default function PaymentStatusCell({ bookingId, status }: { bookingId: string; status: PaymentStatus }) {
+  const tStatus = useTranslations("Status.payment");
   const router = useRouter();
   const [value, setValue] = useState(status);
   const [pending, setPending] = useState(false);
@@ -46,7 +48,7 @@ export default function PaymentStatusCell({ bookingId, status }: { bookingId: st
       className={`w-full max-w-full truncate rounded-full border-0 px-2 py-1 text-xs font-semibold outline-none transition-opacity disabled:opacity-60 ${pill.bg} ${pill.text}`}
     >
       {OPTIONS.map((o) => (
-        <option key={o} value={o}>{PAYMENT_STATUS_LABEL[o]}</option>
+        <option key={o} value={o}>{tStatus(o)}</option>
       ))}
     </select>
   );

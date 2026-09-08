@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Card, Field, Alert, buttonStyles, inputStyles } from "../ui";
 import type { BookableOffer } from "@/lib/offers-catalog";
 
@@ -83,6 +84,8 @@ export default function BookingFlow({
   initialServiceId?: string;
   initialOfferId?: string;
 }) {
+  const t = useTranslations("ClientBooking");
+  const locale = useLocale();
   const router = useRouter();
 
   const initialOffer = offers.find((o) => o.id === initialOfferId);
@@ -127,13 +130,13 @@ export default function BookingFlow({
           setSlots(data.slots ?? []);
         }
       })
-      .catch(() => !cancelled && setError("Nuk u ngarkuan dot oraret"))
+      .catch(() => !cancelled && setError(t("slotsLoadFailed")))
       .finally(() => !cancelled && setLoadingSlots(false));
 
     return () => {
       cancelled = true;
     };
-  }, [serviceId, staffId, date]);
+  }, [serviceId, staffId, date, t]);
 
   async function joinWaitlist() {
     if (!serviceId) return;
@@ -147,12 +150,12 @@ export default function BookingFlow({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Bashkimi në listën e pritjes dështoi");
+        setError(data.error ?? t("waitlistJoinFailed"));
         return;
       }
       setJoinedWaitlist(true);
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("serverUnreachable"));
     } finally {
       setJoiningWaitlist(false);
     }
@@ -174,14 +177,14 @@ export default function BookingFlow({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Rezervimi dështoi");
+        setError(data.error ?? t("bookingFailed"));
         setPicked(null);
         return;
       }
       router.push("/client");
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("serverUnreachable"));
     } finally {
       setBusy(false);
     }
@@ -193,7 +196,7 @@ export default function BookingFlow({
         <div className="flex flex-col gap-5">
           {/* Step 1 — service / offer */}
           <div>
-            <p className="mb-3 text-sm font-medium text-ink-soft">Hapi 1 — Zgjidh Shërbimin</p>
+            <p className="mb-3 text-sm font-medium text-ink-soft">{t("step1Title")}</p>
 
             {offers.length > 0 && (
               <div className="mb-3 flex flex-col gap-2.5">
@@ -214,7 +217,7 @@ export default function BookingFlow({
                   >
                     <div className="min-w-0 flex-1">
                       <span className="inline-block rounded-full bg-accent px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                        Ofertë
+                        {t("offerBadge")}
                       </span>
                       <p className="mt-1.5 font-semibold text-ink">{o.title}</p>
                       <p className="text-xs text-ink-faint">{o.serviceNames.join(" + ")}</p>
@@ -225,7 +228,7 @@ export default function BookingFlow({
                     </span>
                     {o.realValue > o.price && (
                       <span className="absolute -bottom-2 right-4 rounded-full bg-ok px-2.5 py-1 text-[11px] font-bold text-white shadow-[0_4px_10px_-2px_rgba(0,0,0,0.25)]">
-                        Kurse {Math.round((1 - o.price / o.realValue) * 100)}%
+                        {t("offerSavingsBadge", { pct: Math.round((1 - o.price / o.realValue) * 100) })}
                       </span>
                     )}
                   </button>
@@ -233,7 +236,9 @@ export default function BookingFlow({
                 {selectedOffer && (
                   <div className="flex items-start gap-2 rounded-lg bg-accent-soft/50 px-3 py-2.5 text-xs text-ink-soft">
                     <IcInfo />
-                    Kjo ofertë përfshin {selectedOffer.serviceNames.length} shërbim{selectedOffer.serviceNames.length === 1 ? "" : "e"}. Rezervimi do të bëhet për {service?.name}.
+                    {selectedOffer.serviceNames.length === 1
+                      ? t("offerIncludesNoticeOne", { count: selectedOffer.serviceNames.length, service: service?.name ?? "" })
+                      : t("offerIncludesNoticeOther", { count: selectedOffer.serviceNames.length, service: service?.name ?? "" })}
                   </div>
                 )}
               </div>
@@ -270,7 +275,7 @@ export default function BookingFlow({
             {!service && (
               <div className="mt-3 flex items-start gap-2 rounded-lg bg-surface-muted px-3 py-2.5 text-xs text-ink-soft">
                 <IcInfo />
-                Pas zgjedhjes së shërbimit, do të mund të zgjidhni datën dhe orarin.
+                {t("afterServiceHint")}
               </div>
             )}
           </div>
@@ -279,11 +284,11 @@ export default function BookingFlow({
           {service && (
             <div>
               <p className="mb-3 text-sm font-medium text-ink-soft">
-                Hapi 2 — Zgjidh punonjësen (opsionale)
+                {t("step2Title")}
               </p>
               <div className="flex flex-wrap gap-2">
                 <Chip active={staffId === ""} onClick={() => { setStaffId(""); setPicked(null); setError(null); setJoinedWaitlist(false); }}>
-                  Pa preferencë
+                  {t("noPreferenceChip")}
                 </Chip>
                 {qualifiedStaff.map((m) => (
                   <Chip key={m.id} active={staffId === m.id} onClick={() => { setStaffId(m.id); setPicked(null); setError(null); setJoinedWaitlist(false); }}>
@@ -297,9 +302,9 @@ export default function BookingFlow({
           {/* Step 3 — date & time */}
           {service && (
             <div>
-              <p className="mb-3 text-sm font-medium text-ink-soft">Hapi 3 — Zgjidh datën dhe orarin</p>
+              <p className="mb-3 text-sm font-medium text-ink-soft">{t("step3Title")}</p>
               <div className="max-w-xs">
-                <Field label="Data">
+                <Field label={t("dateFieldLabel")}>
                   <input
                     type="date"
                     min={todayISO()}
@@ -312,13 +317,13 @@ export default function BookingFlow({
 
               <div className="mt-4">
                 {loadingSlots ? (
-                  <p className="text-sm text-ink-faint">Duke ngarkuar oraret…</p>
+                  <p className="text-sm text-ink-faint">{t("loadingSlots")}</p>
                 ) : slots.length === 0 ? (
                   <div className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-6 text-center">
-                    <p className="text-sm text-ink-faint">Nuk ka orare të lira për këtë ditë. Provo një datë tjetër.</p>
+                    <p className="text-sm text-ink-faint">{t("noSlotsForDay")}</p>
                     {joinedWaitlist ? (
                       <p className="mt-3 text-sm font-medium text-ok">
-                        ✔ U regjistrove në listën e pritjes — do të njoftohesh nëse lirohet një vend.
+                        {t("joinedWaitlistNotice")}
                       </p>
                     ) : (
                       <button
@@ -326,14 +331,14 @@ export default function BookingFlow({
                         disabled={joiningWaitlist}
                         className={`mt-3 ${buttonStyles.secondary}`}
                       >
-                        {joiningWaitlist ? "Duke u regjistruar…" : "Bashkohu në listën e pritjes"}
+                        {joiningWaitlist ? t("joiningWaitlist") : t("joinWaitlistButton")}
                       </button>
                     )}
                   </div>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {slots.map((slot) => {
-                      const label = new Date(slot.time).toLocaleTimeString("sq", {
+                      const label = new Date(slot.time).toLocaleTimeString(locale, {
                         hour: "2-digit",
                         minute: "2-digit",
                         hour12: false,
@@ -362,7 +367,7 @@ export default function BookingFlow({
               <p className="text-sm text-ink">
                 {displayName}
                 {selectedOffer && <span className="font-semibold text-accent"> · {displayPrice?.toFixed(2)} €</span>} ·{" "}
-                {new Date(picked.time).toLocaleString("sq", {
+                {new Date(picked.time).toLocaleString(locale, {
                   weekday: "long",
                   day: "numeric",
                   month: "long",
@@ -372,7 +377,7 @@ export default function BookingFlow({
                 })}
               </p>
               <button onClick={confirm} disabled={busy} className={buttonStyles.primary}>
-                {busy ? "Duke konfirmuar…" : "Konfirmo rezervimin"}
+                {busy ? t("confirmingButton") : t("confirmBookingButton")}
               </button>
             </div>
           )}
@@ -381,9 +386,9 @@ export default function BookingFlow({
 
       <div className="lg:sticky lg:top-4">
         <Card>
-          <p className="mb-3 text-sm font-semibold text-ink">Përmbledhja e Zgjedhjes</p>
+          <p className="mb-3 text-sm font-semibold text-ink">{t("selectionSummaryTitle")}</p>
           {!service ? (
-            <p className="py-4 text-center text-xs text-ink-faint">Zgjidh një shërbim për të parë përmbledhjen.</p>
+            <p className="py-4 text-center text-xs text-ink-faint">{t("selectServiceToSeeSummary")}</p>
           ) : (
             <>
               <div className="flex items-center gap-3 rounded-xl bg-accent-soft/50 p-3">
@@ -393,7 +398,7 @@ export default function BookingFlow({
                 <div className="min-w-0 flex-1">
                   {selectedOffer && (
                     <span className="inline-block rounded-full bg-accent px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white">
-                      Ofertë
+                      {t("offerBadge")}
                     </span>
                   )}
                   <p className="text-sm font-semibold leading-snug text-ink">{displayName}</p>
@@ -405,31 +410,33 @@ export default function BookingFlow({
                 {selectedOffer && (
                   <li className="flex items-start gap-1.5">
                     <IcCheck />
-                    {selectedOffer.serviceNames.length} shërbim{selectedOffer.serviceNames.length === 1 ? "" : "e"} të përfshira
+                    {selectedOffer.serviceNames.length === 1
+                      ? t("includedServicesCountOne", { count: selectedOffer.serviceNames.length })
+                      : t("includedServicesCountOther", { count: selectedOffer.serviceNames.length })}
                   </li>
                 )}
                 {selectedOffer && offerSavingsPct !== null && (
                   <li className="flex items-start gap-1.5">
                     <IcCheck />
-                    Kurse {offerSavingsPct}% nga çmimi origjinal
+                    {t("savingsFromOriginalPrice", { pct: offerSavingsPct })}
                   </li>
                 )}
                 {selectedOffer && (
                   <li className="flex items-start gap-1.5">
                     <IcCheck />
-                    {selectedOffer.validUntilLabel ? `Oferta e vlefshme deri më ${selectedOffer.validUntilLabel}` : "Oferta pa afat kohor"}
+                    {selectedOffer.validUntilLabel ? t("offerValidUntilLabel", { date: selectedOffer.validUntilLabel }) : t("offerNoTimeLimit")}
                   </li>
                 )}
                 {chosenStaffName && (
                   <li className="flex items-start gap-1.5">
                     <IcCheck />
-                    Punonjësja: {chosenStaffName}
+                    {t("staffLabel", { name: chosenStaffName })}
                   </li>
                 )}
                 {picked && (
                   <li className="flex items-start gap-1.5">
                     <IcCheck />
-                    {new Date(picked.time).toLocaleString("sq", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false })}
+                    {new Date(picked.time).toLocaleString(locale, { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false })}
                   </li>
                 )}
               </ul>
@@ -437,7 +444,7 @@ export default function BookingFlow({
               <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
                 <IcClock />
                 <div>
-                  <p className="text-[11px] text-ink-faint">Kohëzgjatja Totale</p>
+                  <p className="text-[11px] text-ink-faint">{t("totalDurationLabel")}</p>
                   <p className="text-sm font-semibold text-ink">{service.durationMin} min</p>
                 </div>
               </div>
@@ -445,7 +452,7 @@ export default function BookingFlow({
           )}
           <div className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 text-[11px] text-ink-faint">
             <IcLock />
-            Të dhënat tuaja janë të sigurta.
+            {t("dataSecureNotice")}
           </div>
         </Card>
       </div>

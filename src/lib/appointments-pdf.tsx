@@ -1,9 +1,16 @@
 // PDF export for the filtered Terminet table — same @react-pdf/renderer
 // machinery and visual language as report-pdf.tsx, scoped to a row list
 // instead of studio-wide stats.
+//
+// react-pdf's Document/Page/Text are plain function calls, not part of the
+// Next.js RSC tree, so they can't call useTranslations()/getTranslations()
+// themselves — the caller (a Route Handler, which DOES have request-scoped
+// locale access) resolves the translators once and passes them in.
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { BOOKING_STATUS_LABEL, PAYMENT_STATUS_LABEL } from "./booking-labels";
 import type { AppointmentRow } from "./appointments";
+import type { BookingStatus, PaymentStatus } from "@prisma/client";
+
+export type PdfTranslator = (key: string, values?: Record<string, string | number>) => string;
 
 export type AppointmentsExportData = {
   studioName: string;
@@ -35,42 +42,54 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, fontSize: 8, color: INK_SOFT, textAlign: "center" },
 });
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" });
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
-function fmtDateTime(d: Date): string {
-  return d.toLocaleString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function fmtDateTime(d: Date, locale: string): string {
+  return d.toLocaleString(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
-function fmtTime(d: Date): string {
-  return d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit" });
+function fmtTime(d: Date, locale: string): string {
+  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
 }
 function durationMin(a: Date, b: Date): number {
   return Math.round((b.getTime() - a.getTime()) / 60000);
 }
 
-export function AppointmentsReportDocument({ data }: { data: AppointmentsExportData }) {
+export function AppointmentsReportDocument({
+  data,
+  locale,
+  t,
+  tStatus,
+  tPayment,
+}: {
+  data: AppointmentsExportData;
+  locale: string;
+  t: PdfTranslator;
+  tStatus: (status: BookingStatus) => string;
+  tPayment: (status: PaymentStatus) => string;
+}) {
   return (
-    <Document title="Terminet — Glow By Diellza">
+    <Document title={t("apptDocTitle", { studio: data.studioName })}>
       <Page size="A4" style={styles.page}>
         <View>
           <Text style={styles.brand}>
             Glow <Text style={styles.brandAccent}>By Diellza</Text>
           </Text>
-          <Text style={styles.title}>Terminet</Text>
+          <Text style={styles.title}>{t("apptTitle")}</Text>
           <Text style={styles.meta}>{data.filterSummary}</Text>
-          <Text style={styles.meta}>Krijuar më {fmtDateTime(data.generatedAt)} · {data.rows.length} termine</Text>
+          <Text style={styles.meta}>{t("apptGeneratedLabel", { date: fmtDateTime(data.generatedAt, locale), count: data.rows.length })}</Text>
         </View>
         <View style={styles.headerRule} />
 
         <View style={styles.table}>
           <View style={styles.tr} fixed>
-            <Text style={styles.th}>Klienti</Text>
-            <Text style={styles.th}>Shërbimi</Text>
-            <Text style={styles.th}>Stafi</Text>
-            <Text style={styles.th}>Data &amp; Ora</Text>
-            <Text style={styles.th}>Kohëzgjatja</Text>
-            <Text style={styles.th}>Statusi</Text>
-            <Text style={styles.th}>Pagesa</Text>
+            <Text style={styles.th}>{t("colClient")}</Text>
+            <Text style={styles.th}>{t("colService")}</Text>
+            <Text style={styles.th}>{t("colStaff")}</Text>
+            <Text style={styles.th}>{t("colDateTime")}</Text>
+            <Text style={styles.th}>{t("colDuration")}</Text>
+            <Text style={styles.th}>{t("colStatus")}</Text>
+            <Text style={styles.th}>{t("colPayment")}</Text>
           </View>
           {data.rows.map((b, i) => {
             const isLast = i === data.rows.length - 1;
@@ -79,10 +98,10 @@ export function AppointmentsReportDocument({ data }: { data: AppointmentsExportD
                 <Text style={styles.td}>{b.clientName}</Text>
                 <Text style={styles.td}>{b.serviceName}</Text>
                 <Text style={styles.td}>{b.staffName}</Text>
-                <Text style={styles.td}>{fmtDate(b.startTime)}, {fmtTime(b.startTime)}</Text>
+                <Text style={styles.td}>{fmtDate(b.startTime, locale)}, {fmtTime(b.startTime, locale)}</Text>
                 <Text style={styles.td}>{durationMin(b.startTime, b.endTime)} min</Text>
-                <Text style={styles.td}>{BOOKING_STATUS_LABEL[b.status]}</Text>
-                <Text style={styles.td}>{PAYMENT_STATUS_LABEL[b.paymentStatus]}</Text>
+                <Text style={styles.td}>{tStatus(b.status)}</Text>
+                <Text style={styles.td}>{tPayment(b.paymentStatus)}</Text>
               </View>
             );
           })}
@@ -91,7 +110,7 @@ export function AppointmentsReportDocument({ data }: { data: AppointmentsExportD
         <Text
           style={styles.footer}
           fixed
-          render={({ pageNumber, totalPages }) => `${data.studioName} · Faqja ${pageNumber} nga ${totalPages}`}
+          render={({ pageNumber, totalPages }) => t("footerPageLabel", { studio: data.studioName, page: pageNumber, total: totalPages })}
         />
       </Page>
     </Document>

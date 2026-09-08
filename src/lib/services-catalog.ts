@@ -35,14 +35,15 @@ export async function getServicesKpis(): Promise<ServicesKpis> {
   return { total, active, mostBooked, averagePrice };
 }
 
-export type CategoryCount = { category: string; count: number };
+export type CategoryCount = { category: string | null; count: number };
 
 // Groups by the real `category` field — services left uncategorized land in
-// a real, honest "Pa kategori" bucket rather than being silently dropped.
+// a real, honest `null` bucket (rather than being silently dropped); the
+// caller renders the localized "no category" fallback text for that.
 export async function getServiceCategoryCounts(): Promise<CategoryCount[]> {
   const rows = await prisma.service.groupBy({ by: ["category"], _count: { _all: true } });
   return rows
-    .map((r) => ({ category: r.category ?? "Pa kategori", count: r._count._all }))
+    .map((r) => ({ category: r.category, count: r._count._all }))
     .sort((a, b) => b.count - a.count);
 }
 

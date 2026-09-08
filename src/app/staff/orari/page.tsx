@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -38,8 +39,8 @@ function shiftDay(d: Date, delta: number): Date {
   next.setDate(next.getDate() + delta);
   return next;
 }
-function timeRangeLabel(start: Date, end: Date): string {
-  const fmt = (d: Date) => d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+function timeRangeLabel(start: Date, end: Date, locale: string): string {
+  const fmt = (d: Date) => d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
   return `${fmt(start)} - ${fmt(end)}`;
 }
 
@@ -89,15 +90,19 @@ function LeafDecoration() {
   );
 }
 
-const LEGEND: { label: string; dot: string }[] = [
-  { label: "E konfirmuar", dot: "bg-ok" },
-  { label: "Check-in", dot: "bg-teal" },
-  { label: "Në shërbim", dot: "bg-gold" },
-  { label: "Pushim", dot: "bg-ink-faint" },
-];
-
 export default async function StaffSchedulePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const session = await requireRole("STAFF");
+  const [t, tStatus, locale] = await Promise.all([
+    getTranslations("StaffSchedule"),
+    getTranslations("Status.booking"),
+    getLocale(),
+  ]);
+  const LEGEND: { label: string; dot: string }[] = [
+    { label: tStatus("CONFIRMED"), dot: "bg-ok" },
+    { label: tStatus("CHECKED_IN"), dot: "bg-teal" },
+    { label: tStatus("IN_SERVICE"), dot: "bg-gold" },
+    { label: t("legendBreak"), dot: "bg-ink-faint" },
+  ];
   const sp = await searchParams;
   const now = new Date();
   const date = parseISODate(sp.date);
@@ -106,10 +111,10 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
   const [schedule, summary, upcomingBreaks, services, clients, bookableOffers] = await Promise.all([
     getScheduleForDay(session.userId, date),
     getDaySummary(session.userId, date),
-    getUpcomingTimeOff(session.userId, now),
+    getUpcomingTimeOff(session.userId, now, 3, locale),
     getQualifiedServices(session.userId),
     prisma.user.findMany({ where: { role: "CLIENT" }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true } }),
-    getBookableOffers(now),
+    getBookableOffers(now, locale),
   ]);
 
   // Only offers this staff member is actually qualified to deliver — same
@@ -129,8 +134,8 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
   const hourMarks: number[] = [];
   for (let m = rangeStart; m <= rangeEnd; m += 60) hourMarks.push(m);
 
-  const dateHeaderLabel = date.toLocaleDateString("sq", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  const datePillLabel = date.toLocaleDateString("sq", { day: "numeric", month: "long", year: "numeric" });
+  const dateHeaderLabel = date.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const datePillLabel = date.toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
   const workingHoursLabel = schedule.workingHours.length > 0
     ? `${schedule.workingHours[0].startLabel} - ${schedule.workingHours[schedule.workingHours.length - 1].endLabel}`
     : null;
@@ -140,17 +145,17 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
       <div className="mx-auto flex h-full max-w-none flex-col gap-3">
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h1 className="text-xl font-bold text-ink">Orari Im</h1>
-            <p className="text-sm text-ink-soft">Shiko orarin tënd ditor dhe menaxho terminet.</p>
+            <h1 className="text-xl font-bold text-ink">{t("pageTitle")}</h1>
+            <p className="text-sm text-ink-soft">{t("pageHint")}</p>
           </div>
         </div>
 
         <div className="shrink-0 flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <Link href={`/staff/orari?date=${toISODate(shiftDay(date, -1))}`} aria-label="Dita e mëparshme" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink">
+            <Link href={`/staff/orari?date=${toISODate(shiftDay(date, -1))}`} aria-label={t("prevDayAria")} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6" /></svg>
             </Link>
-            <Link href={`/staff/orari?date=${toISODate(shiftDay(date, 1))}`} aria-label="Dita tjetër" className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink">
+            <Link href={`/staff/orari?date=${toISODate(shiftDay(date, 1))}`} aria-label={t("nextDayAria")} className="flex h-9 w-9 items-center justify-center rounded-lg border border-line-strong text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
             </Link>
             <span className="inline-flex items-center gap-1.5 rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-ink">
@@ -163,12 +168,12 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
               aria-disabled={isToday}
               className={`rounded-lg border border-line-strong px-3 py-2 text-sm font-medium transition-colors ${isToday ? "pointer-events-none text-ink-faint opacity-60" : "text-ink-soft hover:bg-surface-muted hover:text-ink"}`}
             >
-              Sot
+              {t("todayLabel")}
             </Link>
           </div>
           <div className="flex items-center gap-2">
             <select className="rounded-lg border border-line-strong bg-surface px-3 py-2 text-sm font-medium text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent" defaultValue="day">
-              <option value="day">Ditë</option>
+              <option value="day">{t("dayViewOption")}</option>
             </select>
             <StaffNewAppointmentButton meId={session.userId} clients={clients} services={services} offers={offers} defaultDate={toISODate(date)} />
           </div>
@@ -212,9 +217,9 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" /></svg>
                           </span>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-xs font-medium text-ink-soft">{item.reason || "Pushim"}</p>
+                            <p className="truncate text-xs font-medium text-ink-soft">{item.reason || t("breakFallbackLabel")}</p>
                           </div>
-                          <span className="shrink-0 text-[11px] text-ink-faint">{timeRangeLabel(item.start, item.end)}</span>
+                          <span className="shrink-0 text-[11px] text-ink-faint">{timeRangeLabel(item.start, item.end, locale)}</span>
                           {item.id && <RemoveTimeOffButton timeOffId={item.id} />}
                         </div>
                       );
@@ -227,7 +232,7 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                         clientName={item.clientName}
                         serviceName={item.serviceName}
                         status={item.status}
-                        timeRangeLabel={timeRangeLabel(item.start, item.end)}
+                        timeRangeLabel={timeRangeLabel(item.start, item.end, locale)}
                         topPx={topPx}
                         heightPx={heightPx}
                       />
@@ -240,53 +245,58 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
 
           <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto">
             <div className="shrink-0 rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Orari Im i Punës</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("myWorkingHoursTitle")}</p>
               {workingHoursLabel ? (
                 <div className="flex items-center gap-1.5 text-sm text-ink-soft">
                   <span className="text-ink-faint"><IcClock /></span>
                   {workingHoursLabel}
                 </div>
               ) : (
-                <p className="text-sm text-ink-faint">Jashtë orarit sot.</p>
+                <p className="text-sm text-ink-faint">{t("offDutyToday")}</p>
               )}
-              <p className="text-[11px] capitalize text-ink-faint">{date.toLocaleDateString("sq", { weekday: "long" })}</p>
+              <p className="text-[11px] capitalize text-ink-faint">{date.toLocaleDateString(locale, { weekday: "long" })}</p>
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Përmbledhja e Ditës</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("daySummaryTitle")}</p>
               <div className="flex flex-col gap-1 text-xs">
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcCalendar />Termine Gjithsej</span><span className="font-semibold text-ink">{summary.total}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcCheck />Përfunduar</span><span className="font-semibold text-ink">{summary.completed}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcPlay />Në Vazhdim</span><span className="font-semibold text-ink">{summary.inProgress}</span></div>
-                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcHourglass />Të Ardhshme</span><span className="font-semibold text-ink">{summary.upcoming}</span></div>
-                <div className="mt-0.5 flex items-center justify-between border-t border-line pt-1"><span className="text-ink-soft">Kohëzgjatja</span><span className="font-semibold text-ink">{Math.floor(summary.totalDurationMin / 60)}h {summary.totalDurationMin % 60}m</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcCalendar />{t("totalAppointments")}</span><span className="font-semibold text-ink">{summary.total}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcCheck />{t("completed")}</span><span className="font-semibold text-ink">{summary.completed}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcPlay />{t("inProgress")}</span><span className="font-semibold text-ink">{summary.inProgress}</span></div>
+                <div className="flex items-center justify-between"><span className="flex items-center gap-1.5 text-ink-soft"><IcHourglass />{t("upcoming")}</span><span className="font-semibold text-ink">{summary.upcoming}</span></div>
+                <div className="mt-0.5 flex items-center justify-between border-t border-line pt-1"><span className="text-ink-soft">{t("durationLabel")}</span><span className="font-semibold text-ink">{Math.floor(summary.totalDurationMin / 60)}h {summary.totalDurationMin % 60}m</span></div>
               </div>
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Pushimet e Ardhshme</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("upcomingBreaksTitle")}</p>
               {upcomingBreaks.length === 0 ? (
-                <p className="text-xs text-ink-faint">Asnjë pushim i planifikuar.</p>
+                <p className="text-xs text-ink-faint">{t("noPlannedBreaks")}</p>
               ) : (
                 <ul className="flex flex-col gap-1.5">
-                  {upcomingBreaks.map((t) => (
-                    <li key={t.id} className="flex items-center gap-2 text-xs">
-                      <span className="text-ink-faint">
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" /></svg>
-                      </span>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-ink">{t.fromLabel} - {t.untilLabel}</p>
-                        <p className="truncate text-[11px] text-ink-faint">{t.durationLabel} pushim{t.reason ? ` · ${t.reason}` : ""}</p>
-                      </div>
-                      <RemoveTimeOffButton timeOffId={t.id} />
-                    </li>
-                  ))}
+                  {upcomingBreaks.map((b) => {
+                    const durationStr = b.durationMin < 60
+                      ? t("minAbbrev", { count: b.durationMin })
+                      : t("hoursAbbrevShort", { hours: (b.durationMin / 60).toFixed(b.durationMin % 60 === 0 ? 0 : 1) });
+                    return (
+                      <li key={b.id} className="flex items-center gap-2 text-xs">
+                        <span className="text-ink-faint">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" /></svg>
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-ink">{b.fromLabel} - {b.untilLabel}</p>
+                          <p className="truncate text-[11px] text-ink-faint">{t("breakDurationLabel", { duration: durationStr })}{b.reason ? ` · ${b.reason}` : ""}</p>
+                        </div>
+                        <RemoveTimeOffButton timeOffId={b.id} />
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Veprime të Shpejta</p>
+              <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("quickActionsTitle")}</p>
               <div className="flex flex-col gap-1.5">
                 <AddTimeOffButton meId={session.userId} kind="break" />
                 <AddTimeOffButton meId={session.userId} kind="block" />
@@ -298,8 +308,8 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" /></svg>
               </span>
               <div className="min-w-0 flex-1 pr-8">
-                <p className="text-xs font-semibold text-ok">Këshillë</p>
-                <p className="mt-0.5 text-xs text-ink-soft">Mbaje orarin të përditësuar për të ofruar përvojën më të mirë për klientët.</p>
+                <p className="text-xs font-semibold text-ok">{t("tipTitle")}</p>
+                <p className="mt-0.5 text-xs text-ink-soft">{t("tipBody")}</p>
               </div>
               <div className="absolute -bottom-3 -right-3">
                 <LeafDecoration />

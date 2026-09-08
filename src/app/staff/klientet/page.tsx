@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
 import { Kpi } from "@/components/ui";
@@ -124,20 +125,22 @@ function pctOfTotal(n: number, total: number): string {
   return total > 0 ? `${Math.round((n / total) * 100)}%` : "0%";
 }
 
-function newClientsDeltaLabel(thisMonth: number, lastMonth: number): string {
-  if (lastMonth === 0) return thisMonth > 0 ? "Rritje nga muaji i kaluar" : "Këtë muaj";
+type T = (key: string, values?: Record<string, string | number>) => string;
+function newClientsDeltaLabel(thisMonth: number, lastMonth: number, t: T): string {
+  if (lastMonth === 0) return thisMonth > 0 ? t("kpiNewGrowth") : t("kpiNewThisMonth");
   const pct = Math.round(((thisMonth - lastMonth) / lastMonth) * 100);
-  if (pct === 0) return "Njësoj si muaji i kaluar";
-  return `${pct > 0 ? "+" : ""}${pct}% nga muaji i kaluar`;
+  if (pct === 0) return t("kpiNewSame");
+  return t("kpiNewDelta", { sign: pct > 0 ? "+" : "", pct });
 }
 
 export default async function StaffClientsPage() {
   const session = await requireRole("STAFF");
+  const [t, locale] = await Promise.all([getTranslations("StaffClients"), getLocale()]);
   const now = new Date();
 
   const [kpis, rows, overview, topServices] = await Promise.all([
     getStaffClientKpis(now),
-    getStaffClientRows(now),
+    getStaffClientRows(now, locale),
     getClientOverview(now),
     getTopServicesThisMonth(now),
   ]);
@@ -146,15 +149,15 @@ export default async function StaffClientsPage() {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto flex h-full max-w-none flex-col gap-3">
         <div className="shrink-0">
-          <h1 className="text-xl font-bold text-ink">Klientët</h1>
-          <p className="text-sm text-ink-soft">Shiko dhe menaxho klientët e studios.</p>
+          <h1 className="text-xl font-bold text-ink">{t("pageTitle")}</h1>
+          <p className="text-sm text-ink-soft">{t("pageHint")}</p>
         </div>
 
         <div className="shrink-0 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-          <Kpi href="/staff/klientet" tone="accent" icon={<IcUsers />} value={kpis.total} label="Klientë Gjithsej" sub="Të gjitha kohërat" />
-          <Kpi href="/staff/klientet" tone="gold" icon={<IcUserPlus />} value={kpis.newThisMonth} label="Klientë të Rinj" sub={newClientsDeltaLabel(kpis.newThisMonth, kpis.newLastMonth)} />
-          <Kpi href="/staff/klientet" tone="ok" icon={<IcRepeat />} value={kpis.returning} label="Klientë të Përsëritur" sub={`${pctOfTotal(kpis.returning, kpis.total)} e klientëve gjithsej`} />
-          <Kpi href="/staff/klientet" tone="purple" icon={<IcStar />} value={kpis.loyal} label="Klientë Besnikë" sub={`${pctOfTotal(kpis.loyal, kpis.total)} e klientëve gjithsej`} />
+          <Kpi href="/staff/klientet" tone="accent" icon={<IcUsers />} value={kpis.total} label={t("kpiTotal")} sub={t("kpiTotalSub")} />
+          <Kpi href="/staff/klientet" tone="gold" icon={<IcUserPlus />} value={kpis.newThisMonth} label={t("kpiNew")} sub={newClientsDeltaLabel(kpis.newThisMonth, kpis.newLastMonth, t)} />
+          <Kpi href="/staff/klientet" tone="ok" icon={<IcRepeat />} value={kpis.returning} label={t("kpiReturning")} sub={t("kpiReturningSub", { pct: pctOfTotal(kpis.returning, kpis.total) })} />
+          <Kpi href="/staff/klientet" tone="purple" icon={<IcStar />} value={kpis.loyal} label={t("kpiLoyal")} sub={t("kpiLoyalSub", { pct: pctOfTotal(kpis.loyal, kpis.total) })} />
         </div>
 
         <div className="flex flex-col gap-3 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_280px]">
@@ -164,20 +167,20 @@ export default async function StaffClientsPage() {
 
           <div className="flex flex-col gap-3 lg:h-full lg:min-h-0 lg:overflow-y-auto">
             <div className="shrink-0 rounded-xl border border-line bg-surface p-3">
-              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">Përmbledhja e Klientëve</p>
+              <p className="mb-2.5 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("overviewTitle")}</p>
               <div className="flex items-center gap-3">
                 <OverviewDonut activePct={overview.activePct} inactivePct={overview.inactivePct} noShowPct={overview.noShowPct} />
                 <div className="flex flex-1 flex-col gap-1.5 text-xs">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ok" />Aktivë</span>
+                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ok" />{t("overviewActive")}</span>
                     <span className="font-semibold text-ink">{overview.activePct}%</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />Joaktivë</span>
+                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-ink-faint" />{t("overviewInactive")}</span>
                     <span className="font-semibold text-ink">{overview.inactivePct}%</span>
                   </div>
                   <div className="flex items-center justify-between gap-2">
-                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />Nuk u Paraqit</span>
+                    <span className="flex items-center gap-1.5 text-ink-soft"><span className="h-1.5 w-1.5 shrink-0 rounded-full bg-warn" />{t("noShow")}</span>
                     <span className="font-semibold text-ink">{overview.noShowPct}%</span>
                   </div>
                 </div>
@@ -185,9 +188,9 @@ export default async function StaffClientsPage() {
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-3">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">Shërbimet Kryesore Këtë Muaj</p>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("topServicesTitle")}</p>
               {topServices.length === 0 ? (
-                <p className="text-xs text-ink-faint">Ende pa rezervime këtë muaj.</p>
+                <p className="text-xs text-ink-faint">{t("noBookingsThisMonth")}</p>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {topServices.map((s, i) => (
@@ -200,22 +203,22 @@ export default async function StaffClientsPage() {
                 </div>
               )}
               <Link href="/staff/ofertat" className="mt-2 inline-block text-xs font-semibold text-accent hover:underline">
-                Shiko të Gjitha Shërbimet →
+                {t("viewAllServicesLink")}
               </Link>
             </div>
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-2.5">
-              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">Veprime të Shpejta</p>
+              <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-ink-faint">{t("quickActionsTitle")}</p>
               <div className="flex flex-col">
                 <NewClientButton variant="row" />
                 <Link href="/staff/radha#shto-klient" className="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-surface-muted">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-warn-soft text-warn"><IcUserPlusSmall /></span>
-                  <span className="min-w-0 flex-1 truncate">Shto Klient në Radhë</span>
+                  <span className="min-w-0 flex-1 truncate">{t("addToQueueLink")}</span>
                   <IcChevron />
                 </Link>
                 <Link href="/staff/orari" className="flex items-center gap-2.5 rounded-lg px-1 py-1.5 text-xs font-medium text-ink transition-colors hover:bg-surface-muted">
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-purple-soft text-purple"><IcCalendar /></span>
-                  <span className="min-w-0 flex-1 truncate">Shiko Orarin Tim</span>
+                  <span className="min-w-0 flex-1 truncate">{t("viewMyScheduleLink")}</span>
                   <IcChevron />
                 </Link>
               </div>
@@ -225,8 +228,8 @@ export default async function StaffClientsPage() {
               <span className="shrink-0 text-ok">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden><path d="m12 2 3.1 6.3 6.9 1-5 4.9 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.9 6.9-1z" /></svg>
               </span>
-              <p className="mt-1.5 text-xs font-semibold text-ok">Këshillë</p>
-              <p className="mt-0.5 pr-8 text-xs text-ink-soft">Shto shënime pas çdo termini për të mbajtur gjurmët e preferencave dhe progresit të klientëve.</p>
+              <p className="mt-1.5 text-xs font-semibold text-ok">{t("tipTitle")}</p>
+              <p className="mt-0.5 pr-8 text-xs text-ink-soft">{t("tipBody")}</p>
               <div className="absolute -bottom-3 -right-3">
                 <LeafDecoration />
               </div>

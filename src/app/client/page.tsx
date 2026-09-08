@@ -1,8 +1,9 @@
 import Link from "next/link";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
-import { BOOKING_STATUS_LABEL, BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
 import {
   getUpcomingAppointment,
   getRecentAppointments,
@@ -86,11 +87,16 @@ function initials(name: string): string {
 
 export default async function ClientDashboardPage() {
   const session = await requireRole("CLIENT");
+  const [t, tStatus, locale] = await Promise.all([
+    getTranslations("ClientDashboard"),
+    getTranslations("Status.booking"),
+    getLocale(),
+  ]);
   const now = new Date();
 
   const [upcoming, recent, queueStatus, recommended, me] = await Promise.all([
-    getUpcomingAppointment(session.userId, now),
-    getRecentAppointments(session.userId, 4),
+    getUpcomingAppointment(session.userId, now, locale),
+    getRecentAppointments(session.userId, 4, locale),
     getClientQueueStatus(session.userId),
     getRecommendedServices(session.userId, 2),
     prisma.user.findUnique({ where: { id: session.userId }, select: { loyaltyPoints: true } }),
@@ -102,16 +108,16 @@ export default async function ClientDashboardPage() {
     <DashboardShell name={session.name} role={session.role}>
       <div className="mx-auto flex h-full max-w-none flex-col gap-3">
         <div className="shrink-0">
-          <h1 className="text-xl font-bold text-ink">Mirë se erdhe, {firstName} ✨</h1>
-          <p className="text-sm text-ink-soft">Ja çfarë po ndodh me udhëtimin tënd të bukurisë.</p>
+          <h1 className="text-xl font-bold text-ink">{t("welcome", { name: firstName })}</h1>
+          <p className="text-sm text-ink-soft">{t("welcomeHint")}</p>
         </div>
 
         <div className="flex flex-col gap-3 lg:grid lg:min-h-0 lg:flex-1 lg:grid-cols-[1fr_300px]">
           <div className="flex flex-col gap-3 lg:h-auto lg:min-h-0">
             <div className="shrink-0 rounded-xl border border-line bg-surface p-3.5">
               <div className="mb-2.5 flex items-center justify-between">
-                <p className="text-sm font-semibold text-ink">Termini Yt i Ardhshëm</p>
-                <Link href="/client/terminet" className="text-xs font-semibold text-accent hover:underline">Shiko të Gjitha →</Link>
+                <p className="text-sm font-semibold text-ink">{t("upcomingTitle")}</p>
+                <Link href="/client/terminet" className="text-xs font-semibold text-accent hover:underline">{t("viewAllLink")}</Link>
               </div>
               {upcoming ? (
                 <>
@@ -132,18 +138,18 @@ export default async function ClientDashboardPage() {
                   <div className="mt-2.5 flex items-center justify-between">
                     <span className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${BOOKING_STATUS_PILL[upcoming.status].bg} ${BOOKING_STATUS_PILL[upcoming.status].text}`}>
                       <span className={`h-1.5 w-1.5 rounded-full ${BOOKING_STATUS_PILL[upcoming.status].dot}`} />
-                      {BOOKING_STATUS_LABEL[upcoming.status]}
+                      {tStatus(upcoming.status)}
                     </span>
                     <Link href="/client/terminet" className="rounded-lg px-3 py-1.5 text-xs font-semibold text-ink-soft ring-1 ring-line-strong transition-colors hover:bg-surface-muted">
-                      Shiko Detajet
+                      {t("viewDetailsLink")}
                     </Link>
                   </div>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-6 text-center">
-                  <p className="text-sm text-ink-faint">Ende s&apos;ke termin të ardhshëm.</p>
+                  <p className="text-sm text-ink-faint">{t("noUpcomingAppt")}</p>
                   <Link href="/client/rezervo" className="rounded-lg bg-accent px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-accent-hover">
-                    Rezervo Tani
+                    {t("bookNowLink")}
                   </Link>
                 </div>
               )}
@@ -151,36 +157,36 @@ export default async function ClientDashboardPage() {
 
             <div className="grid shrink-0 grid-cols-2 gap-3">
               <div className="flex flex-col rounded-xl border border-line bg-surface p-3.5">
-                <p className="text-sm font-semibold text-ink">Bashkohu në Radhë</p>
-                <p className="mt-1 text-xs text-ink-faint">Bashkohu në radhë dhe do të njoftohesh kur të vijë rradha jote.</p>
+                <p className="text-sm font-semibold text-ink">{t("joinQueueTitle")}</p>
+                <p className="mt-1 text-xs text-ink-faint">{t("joinQueueHint")}</p>
                 <ChairIllustration />
                 <Link href="/client/radha" className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg bg-ok-soft px-3 py-1.5 text-xs font-semibold text-ok transition-colors hover:brightness-95">
                   <IcUsers />
-                  Bashkohu në Radhë
+                  {t("joinQueueButton")}
                 </Link>
               </div>
               <div className="flex flex-col rounded-xl border border-line bg-surface p-3.5">
-                <p className="text-sm font-semibold text-ink">Statusi Yt në Radhë</p>
+                <p className="text-sm font-semibold text-ink">{t("queueStatusTitle")}</p>
                 {queueStatus ? (
                   <>
                     <div className="mt-2 flex items-center gap-2.5">
                       <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-purple-soft text-purple"><IcUsers /></span>
                       <div className="min-w-0">
-                        <p className="text-xs text-ink-faint">Je në pozicion</p>
+                        <p className="text-xs text-ink-faint">{t("queuePositionLabel")}</p>
                         <p className="text-xl font-bold leading-tight text-ink">#{queueStatus.position}</p>
                       </div>
                     </div>
-                    <p className="mt-2 text-xs text-ink-faint">Koha e Pritjes së Përllogaritur</p>
-                    <p className="text-sm font-semibold text-purple">~ {queueStatus.estimatedWaitMin} min</p>
+                    <p className="mt-2 text-xs text-ink-faint">{t("estimatedWaitLabel")}</p>
+                    <p className="text-sm font-semibold text-purple">{t("estimatedWaitValue", { min: queueStatus.estimatedWaitMin })}</p>
                     <Link href="/client/radha" className="mt-auto inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-purple ring-1 ring-purple/30 transition-colors hover:bg-purple-soft">
-                      Shiko Radhën
+                      {t("viewQueueLink")}
                     </Link>
                   </>
                 ) : (
                   <>
-                    <p className="mt-2 flex-1 text-xs text-ink-faint">Nuk je aktualisht në radhë.</p>
+                    <p className="mt-2 flex-1 text-xs text-ink-faint">{t("notInQueue")}</p>
                     <Link href="/client/radha" className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-purple ring-1 ring-purple/30 transition-colors hover:bg-purple-soft">
-                      Shiko Radhën
+                      {t("viewQueueLink")}
                     </Link>
                   </>
                 )}
@@ -189,11 +195,11 @@ export default async function ClientDashboardPage() {
 
             <div className="min-h-[160px] shrink-0 rounded-xl border border-line bg-surface p-3.5 lg:min-h-0 lg:flex-1">
               <div className="mb-1 flex items-center justify-between">
-                <p className="text-sm font-semibold text-ink">Terminet e Fundit</p>
-                <Link href="/client/terminet" className="text-xs font-semibold text-accent hover:underline">Shiko të Gjitha →</Link>
+                <p className="text-sm font-semibold text-ink">{t("recentAppointmentsTitle")}</p>
+                <Link href="/client/terminet" className="text-xs font-semibold text-accent hover:underline">{t("viewAllLink")}</Link>
               </div>
               {recent.length === 0 ? (
-                <p className="flex h-full items-center justify-center text-xs text-ink-faint">Ende pa termine të përfunduara.</p>
+                <p className="flex h-full items-center justify-center text-xs text-ink-faint">{t("noCompletedAppts")}</p>
               ) : (
                 <div className="flex flex-col divide-y divide-line">
                   {recent.map((r) => (
@@ -207,7 +213,7 @@ export default async function ClientDashboardPage() {
                       </div>
                       <span className="shrink-0 text-xs text-ink-faint">{r.dateLabel}</span>
                       <span className={`shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold ${BOOKING_STATUS_PILL[r.status].bg} ${BOOKING_STATUS_PILL[r.status].text}`}>
-                        {BOOKING_STATUS_LABEL[r.status]}
+                        {tStatus(r.status)}
                       </span>
                       <IcChevron />
                     </div>
@@ -219,11 +225,11 @@ export default async function ClientDashboardPage() {
 
           <div className="flex flex-col gap-3 lg:min-h-0 lg:overflow-y-auto">
             <div className="relative shrink-0 overflow-hidden rounded-xl border border-line bg-surface p-3.5">
-              <p className="text-sm font-semibold text-ink">Rezervo Termin të Ri</p>
-              <p className="mt-1 pr-10 text-xs text-ink-faint">Zgjidh shërbimin e preferuar dhe rezervo vizitën tënde tjetër.</p>
+              <p className="text-sm font-semibold text-ink">{t("newBookingTitle")}</p>
+              <p className="mt-1 pr-10 text-xs text-ink-faint">{t("newBookingHint")}</p>
               <Link href="/client/rezervo" className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover">
                 <IcCalendar />
-                Rezervo Termin
+                {t("newBookingButton")}
               </Link>
               <div className="absolute -bottom-2 -right-2">
                 <LeafDecoration />
@@ -234,8 +240,8 @@ export default async function ClientDashboardPage() {
 
             <div className="shrink-0 rounded-xl border border-line bg-surface p-3.5">
               <div className="mb-2 flex items-center justify-between">
-                <p className="text-sm font-semibold text-ink">Rekomanduar për Ty</p>
-                <Link href="/client/rezervo" className="text-xs font-semibold text-accent hover:underline">Shiko të Gjitha →</Link>
+                <p className="text-sm font-semibold text-ink">{t("recommendedTitle")}</p>
+                <Link href="/client/rezervo" className="text-xs font-semibold text-accent hover:underline">{t("viewAllLink")}</Link>
               </div>
               <div className="flex flex-col gap-1.5">
                 {recommended.map((s) => (
@@ -259,8 +265,8 @@ export default async function ClientDashboardPage() {
             </div>
 
             <div className="relative shrink-0 overflow-hidden rounded-xl bg-gradient-to-br from-accent-soft to-purple-soft p-4">
-              <p className="text-sm font-semibold text-ink">Shkëlqimi Fillon Këtu ✨</p>
-              <p className="mt-1 max-w-[70%] text-xs text-ink-soft">Kujdesu për lëkurën tënde sot — vetja jote e së ardhmes do të ta falënderojë.</p>
+              <p className="text-sm font-semibold text-ink">{t("glowBannerTitle")}</p>
+              <p className="mt-1 max-w-[70%] text-xs text-ink-soft">{t("glowBannerHint")}</p>
               <div className="absolute -bottom-3 -right-3 opacity-70">
                 <LeafDecoration />
               </div>

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 function toLocalInputValue(d: Date): string {
@@ -18,33 +19,29 @@ function roundToNext30(d: Date): Date {
 }
 
 type Kind = "break" | "block";
+type T = (key: string) => string;
 
-const COPY: Record<Kind, { trigger: string; title: string; reasonPlaceholder: string; icon: React.ReactNode }> = {
-  break: {
-    trigger: "Shto Pushim",
-    title: "Shto Pushim",
-    reasonPlaceholder: "P.sh. Dreka",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" />
-      </svg>
-    ),
-  },
-  block: {
-    trigger: "Blloko Kohë",
-    title: "Blloko Kohë",
-    reasonPlaceholder: "P.sh. Takim personal",
-    icon: (
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-        <circle cx="12" cy="12" r="9" /><path d="m4.9 4.9 14.2 14.2" />
-      </svg>
-    ),
-  },
-};
+function iconFor(kind: Kind): React.ReactNode {
+  return kind === "break" ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" />
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="12" cy="12" r="9" /><path d="m4.9 4.9 14.2 14.2" />
+    </svg>
+  );
+}
+function copyFor(kind: Kind, t: T) {
+  return kind === "break"
+    ? { trigger: t("addBreakTrigger"), title: t("addBreakTrigger"), reasonPlaceholder: t("breakReasonPlaceholder"), icon: iconFor(kind) }
+    : { trigger: t("addBlockTrigger"), title: t("addBlockTrigger"), reasonPlaceholder: t("blockReasonPlaceholder"), icon: iconFor(kind) };
+}
 
 export default function AddTimeOffButton({ meId, kind }: { meId: string; kind: Kind }) {
+  const t = useTranslations("StaffSchedule");
   const [open, setOpen] = useState(false);
-  const copy = COPY[kind];
+  const copy = copyFor(kind, t);
   return (
     <>
       <button
@@ -63,15 +60,17 @@ export default function AddTimeOffButton({ meId, kind }: { meId: string; kind: K
 }
 
 function AddTimeOffModal({ meId, kind, onClose }: { meId: string; kind: Kind; onClose: () => void }) {
+  const t = useTranslations("StaffSchedule");
+  const tCommon = useTranslations("Common");
   const router = useRouter();
-  const copy = COPY[kind];
+  const copy = copyFor(kind, t);
 
   const initialFrom = kind === "break" ? roundToNext30(new Date()) : new Date();
   const initialUntil = new Date(initialFrom.getTime() + (kind === "break" ? 30 : 60) * 60000);
 
   const [from, setFrom] = useState(toLocalInputValue(initialFrom));
   const [until, setUntil] = useState(toLocalInputValue(initialUntil));
-  const [reason, setReason] = useState(kind === "break" ? "Pushim" : "");
+  const [reason, setReason] = useState(kind === "break" ? t("breakDefaultReason") : "");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -86,13 +85,13 @@ function AddTimeOffModal({ meId, kind, onClose }: { meId: string; kind: Kind; on
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Ruajtja dështoi");
+        setError(data.error ?? t("errorSave"));
         return;
       }
       onClose();
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -105,26 +104,26 @@ function AddTimeOffModal({ meId, kind, onClose }: { meId: string; kind: Kind; on
       <div className="flex w-full max-w-sm flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_24px_64px_-24px_rgba(31,42,34,0.35)]">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
           <h2 className="text-lg font-semibold text-ink">{copy.title}</h2>
-          <button onClick={onClose} aria-label="Mbyll" className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink">
+          <button onClick={onClose} aria-label={tCommon("close")} className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
         </div>
         <div className="flex flex-col gap-4 px-5 py-4">
-          <Field label="Nga">
+          <Field label={t("fromLabel")}>
             <input type="datetime-local" value={from} onChange={(e) => setFrom(e.target.value)} className={inputStyles} />
           </Field>
-          <Field label="Deri">
+          <Field label={t("untilLabel")}>
             <input type="datetime-local" value={until} onChange={(e) => setUntil(e.target.value)} className={inputStyles} />
           </Field>
-          <Field label="Arsyeja (opsionale)">
+          <Field label={t("reasonOptionalLabel")}>
             <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={copy.reasonPlaceholder} className={inputStyles} />
           </Field>
           {error && <Alert message={error} />}
         </div>
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
-          <button onClick={onClose} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onClose} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke ruajtur…" : "Ruaj"}
+            {busy ? t("saving") : t("saveBtn")}
           </button>
         </div>
       </div>

@@ -15,7 +15,7 @@ export type QueueHistoryRow = {
 // Past walk-in (no-appointment) visits — a separate real event from a
 // Booking, so it's shown as its own section in the client's history rather
 // than folded into the booking-status tabs.
-export async function getClientQueueHistory(clientId: string): Promise<QueueHistoryRow[]> {
+export async function getClientQueueHistory(clientId: string, locale = "sq"): Promise<QueueHistoryRow[]> {
   const entries = await prisma.queueEntry.findMany({
     where: { clientId, status: { in: FINISHED_QUEUE_STATUSES } },
     orderBy: { checkinAt: "desc" },
@@ -31,7 +31,7 @@ export async function getClientQueueHistory(clientId: string): Promise<QueueHist
 
   return entries.map((e) => ({
     id: e.id,
-    whenLabel: e.checkinAt.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    whenLabel: e.checkinAt.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
     status: e.status,
     serviceName: e.service.name,
     staffName: e.staff?.name ?? null,
@@ -41,8 +41,10 @@ export async function getClientQueueHistory(clientId: string): Promise<QueueHist
 export type ClientQueueLiveRow = {
   id: string;
   position: number;
-  label: string;
   isMe: boolean;
+  // Only set when isMe — every other row is anonymized and rendered from
+  // `position` instead (see getClientQueueView).
+  clientName: string | null;
   serviceName: string | null;
   waitMin: number;
   status: QueueStatus;
@@ -69,7 +71,7 @@ export type ClientQueueView = {
 // anonymized to "Klient #N" with no service shown — the shared queue view is
 // visible to everyone waiting, but only staff/admin get the full roster
 // (GET /api/queue already enforces this same boundary for the API).
-export async function getClientQueueView(clientId: string, clientName: string): Promise<ClientQueueView> {
+export async function getClientQueueView(clientId: string, clientName: string, locale = "sq"): Promise<ClientQueueView> {
   const entries = await prisma.queueEntry.findMany({
     where: { status: { in: DISPLAY_QUEUE_STATUSES } },
     orderBy: { checkinAt: "asc" },
@@ -96,8 +98,8 @@ export async function getClientQueueView(clientId: string, clientName: string): 
     liveQueue.push({
       id: e.id,
       position,
-      label: isMe ? `Ti (${clientName})` : `Klient #${position}`,
       isMe,
+      clientName: isMe ? clientName : null,
       serviceName: isMe ? e.service.name : null,
       waitMin: e.estimatedWaitMin,
       status: e.status,
@@ -113,7 +115,7 @@ export async function getClientQueueView(clientId: string, clientName: string): 
         position,
         peopleAhead: position - 1,
         estimatedWaitMin: e.estimatedWaitMin + CLIENT_WAIT_BUFFER_MIN,
-        joinedAtLabel: e.checkinAt.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false }),
+        joinedAtLabel: e.checkinAt.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false }),
       };
     }
   });

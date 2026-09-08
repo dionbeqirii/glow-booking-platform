@@ -4,6 +4,8 @@ import { verifyPassword, createSessionToken, setSessionCookie } from "@/lib/auth
 import { loginSchema } from "@/lib/validation";
 import { audit } from "@/lib/audit";
 import { homeForRole } from "@/lib/rbac";
+import { setLocaleCookie } from "@/lib/locale-cookie";
+import { isAppLocale, DEFAULT_LOCALE } from "@/i18n/locales";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -27,6 +29,10 @@ export async function POST(req: Request) {
 
   const token = await createSessionToken({ userId: user.id, role: user.role, name: user.name });
   await setSessionCookie(token, remember ?? true);
+  // Cross-device: whatever language this account was last set to (in
+  // User.locale) takes over here too, even on a browser that never set the
+  // cookie before.
+  await setLocaleCookie(isAppLocale(user.locale) ? user.locale : DEFAULT_LOCALE);
 
   return NextResponse.json({ redirect: homeForRole(user.role) });
 }

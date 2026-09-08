@@ -14,8 +14,8 @@ function toMinutes(hhmm: string): number {
   const [h, m] = hhmm.split(":").map(Number);
   return h * 60 + m;
 }
-function fmtTime(d: Date): string {
-  return d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+function fmtTime(d: Date, locale: string): string {
+  return d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 function fromMinutesLabel(min: number): string {
   const h = Math.floor(min / 60) % 24;
@@ -30,7 +30,7 @@ export type StaffDashboardKpis = {
   queueWaiting: number;
 };
 
-export async function getStaffDashboardKpis(staffId: string, now = new Date()): Promise<StaffDashboardKpis> {
+export async function getStaffDashboardKpis(staffId: string, now = new Date(), locale = "sq"): Promise<StaffDashboardKpis> {
   const { start, end } = dayBounds(now);
 
   const [todayBookings, completedBookingsToday, completedQueueToday, queueWaiting] = await Promise.all([
@@ -48,7 +48,7 @@ export async function getStaffDashboardKpis(staffId: string, now = new Date()): 
 
   return {
     todayAppointments: todayBookings.length,
-    nextAppointment: next ? { timeLabel: fmtTime(next.startTime), serviceName: next.service.name } : null,
+    nextAppointment: next ? { timeLabel: fmtTime(next.startTime, locale), serviceName: next.service.name } : null,
     completedToday: completedBookingsToday + completedQueueToday,
     queueWaiting,
   };
@@ -62,7 +62,7 @@ export type ScheduleItem =
 // for any real gap between two separate WorkingHours intervals on that
 // weekday (e.g. a 09:00-13:00 + 14:00-18:00 split shift) — never a fabricated
 // break; a staff member with one continuous shift just shows no break row.
-export async function getMySchedule(staffId: string, date: Date): Promise<ScheduleItem[]> {
+export async function getMySchedule(staffId: string, date: Date, locale = "sq"): Promise<ScheduleItem[]> {
   const { start, end } = dayBounds(date);
   const weekday = date.getDay();
 
@@ -84,7 +84,7 @@ export async function getMySchedule(staffId: string, date: Date): Promise<Schedu
   const items: ScheduleItem[] = bookings.map((b) => ({
     kind: "booking",
     id: b.id,
-    timeLabel: fmtTime(b.startTime),
+    timeLabel: fmtTime(b.startTime, locale),
     clientName: b.client.name,
     serviceName: b.service.name,
     status: b.status,
@@ -109,7 +109,7 @@ export type UpcomingAppointment = {
   status: BookingStatus;
 };
 
-export async function getUpcomingAppointments(staffId: string, now = new Date(), limit = 10): Promise<UpcomingAppointment[]> {
+export async function getUpcomingAppointments(staffId: string, now = new Date(), limit = 10, locale = "sq"): Promise<UpcomingAppointment[]> {
   const bookings = await prisma.booking.findMany({
     where: { staffId, startTime: { gte: now }, status: { in: ACTIVE_BOOKING } },
     orderBy: { startTime: "asc" },
@@ -125,8 +125,8 @@ export async function getUpcomingAppointments(staffId: string, now = new Date(),
 
   return bookings.map((b) => ({
     id: b.id,
-    timeLabel: fmtTime(b.startTime),
-    dateLabel: b.startTime.toLocaleDateString("sq", { day: "2-digit", month: "2-digit" }),
+    timeLabel: fmtTime(b.startTime, locale),
+    dateLabel: b.startTime.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" }),
     clientName: b.client.name,
     serviceName: b.service.name,
     durationMin: b.service.durationMin,

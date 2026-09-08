@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { WeekdayPoint } from "@/lib/staff-stats";
+import { useTranslations } from "next-intl";
+
+type ChartPoint = { label: string; current: number; prior: number };
 
 function niceCeil(value: number): number {
   if (value <= 0) return 100;
@@ -11,7 +13,8 @@ function niceCeil(value: number): number {
   return step * magnitude;
 }
 
-export default function WeeklyPerformanceChart({ points }: { points: WeekdayPoint[] }) {
+export default function WeeklyPerformanceChart({ points }: { points: ChartPoint[] }) {
+  const t = useTranslations("StaffStats");
   const [showPrior, setShowPrior] = useState(true);
 
   const width = 640;
@@ -34,11 +37,11 @@ export default function WeeklyPerformanceChart({ points }: { points: WeekdayPoin
     <div className="flex h-full min-h-0 flex-col">
       <div className="mb-2 flex shrink-0 flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3 text-xs text-ink-soft">
-          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-ok" />Kjo periudhë</span>
+          <span className="flex items-center gap-1.5"><span className="h-0.5 w-4 rounded-full bg-ok" />{t("currentPeriodLegend")}</span>
           {showPrior && (
             <span className="flex items-center gap-1.5 text-ink-faint">
               <span className="h-0.5 w-4 rounded-full border-t-2 border-dashed border-ink-faint" />
-              Periudha e kaluar
+              {t("priorPeriodLegend")}
             </span>
           )}
         </div>
@@ -47,8 +50,8 @@ export default function WeeklyPerformanceChart({ points }: { points: WeekdayPoin
           onChange={(e) => setShowPrior(e.target.value === "compare")}
           className="rounded-lg border border-line-strong bg-surface px-2.5 py-1.5 text-xs text-ink-soft outline-none transition-colors hover:text-ink focus:border-accent"
         >
-          <option value="compare">Krahaso me periudhën e kaluar</option>
-          <option value="none">Pa krahasim</option>
+          <option value="compare">{t("compareOption")}</option>
+          <option value="none">{t("noCompareOption")}</option>
         </select>
       </div>
 

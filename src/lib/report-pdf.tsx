@@ -2,10 +2,14 @@
 // PDF primitives — these components (Document/Page/View/Text) are NOT DOM
 // elements and cannot be mixed with the rest of the app's React tree or
 // Tailwind classes. Keep this file self-contained.
+//
+// Like appointments-pdf.tsx, this can't call useTranslations()/getTranslations()
+// itself (not part of the RSC tree) — the caller Route Handler resolves the
+// translators and passes them in.
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
-import { BOOKING_STATUS_LABEL } from "./booking-labels";
 import type { StudioStats } from "./stats";
 import type { BookingStatus } from "@prisma/client";
+import type { PdfTranslator } from "./appointments-pdf";
 
 export type TopService = { name: string; count: number; revenue: number };
 
@@ -50,11 +54,11 @@ const styles = StyleSheet.create({
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, fontSize: 8, color: INK_SOFT, textAlign: "center" },
 });
 
-function fmtDate(d: Date): string {
-  return d.toLocaleDateString("sq", { day: "2-digit", month: "2-digit", year: "numeric" });
+function fmtDate(d: Date, locale: string): string {
+  return d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit", year: "numeric" });
 }
-function fmtDateTime(d: Date): string {
-  return d.toLocaleString("sq", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+function fmtDateTime(d: Date, locale: string): string {
+  return d.toLocaleString(locale, { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 function pct(n: number): string {
   return `${Math.round(n * 100)}%`;
@@ -65,52 +69,62 @@ function eur(n: number): string {
 
 const STATUS_ORDER: BookingStatus[] = ["COMPLETED", "CONFIRMED", "CHECKED_IN", "IN_SERVICE", "CANCELLED", "NO_SHOW"];
 
-export function StudioReportDocument({ data }: { data: ReportData }) {
+export function StudioReportDocument({
+  data,
+  locale,
+  t,
+  tStatus,
+}: {
+  data: ReportData;
+  locale: string;
+  t: PdfTranslator;
+  tStatus: (status: BookingStatus) => string;
+}) {
   const { stats } = data;
 
   return (
-    <Document title={`Raporti i Studios — ${data.months} muaj`}>
+    <Document title={t("reportDocTitle", { months: data.months })}>
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View>
           <Text style={styles.brand}>
             Glow <Text style={styles.brandAccent}>By Diellza</Text>
           </Text>
-          <Text style={styles.title}>Raporti i Studios</Text>
+          <Text style={styles.title}>{t("reportTitle")}</Text>
           <Text style={styles.meta}>
-            Periudha: {fmtDate(data.from)} – {fmtDate(data.to)} ({data.months} muaj)
+            {t("periodLabel", { from: fmtDate(data.from, locale), to: fmtDate(data.to, locale), months: data.months })}
           </Text>
-          <Text style={styles.meta}>Krijuar më {fmtDateTime(data.generatedAt)}</Text>
+          <Text style={styles.meta}>{t("generatedAtLabel", { date: fmtDateTime(data.generatedAt, locale) })}</Text>
         </View>
         <View style={styles.headerRule} />
 
         {/* KPI summary */}
         <View style={styles.kpiRow}>
           <View style={styles.kpiBox}>
-            <Text style={styles.kpiLabel}>Rezervime gjithsej</Text>
+            <Text style={styles.kpiLabel}>{t("kpiTotalBookings")}</Text>
             <Text style={styles.kpiValue}>{stats.bookings.total}</Text>
           </View>
           <View style={styles.kpiBox}>
-            <Text style={styles.kpiLabel}>Norma e anulimeve</Text>
+            <Text style={styles.kpiLabel}>{t("kpiCancelRate")}</Text>
             <Text style={styles.kpiValue}>{pct(stats.bookings.cancellationRate)}</Text>
           </View>
           <View style={styles.kpiBox}>
-            <Text style={styles.kpiLabel}>Norma e no-show</Text>
+            <Text style={styles.kpiLabel}>{t("kpiNoShowRate")}</Text>
             <Text style={styles.kpiValue}>{pct(stats.bookings.noShowRate)}</Text>
           </View>
           <View style={styles.kpiBox}>
-            <Text style={styles.kpiLabel}>Të ardhurat (vlerësuar)</Text>
+            <Text style={styles.kpiLabel}>{t("kpiRevenue")}</Text>
             <Text style={styles.kpiValue}>{eur(data.revenueTotal)}</Text>
           </View>
         </View>
 
         {/* Bookings by status */}
-        <Text style={styles.sectionTitle}>Rezervimet sipas statusit</Text>
+        <Text style={styles.sectionTitle}>{t("byStatusTitle")}</Text>
         <View style={styles.table}>
           <View style={styles.tr}>
-            <Text style={styles.th}>Statusi</Text>
-            <Text style={styles.th}>Numri</Text>
-            <Text style={styles.th}>Përqindja</Text>
+            <Text style={styles.th}>{t("colStatus")}</Text>
+            <Text style={styles.th}>{t("colCount")}</Text>
+            <Text style={styles.th}>{t("colPercentage")}</Text>
           </View>
           {STATUS_ORDER.map((s, i) => {
             const count = stats.bookings.byStatus[s];
@@ -118,7 +132,7 @@ export function StudioReportDocument({ data }: { data: ReportData }) {
             const isLast = i === STATUS_ORDER.length - 1;
             return (
               <View key={s} style={isLast ? styles.trLast : styles.tr}>
-                <Text style={styles.td}>{BOOKING_STATUS_LABEL[s]}</Text>
+                <Text style={styles.td}>{tStatus(s)}</Text>
                 <Text style={styles.td}>{count}</Text>
                 <Text style={styles.td}>{pct(share)}</Text>
               </View>
@@ -127,24 +141,24 @@ export function StudioReportDocument({ data }: { data: ReportData }) {
         </View>
 
         {/* Staff utilization */}
-        <Text style={styles.sectionTitle}>Shfrytëzimi i stafit</Text>
+        <Text style={styles.sectionTitle}>{t("staffUtilTitle")}</Text>
         {stats.utilization.length === 0 ? (
-          <Text style={{ fontSize: 9, color: INK_SOFT }}>Nuk ka staf të regjistruar.</Text>
+          <Text style={{ fontSize: 9, color: INK_SOFT }}>{t("noStaffRegistered")}</Text>
         ) : (
           <View style={styles.table}>
             <View style={styles.tr}>
-              <Text style={styles.th}>Punonjësi</Text>
-              <Text style={styles.th}>Orë të rezervuara</Text>
-              <Text style={styles.th}>Orë të disponueshme</Text>
-              <Text style={styles.th}>Shfrytëzimi</Text>
+              <Text style={styles.th}>{t("colStaff")}</Text>
+              <Text style={styles.th}>{t("colBookedHours")}</Text>
+              <Text style={styles.th}>{t("colAvailableHours")}</Text>
+              <Text style={styles.th}>{t("colUtilization")}</Text>
             </View>
             {stats.utilization.map((u, i) => {
               const isLast = i === stats.utilization.length - 1;
               return (
                 <View key={u.staffId} style={isLast ? styles.trLast : styles.tr}>
                   <Text style={styles.td}>{u.name}</Text>
-                  <Text style={styles.td}>{(u.bookedMin / 60).toFixed(1)} orë</Text>
-                  <Text style={styles.td}>{(u.availableMin / 60).toFixed(1)} orë</Text>
+                  <Text style={styles.td}>{t("hoursAbbrev", { count: (u.bookedMin / 60).toFixed(1) })}</Text>
+                  <Text style={styles.td}>{t("hoursAbbrev", { count: (u.availableMin / 60).toFixed(1) })}</Text>
                   <Text style={styles.td}>{pct(u.utilization)}</Text>
                 </View>
               );
@@ -153,15 +167,15 @@ export function StudioReportDocument({ data }: { data: ReportData }) {
         )}
 
         {/* Top services */}
-        <Text style={styles.sectionTitle}>Shërbimet më të kërkuara</Text>
+        <Text style={styles.sectionTitle}>{t("topServicesTitle")}</Text>
         {data.topServices.length === 0 ? (
-          <Text style={{ fontSize: 9, color: INK_SOFT }}>Ende pa rezervime në këtë periudhë.</Text>
+          <Text style={{ fontSize: 9, color: INK_SOFT }}>{t("noBookingsInPeriod")}</Text>
         ) : (
           <View style={styles.table}>
             <View style={styles.tr}>
-              <Text style={styles.th}>Shërbimi</Text>
-              <Text style={styles.th}>Rezervime</Text>
-              <Text style={styles.th}>Të ardhurat</Text>
+              <Text style={styles.th}>{t("colService")}</Text>
+              <Text style={styles.th}>{t("colBookings")}</Text>
+              <Text style={styles.th}>{t("colRevenue")}</Text>
             </View>
             {data.topServices.map((s, i) => {
               const isLast = i === data.topServices.length - 1;
@@ -177,26 +191,26 @@ export function StudioReportDocument({ data }: { data: ReportData }) {
         )}
 
         {/* Queue */}
-        <Text style={styles.sectionTitle}>Radha pa termin</Text>
+        <Text style={styles.sectionTitle}>{t("queueTitle")}</Text>
         <View style={styles.table}>
           <View style={styles.tr}>
-            <Text style={styles.th}>Check-in gjithsej</Text>
-            <Text style={styles.th}>Të shërbyer</Text>
-            <Text style={styles.th}>No-show</Text>
-            <Text style={styles.th}>Pritja mesatare</Text>
+            <Text style={styles.th}>{t("colCheckinsTotal")}</Text>
+            <Text style={styles.th}>{t("colServed")}</Text>
+            <Text style={styles.th}>{t("colNoShow")}</Text>
+            <Text style={styles.th}>{t("colAvgWait")}</Text>
           </View>
           <View style={styles.trLast}>
             <Text style={styles.td}>{stats.queue.checkins}</Text>
             <Text style={styles.td}>{stats.queue.completed}</Text>
             <Text style={styles.td}>{stats.queue.noShow}</Text>
-            <Text style={styles.td}>{stats.queue.avgWaitMin === null ? "—" : `${stats.queue.avgWaitMin} min`}</Text>
+            <Text style={styles.td}>{stats.queue.avgWaitMin === null ? "—" : t("minAbbrev", { count: stats.queue.avgWaitMin })}</Text>
           </View>
         </View>
 
         <Text
           style={styles.footer}
           fixed
-          render={({ pageNumber, totalPages }) => `${data.studioName} · Faqja ${pageNumber} nga ${totalPages}`}
+          render={({ pageNumber, totalPages }) => t("footerPageLabel", { studio: data.studioName, page: pageNumber, total: totalPages })}
         />
       </Page>
     </Document>

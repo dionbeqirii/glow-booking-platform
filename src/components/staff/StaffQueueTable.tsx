@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPortal } from "react-dom";
+import { useTranslations } from "next-intl";
 import { buttonStyles } from "@/components/ui";
-import { QUEUE_STATUS_LABEL, QUEUE_STATUS_PILL, waitTone } from "@/lib/booking-labels";
+import { QUEUE_STATUS_PILL, waitTone } from "@/lib/booking-labels";
 import type { QueueTableRow } from "@/lib/queue-catalog";
 
 export type StaffOption = { id: string; name: string; serviceIds: string[] };
@@ -44,6 +45,8 @@ export default function StaffQueueTable({
   staffOptions: StaffOption[];
   services: ServiceOption[];
 }) {
+  const t = useTranslations("StaffQueue");
+  const tStatus = useTranslations("Status.queue");
   const router = useRouter();
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -71,7 +74,7 @@ export default function StaffQueueTable({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Veprimi dështoi");
+        setError(data.error ?? t("actionFailed"));
       } else {
         if (action === "complete" && data.invoice) setInvoice(data.invoice);
         setOpenPanel(null);
@@ -95,7 +98,7 @@ export default function StaffQueueTable({
         body: JSON.stringify({ serviceIds: next }),
       });
       const data = await res.json();
-      if (!res.ok) setError(data.error ?? "Veprimi dështoi");
+      if (!res.ok) setError(data.error ?? t("actionFailed"));
       else router.refresh();
     } finally {
       setBusyId(null);
@@ -122,18 +125,18 @@ export default function StaffQueueTable({
           <thead>
             <tr className="border-b border-line bg-surface text-xs uppercase tracking-wide text-ink-faint [&>th]:sticky [&>th]:top-0 [&>th]:z-10 [&>th]:bg-surface">
               <th className="px-2 py-1.5 font-medium">#</th>
-              <th className="px-2 py-1.5 font-medium">Klienti</th>
-              <th className="px-2 py-1.5 font-medium">Shërbimi</th>
-              <th className="px-2 py-1.5 font-medium">Shtuar Në</th>
-              <th className="px-2 py-1.5 font-medium">Pritje (Vlerësuar)</th>
-              <th className="px-2 py-1.5 font-medium">Statusi</th>
-              <th className="px-2 py-1.5 font-medium">Veprime</th>
+              <th className="px-2 py-1.5 font-medium">{t("colClient")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colService")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colAddedAt")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colEstWait")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colStatus")}</th>
+              <th className="px-2 py-1.5 font-medium">{t("colActions")}</th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">Radha është bosh për momentin.</td>
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-faint">{t("emptyQueue")}</td>
               </tr>
             ) : (
               rows.map((r) => {
@@ -150,10 +153,10 @@ export default function StaffQueueTable({
                     <td className="overflow-hidden px-2 py-1.5">
                       <div className="flex items-center gap-2">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent-soft text-[10px] font-semibold text-accent">
-                          {initials(r.clientName)}
+                          {initials(r.clientName ?? t("namelessClientFallback"))}
                         </span>
                         <div className="min-w-0">
-                          <div className="truncate font-medium text-ink">{r.clientName}</div>
+                          <div className="truncate font-medium text-ink">{r.clientName ?? t("namelessClientFallback")}</div>
                           <div className="truncate text-[11px] text-ink-faint">{r.clientPhone ?? "—"}</div>
                         </div>
                       </div>
@@ -168,7 +171,7 @@ export default function StaffQueueTable({
                     <td className="px-2 py-1.5">
                       <span className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2 py-1 text-xs font-semibold ${pill.bg} ${pill.text}`}>
                         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${pill.dot}`} />
-                        <span className="truncate">{QUEUE_STATUS_LABEL[r.status]}</span>
+                        <span className="truncate">{tStatus(r.status)}</span>
                       </span>
                     </td>
                     <td className="px-2 py-1.5">
@@ -177,7 +180,7 @@ export default function StaffQueueTable({
                           <button
                             type="button"
                             onClick={() => setOpenPanel(openPanel?.id === r.id && openPanel.kind === "details" ? null : { id: r.id, kind: "details" })}
-                            title="Detajet"
+                            title={t("detailsTitle")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -186,16 +189,16 @@ export default function StaffQueueTable({
                           </button>
                           {openPanel?.id === r.id && openPanel.kind === "details" && (
                             <div ref={panelRef} className="absolute right-0 top-7 z-20 w-64 rounded-xl border border-line-strong bg-surface p-3 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
-                              <p className="mb-2 text-sm font-semibold text-ink">{r.clientName}</p>
+                              <p className="mb-2 text-sm font-semibold text-ink">{r.clientName ?? t("namelessClientFallback")}</p>
                               <div className="flex flex-col gap-1 text-xs text-ink-soft">
-                                <div className="flex justify-between gap-2"><span className="text-ink-faint">Telefoni</span><span className="truncate text-ink">{r.clientPhone ?? "—"}</span></div>
-                                <div className="flex justify-between gap-2"><span className="text-ink-faint">Shërbimi</span><span className="truncate text-ink">{r.serviceName} ({r.durationMin} min)</span></div>
-                                <div className="flex justify-between gap-2"><span className="text-ink-faint">Shtuar në</span><span className="text-ink">{r.addedAtLabel}</span></div>
-                                <div className="flex justify-between gap-2"><span className="text-ink-faint">Punonjësi</span><span className="truncate text-ink">{r.staffName ?? "—"}</span></div>
+                                <div className="flex justify-between gap-2"><span className="text-ink-faint">{t("phoneLabel")}</span><span className="truncate text-ink">{r.clientPhone ?? "—"}</span></div>
+                                <div className="flex justify-between gap-2"><span className="text-ink-faint">{t("serviceLabel")}</span><span className="truncate text-ink">{r.serviceName} ({r.durationMin} min)</span></div>
+                                <div className="flex justify-between gap-2"><span className="text-ink-faint">{t("addedAtLabel")}</span><span className="text-ink">{r.addedAtLabel}</span></div>
+                                <div className="flex justify-between gap-2"><span className="text-ink-faint">{t("staffLabel")}</span><span className="truncate text-ink">{r.staffName ?? "—"}</span></div>
                               </div>
                               <div className="mt-2 border-t border-line pt-2">
-                                <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">Shënime</p>
-                                <p className="mt-0.5 text-xs text-ink-soft">{r.notes || "Nuk ka shënime."}</p>
+                                <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">{t("notesLabel")}</p>
+                                <p className="mt-0.5 text-xs text-ink-soft">{r.notes || t("noNotes")}</p>
                               </div>
                             </div>
                           )}
@@ -205,7 +208,7 @@ export default function StaffQueueTable({
                           <button
                             type="button"
                             onClick={() => setOpenPanel(openPanel?.id === r.id && openPanel.kind === "menu" ? null : { id: r.id, kind: "menu" })}
-                            aria-label="Më shumë veprime"
+                            aria-label={t("moreActionsAria")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -219,29 +222,29 @@ export default function StaffQueueTable({
                               {r.status === "WAITING" && (
                                 <>
                                   <button onClick={() => act(r.id, "call")} disabled={busy} className="w-full px-3.5 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-muted disabled:opacity-50">
-                                    📞 Thirre
+                                    {t("callAction")}
                                   </button>
                                   <button onClick={() => act(r.id, "no_show")} disabled={busy} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft disabled:opacity-50">
-                                    ✕ No-show
+                                    {t("noShowAction")}
                                   </button>
                                 </>
                               )}
                               {r.status === "CALLED" && (
                                 <>
                                   <button onClick={() => act(r.id, "start")} disabled={busy} className="w-full px-3.5 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-muted disabled:opacity-50">
-                                    ▶ Fillo Vizitën
+                                    {t("startVisitAction")}
                                   </button>
                                   <button onClick={() => act(r.id, "no_show")} disabled={busy} className="w-full px-3.5 py-2 text-left text-sm text-danger transition-colors hover:bg-danger-soft disabled:opacity-50">
-                                    ✕ No-show
+                                    {t("noShowAction")}
                                   </button>
                                 </>
                               )}
                               {r.status === "IN_SERVICE" && (
                                 <>
-                                  <p className="px-3.5 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">Shërbimet e Kryera</p>
+                                  <p className="px-3.5 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">{t("completedServicesTitle")}</p>
                                   <div className="flex flex-col gap-1 px-3.5 py-1.5">
                                     {candidateServices.length === 0 ? (
-                                      <p className="text-xs text-ink-faint">Asnjë shërbim i disponueshëm.</p>
+                                      <p className="text-xs text-ink-faint">{t("noServicesAvailable")}</p>
                                     ) : (
                                       candidateServices.map((svc) => {
                                         const checked = r.visitServiceIds.includes(svc.id);
@@ -259,10 +262,10 @@ export default function StaffQueueTable({
                                     <button
                                       onClick={() => act(r.id, "complete")}
                                       disabled={busy || checkedCount === 0}
-                                      title={checkedCount === 0 ? "Shëno të paktën një shërbim të kryer" : undefined}
+                                      title={checkedCount === 0 ? t("completeVisitDisabledTitle") : undefined}
                                       className={`w-full rounded-lg ${buttonStyles.primary} py-1.5 text-xs`}
                                     >
-                                      ✔ Përfundo Vizitën
+                                      {t("completeVisitAction")}
                                     </button>
                                   </div>
                                 </>
@@ -296,7 +299,7 @@ export default function StaffQueueTable({
                     <path d="M20 6 9 17l-5-5" />
                   </svg>
                 </span>
-                <h2 className="mt-4 text-lg font-semibold text-ink">Vizita u përfundua</h2>
+                <h2 className="mt-4 text-lg font-semibold text-ink">{t("visitCompletedTitle")}</h2>
                 <p className="mt-1 text-sm text-ink-soft">{invoice.clientName} · {invoice.staffName}</p>
               </div>
               <div className="mt-5 divide-y divide-line rounded-xl bg-surface-muted">
@@ -308,16 +311,16 @@ export default function StaffQueueTable({
                 ))}
               </div>
               <div className="mt-3 flex items-center justify-between px-1">
-                <span className="text-sm font-semibold text-ink">Totali</span>
+                <span className="text-sm font-semibold text-ink">{t("totalLabel")}</span>
                 <span className="text-lg font-bold text-ink">{invoice.total.toFixed(2)} €</span>
               </div>
               {invoice.startedAt && (
                 <p className="mt-3 text-center text-xs text-ink-faint">
-                  Kohëzgjatja e vizitës: {Math.max(0, Math.round((new Date(invoice.completedAt).getTime() - new Date(invoice.startedAt).getTime()) / 60000))} min
+                  {t("visitDurationLabel", { min: Math.max(0, Math.round((new Date(invoice.completedAt).getTime() - new Date(invoice.startedAt).getTime()) / 60000)) })}
                 </p>
               )}
               <button type="button" onClick={() => setInvoice(null)} className={`mt-5 w-full ${buttonStyles.primary}`}>
-                Mbylle
+                {t("closeBtn")}
               </button>
             </div>
           </div>,

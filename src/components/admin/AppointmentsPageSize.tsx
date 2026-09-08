@@ -1,10 +1,12 @@
 "use client";
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const SIZES = [10, 25, 50];
 
 export default function AppointmentsPageSize({ current }: { current: number }) {
+  const t = useTranslations("AdminAppointments");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -23,7 +25,7 @@ export default function AppointmentsPageSize({ current }: { current: number }) {
       onChange={(e) => onChange(e.target.value)}
     >
       {SIZES.map((s) => (
-        <option key={s} value={s}>{s} / faqe</option>
+        <option key={s} value={s}>{t("perPage", { count: s })}</option>
       ))}
     </select>
   );

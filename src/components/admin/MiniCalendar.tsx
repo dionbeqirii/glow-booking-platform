@@ -1,10 +1,6 @@
 import Link from "next/link";
-
-const MONTHS = [
-  "Janar", "Shkurt", "Mars", "Prill", "Maj", "Qershor",
-  "Korrik", "Gusht", "Shtator", "Tetor", "Nëntor", "Dhjetor",
-];
-const DAY_LETTERS = ["H", "M", "M", "E", "P", "Sh", "D"];
+import { getTranslations } from "next-intl/server";
+import { monthLongLabels, weekdayLetterLabels } from "@/lib/calendar-labels";
 
 function toISODate(d: Date): string {
   const y = d.getFullYear();
@@ -23,7 +19,7 @@ function defaultHrefFor(view: string) {
 // page (preserving whichever day/week/month `view` is active there); pass
 // `hrefFor` to reuse this same widget from a different page (e.g. Terminet,
 // where a click should set that page's date-range filter instead).
-export default function MiniCalendar({
+export default async function MiniCalendar({
   monthOf,
   selected,
   today,
@@ -36,6 +32,13 @@ export default function MiniCalendar({
   view?: string;
   hrefFor?: (d: Date) => string;
 }) {
+  const [tMonth, tWeekday, tCal] = await Promise.all([
+    getTranslations("Month"),
+    getTranslations("Weekday"),
+    getTranslations("AdminCalendar"),
+  ]);
+  const MONTHS = monthLongLabels(tMonth);
+  const DAY_LETTERS = weekdayLetterLabels(tWeekday);
   const year = monthOf.getFullYear();
   const month = monthOf.getMonth();
   const firstOfMonth = new Date(year, month, 1);
@@ -55,7 +58,7 @@ export default function MiniCalendar({
       <div className="mb-1.5 flex items-center justify-between">
         <Link
           href={buildHref(prevMonth)}
-          aria-label="Muaji i mëparshëm"
+          aria-label={tCal("prevMonth")}
           className="flex h-5 w-5 items-center justify-center rounded-md text-ink-faint hover:bg-surface-muted hover:text-ink"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m15 18-6-6 6-6" /></svg>
@@ -63,7 +66,7 @@ export default function MiniCalendar({
         <p className="text-xs font-semibold text-ink">{MONTHS[month]} {year}</p>
         <Link
           href={buildHref(nextMonth)}
-          aria-label="Muaji tjetër"
+          aria-label={tCal("nextMonth")}
           className="flex h-5 w-5 items-center justify-center rounded-md text-ink-faint hover:bg-surface-muted hover:text-ink"
         >
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m9 18 6-6-6-6" /></svg>

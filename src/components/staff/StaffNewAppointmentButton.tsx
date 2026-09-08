@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
+import { useTranslations, useLocale } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 type ClientOption = { id: string; name: string; phone: string | null };
@@ -32,6 +33,7 @@ export default function StaffNewAppointmentButton({
   offers?: OfferOption[];
   defaultDate?: string;
 }) {
+  const t = useTranslations("StaffSchedule");
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -40,7 +42,7 @@ export default function StaffNewAppointmentButton({
         className="inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-lg bg-accent px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-accent-hover"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M12 5v14M5 12h14" /></svg>
-        Termin i Ri
+        {t("newAppointment")}
       </button>
       {open && (
         <StaffNewAppointmentModal meId={meId} clients={clients} services={services} offers={offers} defaultDate={defaultDate} onClose={() => setOpen(false)} />
@@ -64,6 +66,9 @@ function StaffNewAppointmentModal({
   defaultDate?: string;
   onClose: () => void;
 }) {
+  const t = useTranslations("StaffSchedule");
+  const tCommon = useTranslations("Common");
+  const locale = useLocale();
   const router = useRouter();
 
   const [clientMode, setClientMode] = useState<"existing" | "new">("existing");
@@ -122,13 +127,13 @@ function StaffNewAppointmentModal({
         if (data.error) setError(data.error);
         else setSlots(data.slots ?? []);
       })
-      .catch(() => !cancelled && setError("Nuk u ngarkuan dot oraret"))
+      .catch(() => !cancelled && setError(t("errorLoadSlots")))
       .finally(() => !cancelled && setLoadingSlots(false));
 
     return () => {
       cancelled = true;
     };
-  }, [serviceId, date, meId]);
+  }, [serviceId, date, meId, t]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -156,7 +161,7 @@ function StaffNewAppointmentModal({
         });
         const data = await res.json();
         if (!res.ok) {
-          setError(data.error ?? "Regjistrimi i klientit dështoi");
+          setError(data.error ?? t("errorClientRegister"));
           return;
         }
         clientId = data.client.id;
@@ -169,14 +174,14 @@ function StaffNewAppointmentModal({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Krijimi i terminit dështoi");
+        setError(data.error ?? t("errorCreateBooking"));
         setPicked(null);
         return;
       }
       onClose();
       router.refresh();
     } catch {
-      setError("Nuk u lidh dot me serverin");
+      setError(t("errorNetwork"));
     } finally {
       setBusy(false);
     }
@@ -194,8 +199,8 @@ function StaffNewAppointmentModal({
     >
       <div className="flex max-h-[90vh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-surface ring-1 ring-line shadow-[0_24px_64px_-24px_rgba(31,42,34,0.35)]">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <h2 className="text-lg font-semibold text-ink">Termin i Ri</h2>
-          <button onClick={onClose} aria-label="Mbyll" className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink">
+          <h2 className="text-lg font-semibold text-ink">{t("newAppointment")}</h2>
+          <button onClick={onClose} aria-label={tCommon("close")} className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
           </button>
         </div>
@@ -203,13 +208,13 @@ function StaffNewAppointmentModal({
         <div className="flex flex-col gap-4 overflow-y-auto px-5 py-4">
           <div>
             <div className="mb-1.5 flex items-center justify-between">
-              <span className="text-sm font-medium text-ink">Klienti</span>
+              <span className="text-sm font-medium text-ink">{t("clientLabel")}</span>
               <div className="inline-flex rounded-lg bg-surface-muted p-0.5 text-xs font-medium">
                 <button type="button" onClick={() => setClientMode("existing")} className={`rounded-md px-2.5 py-1 transition-colors ${clientMode === "existing" ? "bg-surface text-ink shadow-sm" : "text-ink-faint hover:text-ink"}`}>
-                  Klient ekzistues
+                  {t("existingClient")}
                 </button>
                 <button type="button" onClick={() => setClientMode("new")} className={`rounded-md px-2.5 py-1 transition-colors ${clientMode === "new" ? "bg-surface text-ink shadow-sm" : "text-ink-faint hover:text-ink"}`}>
-                  Klient i ri
+                  {t("newClient")}
                 </button>
               </div>
             </div>
@@ -221,13 +226,13 @@ function StaffNewAppointmentModal({
                   onChange={(e) => { setSelectedClient(null); setClientQuery(e.target.value); setClientListOpen(true); }}
                   onFocus={() => setClientListOpen(true)}
                   onBlur={() => setTimeout(() => setClientListOpen(false), 150)}
-                  placeholder="Kërko sipas emrit ose telefonit…"
+                  placeholder={t("searchClientPlaceholder")}
                   className={inputStyles}
                 />
                 {clientListOpen && (
                   <div className="absolute left-0 right-0 top-full z-10 mt-1 max-h-52 overflow-y-auto rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
                     {filteredClients.length === 0 ? (
-                      <p className="px-3.5 py-2.5 text-sm text-ink-faint">Asnjë klient nuk u gjet.</p>
+                      <p className="px-3.5 py-2.5 text-sm text-ink-faint">{t("noClientsFound")}</p>
                     ) : (
                       filteredClients.map((c) => (
                         <button key={c.id} type="button" onMouseDown={() => { setSelectedClient(c); setClientQuery(""); setClientListOpen(false); }} className="flex w-full flex-col px-3.5 py-2 text-left transition-colors hover:bg-surface-muted">
@@ -242,40 +247,40 @@ function StaffNewAppointmentModal({
             ) : (
               <div className="flex flex-col gap-3 rounded-xl border border-dashed border-line-strong p-3">
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Emri">
-                    <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder="Elira" className={inputStyles} />
+                  <Field label={t("firstName")}>
+                    <input value={newFirstName} onChange={(e) => setNewFirstName(e.target.value)} placeholder={t("firstNamePlaceholder")} className={inputStyles} />
                   </Field>
-                  <Field label="Mbiemri">
-                    <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder="Krasniqi" className={inputStyles} />
+                  <Field label={t("lastName")}>
+                    <input value={newLastName} onChange={(e) => setNewLastName(e.target.value)} placeholder={t("lastNamePlaceholder")} className={inputStyles} />
                   </Field>
                 </div>
-                <Field label="Telefoni">
-                  <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder="+383 44 123 456" className={inputStyles} />
+                <Field label={t("phoneLabel")}>
+                  <input value={newPhone} onChange={(e) => setNewPhone(e.target.value)} placeholder={t("phonePlaceholder")} className={inputStyles} />
                 </Field>
-                <Field label="Email (opsionale)">
-                  <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="elira@shembull.com" className={inputStyles} />
+                <Field label={t("emailOptionalLabel")}>
+                  <input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder={t("emailPlaceholder")} className={inputStyles} />
                 </Field>
               </div>
             )}
           </div>
 
-          <Field label="Shërbimi" hint="Vetëm shërbimet që je e autorizuar t'i kryesh.">
+          <Field label={t("serviceLabel")} hint={t("serviceHint")}>
             <select
               value={offerId ? `offer:${offerId}` : serviceId}
               onChange={(e) => onServiceSelect(e.target.value)}
               className={inputStyles}
             >
-              <option value="">Zgjidh shërbimin</option>
+              <option value="">{t("chooseService")}</option>
               {offers.length > 0 ? (
                 <>
-                  <optgroup label="Ofertat">
+                  <optgroup label={t("offersGroupLabel")}>
                     {offers.map((o) => (
                       <option key={`offer:${o.id}`} value={`offer:${o.id}`}>
-                        🎁 {o.title} — {o.price.toFixed(2)} €{o.realValue > o.price ? ` (kursim ${(o.realValue - o.price).toFixed(2)} €)` : ""}
+                        🎁 {o.title} — {o.price.toFixed(2)} €{o.realValue > o.price ? t("offerSavingsSuffix", { amount: (o.realValue - o.price).toFixed(2) }) : ""}
                       </option>
                     ))}
                   </optgroup>
-                  <optgroup label="Shërbimet">
+                  <optgroup label={t("servicesGroupLabel")}>
                     {services.map((s) => (
                       <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
                     ))}
@@ -289,28 +294,32 @@ function StaffNewAppointmentModal({
             </select>
             {selectedOffer && (
               <p className="mt-1.5 text-xs text-ink-faint">
-                Do të rezervohet si <span className="font-medium text-ink-soft">{service?.name}</span> ({selectedOffer.title}).
+                {t.rich("willBookAsLabel", {
+                  service: service?.name ?? "",
+                  offer: selectedOffer.title,
+                  bold: (chunks) => <span className="font-medium text-ink-soft">{chunks}</span>,
+                })}
               </p>
             )}
           </Field>
 
-          <Field label="Data">
+          <Field label={t("dateLabel")}>
             <input type="date" min={todayISO()} value={date} onChange={(e) => setDate(e.target.value)} disabled={!serviceId} className={inputStyles} />
           </Field>
 
           {serviceId && (
             <div>
-              <p className="mb-2 text-sm font-medium text-ink">Ora</p>
+              <p className="mb-2 text-sm font-medium text-ink">{t("hourLabel")}</p>
               {loadingSlots ? (
-                <p className="text-sm text-ink-faint">Duke ngarkuar oraret…</p>
+                <p className="text-sm text-ink-faint">{t("loadingSlots")}</p>
               ) : slots.length === 0 ? (
                 <p className="rounded-xl border border-dashed border-line-strong bg-canvas px-4 py-5 text-center text-sm text-ink-faint">
-                  Nuk ka orare të lira për këtë ditë. Provo një datë tjetër.
+                  {t("noSlots")}
                 </p>
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {slots.map((slot) => {
-                    const label = new Date(slot.time).toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
+                    const label = new Date(slot.time).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
                     return (
                       <button key={slot.time} type="button" onClick={() => setPicked(slot)} className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${picked?.time === slot.time ? "bg-accent text-white" : "bg-surface text-ink ring-1 ring-line-strong hover:bg-surface-muted"}`}>
                         {label}
@@ -326,9 +335,9 @@ function StaffNewAppointmentModal({
         </div>
 
         <div className="flex items-center justify-end gap-2 border-t border-line px-5 py-4">
-          <button onClick={onClose} className={buttonStyles.secondary}>Anulo</button>
+          <button onClick={onClose} className={buttonStyles.secondary}>{tCommon("cancel")}</button>
           <button onClick={submit} disabled={!canSubmit} className={buttonStyles.primary}>
-            {busy ? "Duke krijuar…" : "Krijo Terminin"}
+            {busy ? t("creating") : t("createBooking")}
           </button>
         </div>
       </div>

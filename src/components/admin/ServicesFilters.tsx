@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export default function ServicesFilters({
   categories,
@@ -14,6 +15,7 @@ export default function ServicesFilters({
   currentStatus: string;
   currentQuery: string;
 }) {
+  const t = useTranslations("AdminServices");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -49,20 +51,20 @@ export default function ServicesFilters({
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Kërko shërbime…"
+          placeholder={t("searchPlaceholder")}
           className="w-full rounded-lg border border-line-strong bg-surface py-2 pl-7 pr-2 text-sm text-ink outline-none transition-colors focus:border-accent"
         />
       </div>
       <select className={`${selectCls} w-[130px] shrink-0 truncate`} value={currentCategory} onChange={(e) => setParam("category", e.target.value)}>
-        <option value="">Të gjitha Kategoritë</option>
+        <option value="">{t("allCategoriesOption")}</option>
         {categories.map((c) => (
           <option key={c} value={c}>{c}</option>
         ))}
       </select>
       <select className={`${selectCls} w-[110px] shrink-0 truncate`} value={currentStatus} onChange={(e) => setParam("status", e.target.value)}>
-        <option value="">Të gjitha Statuset</option>
-        <option value="active">Aktive</option>
-        <option value="inactive">Joaktive</option>
+        <option value="">{t("allStatusesOption")}</option>
+        <option value="active">{t("activeOption")}</option>
+        <option value="inactive">{t("inactiveOption")}</option>
       </select>
     </>
   );

@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
+import { getTranslations, getLocale } from "next-intl/server";
 import { requireRole, AuthError } from "@/lib/rbac";
 import { getAppointments, parseAppointmentFilters } from "@/lib/appointments";
-import { BOOKING_STATUS_LABEL } from "@/lib/booking-labels";
 import { AppointmentsReportDocument } from "@/lib/appointments-pdf";
 import { prisma } from "@/lib/prisma";
 import { audit } from "@/lib/audit";
@@ -18,17 +18,21 @@ export async function GET(req: Request) {
     const sp = Object.fromEntries(url.searchParams.entries());
     const filters = parseAppointmentFilters(sp);
 
-    const [{ rows }, business] = await Promise.all([
+    const [{ rows }, business, t, tStatus, tPayment, locale] = await Promise.all([
       getAppointments({ ...filters, page: 1, pageSize: EXPORT_CAP }),
       prisma.businessSettings.findUnique({ where: { id: "business" }, select: { name: true } }),
+      getTranslations("AdminReportPdf"),
+      getTranslations("Status.booking"),
+      getTranslations("Status.payment"),
+      getLocale(),
     ]);
 
     const summaryParts: string[] = [];
-    if (filters.from) summaryParts.push(`Nga ${filters.from.toLocaleDateString("sq")}`);
-    if (filters.to) summaryParts.push(`Deri ${new Date(filters.to.getTime() - 86400000).toLocaleDateString("sq")}`);
-    if (filters.status) summaryParts.push(BOOKING_STATUS_LABEL[filters.status]);
-    if (filters.q) summaryParts.push(`Kërkim: "${filters.q}"`);
-    const filterSummary = summaryParts.length > 0 ? summaryParts.join(" · ") : "Të gjitha terminet";
+    if (filters.from) summaryParts.push(t("fromLabel", { date: filters.from.toLocaleDateString(locale) }));
+    if (filters.to) summaryParts.push(t("toLabel", { date: new Date(filters.to.getTime() - 86400000).toLocaleDateString(locale) }));
+    if (filters.status) summaryParts.push(tStatus(filters.status));
+    if (filters.q) summaryParts.push(t("searchLabel", { query: filters.q }));
+    const filterSummary = summaryParts.length > 0 ? summaryParts.join(" · ") : t("allAppointments");
 
     const now = new Date();
     const buffer = await renderToBuffer(
@@ -39,6 +43,10 @@ export async function GET(req: Request) {
           filterSummary,
           rows,
         },
+        locale,
+        t,
+        tStatus,
+        tPayment,
       })
     );
 

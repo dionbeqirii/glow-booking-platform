@@ -1,17 +1,18 @@
 "use client";
 
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-
-const VIEWS = [
-  { value: "day", label: "Ditë" },
-  { value: "week", label: "Javë" },
-  { value: "month", label: "Muaj" },
-];
+import { useTranslations } from "next-intl";
 
 export default function CalendarViewSwitcher({ currentView }: { currentView: string }) {
+  const t = useTranslations("AdminCalendar");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const VIEWS = [
+    { value: "day", label: t("viewDay") },
+    { value: "week", label: t("viewWeek") },
+    { value: "month", label: t("viewMonth") },
+  ];
 
   function onChange(view: string) {
     const params = new URLSearchParams(searchParams.toString());

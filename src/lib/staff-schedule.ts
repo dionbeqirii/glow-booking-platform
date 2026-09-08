@@ -114,9 +114,9 @@ export async function getDaySummary(staffId: string, date: Date): Promise<DaySum
   };
 }
 
-export type UpcomingTimeOff = { id: string; fromLabel: string; untilLabel: string; durationLabel: string; reason: string | null };
+export type UpcomingTimeOff = { id: string; fromLabel: string; untilLabel: string; durationMin: number; reason: string | null };
 
-export async function getUpcomingTimeOff(staffId: string, now = new Date(), limit = 3): Promise<UpcomingTimeOff[]> {
+export async function getUpcomingTimeOff(staffId: string, now = new Date(), limit = 3, locale = "sq"): Promise<UpcomingTimeOff[]> {
   const rows = await prisma.timeOff.findMany({
     where: { staffId, until: { gte: now } },
     orderBy: { from: "asc" },
@@ -124,18 +124,17 @@ export async function getUpcomingTimeOff(staffId: string, now = new Date(), limi
     select: { id: true, from: true, until: true, reason: true },
   });
 
-  const fmt = (d: Date) => d.toLocaleTimeString("sq", { hour: "2-digit", minute: "2-digit", hour12: false });
-  const fmtDate = (d: Date) => d.toLocaleDateString("sq", { day: "2-digit", month: "2-digit" });
+  const fmt = (d: Date) => d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
+  const fmtDate = (d: Date) => d.toLocaleDateString(locale, { day: "2-digit", month: "2-digit" });
 
   return rows.map((t) => {
     const sameDay = t.from.toDateString() === t.until.toDateString();
     const durationMin = Math.round((t.until.getTime() - t.from.getTime()) / 60000);
-    const durationLabel = durationMin < 60 ? `${durationMin} min` : `${(durationMin / 60).toFixed(durationMin % 60 === 0 ? 0 : 1)}h`;
     return {
       id: t.id,
       fromLabel: sameDay ? `${fmtDate(t.from)}, ${fmt(t.from)}` : fmtDate(t.from),
       untilLabel: sameDay ? fmt(t.until) : fmtDate(t.until),
-      durationLabel,
+      durationMin,
       reason: t.reason,
     };
   });
