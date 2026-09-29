@@ -116,9 +116,12 @@ function NewAppointmentModal({
     // so there is nothing to clear here when it isn't — just skip the fetch.
     if (!serviceId || !date) return;
     let cancelled = false;
-    setLoadingSlots(true);
-    setPicked(null);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoadingSlots(true);
+      setPicked(null);
+      setError(null);
+    });
 
     const q = new URLSearchParams({ serviceId, date, includeUnavailable: "true" });
     if (staffId) q.set("staffId", staffId);

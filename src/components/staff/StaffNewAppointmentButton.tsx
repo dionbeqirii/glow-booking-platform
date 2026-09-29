@@ -115,9 +115,12 @@ function StaffNewAppointmentModal({
   useEffect(() => {
     if (!serviceId || !date) return;
     let cancelled = false;
-    setLoadingSlots(true);
-    setPicked(null);
-    setError(null);
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setLoadingSlots(true);
+      setPicked(null);
+      setError(null);
+    });
 
     const q = new URLSearchParams({ serviceId, date, staffId: meId });
     fetch(`/api/availability?${q.toString()}`)

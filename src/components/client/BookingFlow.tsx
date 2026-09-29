@@ -115,7 +115,7 @@ export default function BookingFlow({
   useEffect(() => {
     if (!serviceId || !date) return;
     let cancelled = false;
-    setLoadingSlots(true);
+    queueMicrotask(() => !cancelled && setLoadingSlots(true));
 
     const q = new URLSearchParams({ serviceId, date });
     if (staffId) q.set("staffId", staffId);

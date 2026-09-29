@@ -125,7 +125,7 @@ export default function NotificationBell() {
 
   // Poll so a queue call or status change surfaces without a manual refresh.
   useEffect(() => {
-    load();
+    queueMicrotask(load);
     const t = setInterval(load, 20000);
     return () => clearInterval(t);
   }, [load]);

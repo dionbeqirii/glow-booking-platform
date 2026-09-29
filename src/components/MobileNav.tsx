@@ -27,10 +27,14 @@ export default function MobileNav({ role }: { role: string }) {
     return () => document.removeEventListener("mousedown", onClick);
   }, [open]);
 
-  // Close when the route changes.
-  useEffect(() => {
+  // Close when the route changes — adjusted during render (React's
+  // recommended pattern) rather than in an effect, so it takes effect
+  // before the stale-open menu ever paints on the new page.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setOpen(false);
-  }, [pathname]);
+  }
 
   // A single-tab role (staff) needs no menu.
   if (tabs.length <= 1) return null;
