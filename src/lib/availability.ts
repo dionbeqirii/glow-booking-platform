@@ -77,8 +77,10 @@ export async function availableSlots(params: {
       id: true,
       name: true,
       workingHours: { where: { weekday }, select: { startTime: true, endTime: true } },
+      // A PENDING request doesn't block anything yet — only once the admin
+      // approves it does it actually take effect (a REJECTED one never does).
       timeOff: {
-        where: { from: { lt: dayEnd }, until: { gt: dayStart } },
+        where: { status: "APPROVED", from: { lt: dayEnd }, until: { gt: dayStart } },
         select: { from: true, until: true },
       },
       bookingsAsStaff: {
@@ -191,7 +193,7 @@ export async function isSlotBookable(params: {
   if (!insideShift) return { ok: false, reason: "Jashtë orarit të punës së punonjësit" };
 
   const off = await prisma.timeOff.count({
-    where: { staffId, from: { lt: end }, until: { gt: start } },
+    where: { staffId, status: "APPROVED", from: { lt: end }, until: { gt: start } },
   });
   if (off > 0) return { ok: false, reason: "Punonjësi ka mungesë në këtë periudhë" };
 

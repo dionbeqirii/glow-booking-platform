@@ -12,6 +12,7 @@ import {
   getQueueInsights,
   type QueueInsight,
 } from "@/lib/queue-catalog";
+import { getBookableOffers } from "@/lib/offers-catalog";
 import { waitTone } from "@/lib/booking-labels";
 import QueueTable from "@/components/admin/QueueTable";
 import AddWalkinForm from "@/components/admin/AddWalkinForm";
@@ -109,7 +110,7 @@ export default async function AdminQueuePage() {
   const locale = await getLocale();
   const now = new Date();
 
-  const [kpis, summary, rows, slots, insights, staff, activeServices] = await Promise.all([
+  const [kpis, summary, rows, slots, insights, staff, activeServices, offers] = await Promise.all([
     getQueueKpis(now),
     getQueueSummary(now),
     getCurrentQueueRows(locale),
@@ -121,10 +122,12 @@ export default async function AdminQueuePage() {
       select: { id: true, name: true, staffServices: { select: { serviceId: true } } },
     }),
     prisma.service.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, price: true } }),
+    getBookableOffers(now, locale),
   ]);
 
   const staffOptions = staff.map((s) => ({ id: s.id, name: s.name, serviceIds: s.staffServices.map((x) => x.serviceId) }));
   const serviceOptions = activeServices.map((s) => ({ id: s.id, name: s.name, price: Number(s.price) }));
+  const offerOptions = offers.map((o) => ({ id: o.id, title: o.title, bookingServiceId: o.bookingServiceId }));
 
   const liveQueue = rows.filter((r) => r.status === "WAITING").slice(0, 5);
 
@@ -175,7 +178,7 @@ export default async function AdminQueuePage() {
               )}
             </div>
 
-            <AddWalkinForm services={serviceOptions} />
+            <AddWalkinForm services={serviceOptions} offers={offerOptions} />
           </div>
 
           <div className="flex flex-col gap-2">

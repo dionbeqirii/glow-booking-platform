@@ -50,6 +50,15 @@ enum NotificationType {
   OFFER_NEW
 }
 
+// A staff-initiated break/block/time-off request needs the admin's sign-off
+// before it actually blocks the schedule; one the admin sets directly (for
+// themselves or on a staff member's behalf) skips the queue entirely.
+enum TimeOffStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 // ---------- Core entities ----------
 model User {
   id           String   @id @default(cuid())
@@ -212,12 +221,16 @@ model WorkingHours {
 }
 
 model TimeOff {
-  id      String   @id @default(cuid())
+  id      String        @id @default(cuid())
   staffId String
   from    DateTime
   until   DateTime
   reason  String?
-  staff   User     @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  // Defaults to APPROVED so existing rows (created before this field
+  // existed) stay in effect unchanged — the API always sets this
+  // explicitly at creation time (PENDING for a staff self-request).
+  status  TimeOffStatus @default(APPROVED)
+  staff   User          @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([staffId])
 }

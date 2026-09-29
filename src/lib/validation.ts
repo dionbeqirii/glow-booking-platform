@@ -219,6 +219,11 @@ export const timeOffSchema = z
     message: "Fillimi i mungesës duhet të jetë para mbarimit",
   });
 
+// Admin-only: approve or reject a staff member's pending time-off/block request.
+export const timeOffReviewSchema = z.object({
+  action: z.enum(["approve", "reject"]),
+});
+
 export type ServiceInput = z.infer<typeof serviceSchema>;
 export type StaffCreateInput = z.infer<typeof staffCreateSchema>;
 

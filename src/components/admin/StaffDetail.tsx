@@ -7,7 +7,14 @@ import { Card, SectionTitle, Field, Alert, EmptyState, buttonStyles, inputStyles
 import { weekdayFullLabelsSundayFirst } from "@/lib/calendar-labels";
 
 export type HourRow = { weekday: number; startTime: string; endTime: string };
-export type TimeOffRow = { id: string; from: string; until: string; reason: string | null };
+export type TimeOffStatus = "PENDING" | "APPROVED" | "REJECTED";
+export type TimeOffRow = { id: string; from: string; until: string; reason: string | null; status: TimeOffStatus };
+
+const STATUS_PILL: Record<TimeOffStatus, { bg: string; text: string }> = {
+  PENDING: { bg: "bg-warn-soft", text: "text-warn" },
+  APPROVED: { bg: "bg-ok-soft", text: "text-ok" },
+  REJECTED: { bg: "bg-danger-soft", text: "text-danger" },
+};
 
 export default function StaffDetail({
   staffId,
@@ -82,6 +89,10 @@ export default function StaffDetail({
     e.preventDefault();
     const ok = await send(`/api/staff/${staffId}/timeoff`, "POST", off, t("timeOffAdded"));
     if (ok) setOff({ from: "", until: "", reason: "" });
+  }
+
+  async function reviewTimeOff(id: string, action: "approve" | "reject") {
+    await send(`/api/timeoff/${id}`, "PATCH", { action }, action === "approve" ? t("timeOffApproved") : t("timeOffRejected"));
   }
 
   async function changePassword(e: React.FormEvent) {
@@ -216,26 +227,51 @@ export default function StaffDetail({
           <EmptyState text={t("noTimeOff")} />
         ) : (
           <ul className="mb-4 flex flex-col gap-2">
-            {timeOff.map((row) => (
-              <li
-                key={row.id}
-                className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-sm"
-              >
-                <span>
-                  <span className="font-medium text-ink">
-                    {new Date(row.from).toLocaleDateString(locale)} – {new Date(row.until).toLocaleDateString(locale)}
-                  </span>
-                  {row.reason && <span className="ml-2 text-ink-faint">{row.reason}</span>}
-                </span>
-                <button
-                  onClick={() => send(`/api/timeoff/${row.id}`, "DELETE", undefined, t("timeOffRemoved"))}
-                  disabled={busy}
-                  className="text-sm font-medium text-danger hover:underline"
+            {timeOff.map((row) => {
+              const statusKey = row.status === "PENDING" ? "statusPending" : row.status === "APPROVED" ? "statusApproved" : "statusRejected";
+              const pill = STATUS_PILL[row.status];
+              return (
+                <li
+                  key={row.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-line px-3 py-2 text-sm"
                 >
-                  {t("remove")}
-                </button>
-              </li>
-            ))}
+                  <span>
+                    <span className="font-medium text-ink">
+                      {new Date(row.from).toLocaleDateString(locale)} – {new Date(row.until).toLocaleDateString(locale)}
+                    </span>
+                    <span className={`ml-2 rounded-full px-2 py-0.5 text-[11px] font-semibold ${pill.bg} ${pill.text}`}>{t(statusKey)}</span>
+                    {row.reason && <span className="ml-2 text-ink-faint">{row.reason}</span>}
+                  </span>
+                  <span className="flex items-center gap-3">
+                    {row.status === "PENDING" && (
+                      <>
+                        <button
+                          onClick={() => reviewTimeOff(row.id, "approve")}
+                          disabled={busy}
+                          className="text-sm font-medium text-ok hover:underline"
+                        >
+                          {t("approve")}
+                        </button>
+                        <button
+                          onClick={() => reviewTimeOff(row.id, "reject")}
+                          disabled={busy}
+                          className="text-sm font-medium text-danger hover:underline"
+                        >
+                          {t("reject")}
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={() => send(`/api/timeoff/${row.id}`, "DELETE", undefined, t("timeOffRemoved"))}
+                      disabled={busy}
+                      className="text-sm font-medium text-ink-faint hover:underline"
+                    >
+                      {t("remove")}
+                    </button>
+                  </span>
+                </li>
+              );
+            })}
           </ul>
         )}
 

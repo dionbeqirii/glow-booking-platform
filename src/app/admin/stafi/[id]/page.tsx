@@ -58,6 +58,7 @@ export default async function StaffDetailPage({
             from: t.from.toISOString(),
             until: t.until.toISOString(),
             reason: t.reason,
+            status: t.status,
           }))}
         />
       </div>

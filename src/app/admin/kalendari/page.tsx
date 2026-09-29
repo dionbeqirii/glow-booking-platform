@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { prisma } from "@/lib/prisma";
 import { requireRole } from "@/lib/rbac";
 import DashboardShell from "@/components/DashboardShell";
@@ -10,6 +10,7 @@ import { getMonthSchedule } from "@/lib/month-schedule";
 import { getTodaySummary } from "@/lib/appointments";
 import { serviceColorMap, staffColorMap } from "@/lib/service-colors";
 import { monthShortLabels, monthLongLabels } from "@/lib/calendar-labels";
+import { getBookableOffers } from "@/lib/offers-catalog";
 import WeekCalendar from "@/components/admin/WeekCalendar";
 import DailyScheduleGrid from "@/components/admin/DailyScheduleGrid";
 import MonthCalendar from "@/components/admin/MonthCalendar";
@@ -47,9 +48,10 @@ export default async function AdminCalendarPage({
   searchParams: Promise<{ date?: string; hide?: string; service?: string; view?: string }>;
 }) {
   const session = await requireRole("ADMIN");
-  const [t, tMonth] = await Promise.all([
+  const [t, tMonth, locale] = await Promise.all([
     getTranslations("AdminCalendar"),
     getTranslations("Month"),
+    getLocale(),
   ]);
   const MONTHS_SHORT = monthShortLabels(tMonth);
   const MONTHS_LONG = monthLongLabels(tMonth);
@@ -66,7 +68,7 @@ export default async function AdminCalendarPage({
   // Only the active view's schedule actually queries the DB — the other two
   // resolve immediately — so switching views never pays for the ones you're
   // not looking at.
-  const [daySchedule, weekSchedule, monthSchedule, summary, clients, staffWithServices, servicesDetailed] = await Promise.all([
+  const [daySchedule, weekSchedule, monthSchedule, summary, clients, staffWithServices, servicesDetailed, offers] = await Promise.all([
     view === "day" ? getDaySchedule(date) : Promise.resolve(null),
     view === "week" ? getWeekSchedule(start) : Promise.resolve(null),
     view === "month" ? getMonthSchedule(date) : Promise.resolve(null),
@@ -74,10 +76,12 @@ export default async function AdminCalendarPage({
     prisma.user.findMany({ where: { role: "CLIENT" }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true } }),
     prisma.user.findMany({ where: { role: "STAFF" }, orderBy: { name: "asc" }, select: { id: true, name: true, staffServices: { select: { serviceId: true } } } }),
     prisma.service.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, durationMin: true, price: true } }),
+    getBookableOffers(now, locale),
   ]);
   const active = daySchedule ?? weekSchedule ?? monthSchedule!;
   const staffForModal = staffWithServices.map((s) => ({ id: s.id, name: s.name, serviceIds: s.staffServices.map((x) => x.serviceId) }));
   const servicesForModal = servicesDetailed.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, price: Number(s.price) }));
+  const offersForModal = offers.map((o) => ({ id: o.id, title: o.title, bookingServiceId: o.bookingServiceId }));
 
   // The grid/legend key by staff NAME (matches WeekBooking.staffName), so the
   // filter set and colour map both work off names too.
@@ -165,6 +169,7 @@ export default async function AdminCalendarPage({
           <NewAppointmentButton
             clients={clients}
             services={servicesForModal}
+            offers={offersForModal}
             staff={staffForModal}
             defaultDate={toISODate(date)}
           />

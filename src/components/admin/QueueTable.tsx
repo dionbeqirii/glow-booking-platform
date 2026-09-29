@@ -47,8 +47,31 @@ export default function QueueTable({
   const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [openPanel, setOpenPanel] = useState<{ id: string; kind: "menu" | "details" } | null>(null);
+  // Fixed-position coordinates for whichever panel is open, computed from its
+  // trigger button on click — the panel is portalled to <body> (see below)
+  // instead of being positioned `absolute` inside the table, which otherwise
+  // gets clipped by the table's own overflow (rounded corners + horizontal
+  // scroll wrapper) for any row near the top/bottom of the visible area.
+  const [panelPos, setPanelPos] = useState<{ top?: number; bottom?: number; right: number } | null>(null);
   const [invoice, setInvoice] = useState<Invoice | null>(null);
   const panelRef = useRef<HTMLDivElement | null>(null);
+
+  function togglePanel(e: React.MouseEvent<HTMLButtonElement>, id: string, kind: "menu" | "details") {
+    const isSame = openPanel?.id === id && openPanel.kind === kind;
+    if (isSame) {
+      setOpenPanel(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const right = window.innerWidth - rect.right;
+    // Flip upward when there isn't room below — the panel can be a couple
+    // hundred px tall (the "menu" one especially, once the staff-assign
+    // select and completed-services checklist are showing).
+    const estimatedHeight = kind === "details" ? 220 : 280;
+    const opensUpward = window.innerHeight - rect.bottom < estimatedHeight && rect.top > estimatedHeight;
+    setPanelPos(opensUpward ? { bottom: window.innerHeight - rect.top + 4, right } : { top: rect.bottom + 4, right });
+    setOpenPanel({ id, kind });
+  }
 
   useEffect(() => {
     if (!openPanel) return;
@@ -194,7 +217,7 @@ export default function QueueTable({
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => setOpenPanel(openPanel?.id === r.id && openPanel.kind === "details" ? null : { id: r.id, kind: "details" })}
+                            onClick={(e) => togglePanel(e, r.id, "details")}
                             title={t("detailsTitle")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
@@ -202,8 +225,8 @@ export default function QueueTable({
                               <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5Z" />
                             </svg>
                           </button>
-                          {openPanel?.id === r.id && openPanel.kind === "details" && (
-                            <div ref={panelRef} className="absolute right-0 top-7 z-20 w-64 rounded-xl border border-line-strong bg-surface p-3 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
+                          {openPanel?.id === r.id && openPanel.kind === "details" && panelPos && typeof document !== "undefined" && createPortal(
+                            <div ref={panelRef} className="fixed z-20 w-64 rounded-xl border border-line-strong bg-surface p-3 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]" style={{ top: panelPos.top, bottom: panelPos.bottom, right: panelPos.right }}>
                               <p className="mb-2 text-sm font-semibold text-ink">{r.clientName ?? t("namelessClientFallback")}</p>
                               <div className="flex flex-col gap-1 text-xs text-ink-soft">
                                 <div className="flex justify-between gap-2"><span className="text-ink-faint">{t("phoneLabel")}</span><span className="truncate text-ink">{r.clientPhone ?? "—"}</span></div>
@@ -215,14 +238,15 @@ export default function QueueTable({
                                 <p className="text-[11px] font-medium uppercase tracking-wide text-ink-faint">{t("notesLabel")}</p>
                                 <p className="mt-0.5 text-xs text-ink-soft">{r.notes || t("noNotes")}</p>
                               </div>
-                            </div>
+                            </div>,
+                            document.body
                           )}
                         </div>
 
                         <div className="relative">
                           <button
                             type="button"
-                            onClick={() => setOpenPanel(openPanel?.id === r.id && openPanel.kind === "menu" ? null : { id: r.id, kind: "menu" })}
+                            onClick={(e) => togglePanel(e, r.id, "menu")}
                             aria-label={t("moreActionsAria")}
                             className="flex h-6 w-6 items-center justify-center rounded-lg text-ink-faint transition-colors hover:bg-surface-muted hover:text-ink"
                           >
@@ -232,8 +256,8 @@ export default function QueueTable({
                               <circle cx="12" cy="19" r="1.6" />
                             </svg>
                           </button>
-                          {openPanel?.id === r.id && openPanel.kind === "menu" && (
-                            <div ref={panelRef} className="absolute right-0 top-7 z-20 w-64 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]">
+                          {openPanel?.id === r.id && openPanel.kind === "menu" && panelPos && typeof document !== "undefined" && createPortal(
+                            <div ref={panelRef} className="fixed z-20 w-64 overflow-hidden rounded-xl border border-line-strong bg-surface py-1 shadow-[0_12px_32px_-12px_rgba(31,42,34,0.25)]" style={{ top: panelPos.top, bottom: panelPos.bottom, right: panelPos.right }}>
                               {r.status === "WAITING" && (
                                 <>
                                   <button onClick={() => act(r.id, "call")} disabled={busy} className="w-full px-3.5 py-2 text-left text-sm text-ink transition-colors hover:bg-surface-muted disabled:opacity-50">
@@ -273,7 +297,7 @@ export default function QueueTable({
                               {r.status === "IN_SERVICE" && (
                                 <>
                                   <p className="px-3.5 pt-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-faint">{t("completedServicesTitle")}</p>
-                                  <div className="flex flex-col gap-1 px-3.5 py-1.5">
+                                  <div className="flex max-h-48 flex-col gap-1 overflow-y-auto px-3.5 py-1.5">
                                     {candidateServices.length === 0 ? (
                                       <p className="text-xs text-ink-faint">{t("noServicesAvailable")}</p>
                                     ) : (
@@ -301,7 +325,8 @@ export default function QueueTable({
                                   </div>
                                 </>
                               )}
-                            </div>
+                            </div>,
+                            document.body
                           )}
                         </div>
                       </div>

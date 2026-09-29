@@ -3,6 +3,7 @@ import { requireSession } from "@/lib/rbac";
 import { timeOffSchema } from "@/lib/validation";
 import { handle, readJson, ApiError } from "@/lib/api";
 import { audit } from "@/lib/audit";
+import { notify } from "@/lib/notify";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -27,8 +28,13 @@ export async function POST(req: Request, { params }: Ctx) {
       throw new ApiError(400, "Datat nuk janë të vlefshme");
     }
 
+    // Admin-set time off (their own or on a staff member's behalf) takes
+    // effect immediately — there's no one above the admin to approve it. A
+    // staff member requesting their own needs the admin's sign-off first;
+    // it doesn't block the schedule until then (see availability.ts).
+    const isAdmin = session.role === "ADMIN";
     const entry = await prisma.timeOff.create({
-      data: { staffId: id, from, until, reason: data.reason },
+      data: { staffId: id, from, until, reason: data.reason, status: isAdmin ? "APPROVED" : "PENDING" },
     });
 
     await audit({
@@ -38,6 +44,19 @@ export async function POST(req: Request, { params }: Ctx) {
       entityId: entry.id,
       details: `${member.name}: ${data.from} - ${data.until}`,
     });
+
+    if (!isAdmin) {
+      const admins = await prisma.user.findMany({ where: { role: "ADMIN" }, select: { id: true } });
+      await Promise.all(
+        admins.map((a) =>
+          notify({
+            userId: a.id,
+            type: "STATUS_CHANGE",
+            message: `${member.name} ka kërkuar mungesë/bllokim kohe (${data.from} - ${data.until}) — kërkon miratimin tuaj.`,
+          })
+        )
+      );
+    }
 
     return { timeOff: entry };
   });

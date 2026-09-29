@@ -8,6 +8,7 @@ import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 type ClientOption = { id: string; name: string; phone: string | null };
 type ServiceOption = { id: string; name: string; durationMin: number; price: number };
+type OfferOption = { id: string; title: string; bookingServiceId: string };
 type StaffOption = { id: string; name: string; serviceIds: string[] };
 type Slot = { time: string; staff: { id: string; name: string }[]; available: boolean };
 
@@ -24,11 +25,13 @@ function todayISO(): string {
 export default function NewAppointmentButton({
   clients,
   services,
+  offers = [],
   staff,
   defaultDate,
 }: {
   clients: ClientOption[];
   services: ServiceOption[];
+  offers?: OfferOption[];
   staff: StaffOption[];
   defaultDate?: string;
 }) {
@@ -47,6 +50,7 @@ export default function NewAppointmentButton({
         <NewAppointmentModal
           clients={clients}
           services={services}
+          offers={offers}
           staff={staff}
           defaultDate={defaultDate}
           onClose={() => setOpen(false)}
@@ -59,12 +63,14 @@ export default function NewAppointmentButton({
 function NewAppointmentModal({
   clients,
   services,
+  offers,
   staff,
   defaultDate,
   onClose,
 }: {
   clients: ClientOption[];
   services: ServiceOption[];
+  offers: OfferOption[];
   staff: StaffOption[];
   defaultDate?: string;
   onClose: () => void;
@@ -203,7 +209,7 @@ function NewAppointmentModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4"
       role="dialog"
       aria-modal="true"
       onMouseDown={(e) => e.target === e.currentTarget && onClose()}
@@ -311,9 +317,18 @@ function NewAppointmentModal({
                 className={inputStyles}
               >
                 <option value="">{t("chooseService")}</option>
-                {services.map((s) => (
-                  <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
-                ))}
+                {offers.length > 0 && (
+                  <optgroup label={t("offersGroupLabel")}>
+                    {offers.map((o) => (
+                      <option key={o.id} value={o.bookingServiceId}>{o.title}</option>
+                    ))}
+                  </optgroup>
+                )}
+                <optgroup label={t("servicesGroupLabel")}>
+                  {services.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name} — {s.durationMin} min</option>
+                  ))}
+                </optgroup>
               </select>
             </Field>
 

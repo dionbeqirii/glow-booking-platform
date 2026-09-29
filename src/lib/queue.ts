@@ -137,7 +137,7 @@ async function loadStaffDay(now: Date): Promise<Map<string, StaffDay>> {
 }
 
 /** Pushes `start` forward past any confirmed booking it would overlap (B2). */
-function resolveAgainstBookings(staff: StaffDay, start: number, duration: number): number | null {
+export function resolveAgainstBookings(staff: StaffDay, start: number, duration: number): number | null {
   let candidate = start;
   // Bookings are sorted; loop until no booking in the day overlaps the block.
   let moved = true;

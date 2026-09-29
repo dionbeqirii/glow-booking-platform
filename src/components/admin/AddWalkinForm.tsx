@@ -6,8 +6,9 @@ import { useTranslations } from "next-intl";
 import { Field, Alert, buttonStyles, inputStyles } from "@/components/ui";
 
 export type ServiceOption = { id: string; name: string };
+export type OfferOption = { id: string; title: string; bookingServiceId: string };
 
-export default function AddWalkinForm({ services }: { services: ServiceOption[] }) {
+export default function AddWalkinForm({ services, offers = [] }: { services: ServiceOption[]; offers?: OfferOption[] }) {
   const t = useTranslations("AdminQueue");
   const router = useRouter();
   const [name, setName] = useState("");
@@ -74,9 +75,18 @@ export default function AddWalkinForm({ services }: { services: ServiceOption[] 
           <Field label={t("requestedServiceLabel")}>
             <select className={inputStyles} value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
               <option value="">{t("chooseServiceOption")}</option>
-              {services.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {offers.length > 0 && (
+                <optgroup label={t("offersGroupLabel")}>
+                  {offers.map((o) => (
+                    <option key={o.id} value={o.bookingServiceId}>{o.title}</option>
+                  ))}
+                </optgroup>
+              )}
+              <optgroup label={t("servicesGroupLabel")}>
+                {services.map((s) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </optgroup>
             </select>
           </Field>
         </div>

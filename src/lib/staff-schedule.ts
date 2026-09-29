@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import type { BookingStatus } from "@prisma/client";
+import type { BookingStatus, TimeOffStatus } from "@prisma/client";
 
 const ACTIVE_BOOKING: BookingStatus[] = ["CONFIRMED", "CHECKED_IN", "IN_SERVICE"];
 
@@ -22,7 +22,9 @@ function fromMinutesToDate(base: Date, minutes: number): Date {
 
 export type ScheduleItem =
   | { kind: "booking"; id: string; start: Date; end: Date; clientName: string; serviceName: string; status: BookingStatus }
-  | { kind: "break"; id: string | null; start: Date; end: Date; reason: string | null };
+  // `timeOffStatus` is null for an auto-generated gap-between-shifts block
+  // (id is also null there) — only a real TimeOff row carries a status.
+  | { kind: "break"; id: string | null; start: Date; end: Date; reason: string | null; timeOffStatus: TimeOffStatus | null };
 
 export type WorkingInterval = { startLabel: string; endLabel: string };
 
@@ -54,9 +56,12 @@ export async function getScheduleForDay(staffId: string, date: Date): Promise<Sc
       },
     }),
     prisma.workingHours.findMany({ where: { staffId, weekday }, orderBy: { startTime: "asc" }, select: { startTime: true, endTime: true } }),
+    // A rejected request never happened as far as the schedule is concerned
+    // — it simply doesn't show. Pending ones still show (with a badge) so
+    // the staff member can see what they're waiting on.
     prisma.timeOff.findMany({
-      where: { staffId, from: { lte: end }, until: { gte: start } },
-      select: { id: true, from: true, until: true, reason: true },
+      where: { staffId, status: { not: "REJECTED" }, from: { lte: end }, until: { gte: start } },
+      select: { id: true, from: true, until: true, reason: true, status: true },
     }),
   ]);
 
@@ -74,11 +79,11 @@ export async function getScheduleForDay(staffId: string, date: Date): Promise<Sc
     const gapStart = toMinutes(hours[i].endTime);
     const gapEnd = toMinutes(hours[i + 1].startTime);
     if (gapEnd > gapStart) {
-      items.push({ kind: "break", id: null, start: fromMinutesToDate(date, gapStart), end: fromMinutesToDate(date, gapEnd), reason: null });
+      items.push({ kind: "break", id: null, start: fromMinutesToDate(date, gapStart), end: fromMinutesToDate(date, gapEnd), reason: null, timeOffStatus: null });
     }
   }
   for (const t of timeOff) {
-    items.push({ kind: "break", id: t.id, start: t.from < start ? start : t.from, end: t.until > end ? end : t.until, reason: t.reason });
+    items.push({ kind: "break", id: t.id, start: t.from < start ? start : t.from, end: t.until > end ? end : t.until, reason: t.reason, timeOffStatus: t.status });
   }
 
   items.sort((a, b) => a.start.getTime() - b.start.getTime());
@@ -114,14 +119,14 @@ export async function getDaySummary(staffId: string, date: Date): Promise<DaySum
   };
 }
 
-export type UpcomingTimeOff = { id: string; fromLabel: string; untilLabel: string; durationMin: number; reason: string | null };
+export type UpcomingTimeOff = { id: string; fromLabel: string; untilLabel: string; durationMin: number; reason: string | null; status: TimeOffStatus };
 
 export async function getUpcomingTimeOff(staffId: string, now = new Date(), limit = 3, locale = "sq"): Promise<UpcomingTimeOff[]> {
   const rows = await prisma.timeOff.findMany({
-    where: { staffId, until: { gte: now } },
+    where: { staffId, status: { not: "REJECTED" }, until: { gte: now } },
     orderBy: { from: "asc" },
     take: limit,
-    select: { id: true, from: true, until: true, reason: true },
+    select: { id: true, from: true, until: true, reason: true, status: true },
   });
 
   const fmt = (d: Date) => d.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -136,6 +141,7 @@ export async function getUpcomingTimeOff(staffId: string, now = new Date(), limi
       untilLabel: sameDay ? fmt(t.until) : fmtDate(t.until),
       durationMin,
       reason: t.reason,
+      status: t.status,
     };
   });
 }

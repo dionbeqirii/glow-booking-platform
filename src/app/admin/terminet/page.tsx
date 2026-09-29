@@ -14,6 +14,7 @@ import {
   type RawAppointmentSearchParams,
 } from "@/lib/appointments";
 import { BOOKING_STATUS_PILL } from "@/lib/booking-labels";
+import { getBookableOffers } from "@/lib/offers-catalog";
 import { monthShortLabels } from "@/lib/calendar-labels";
 import AppointmentsFilters from "@/components/admin/AppointmentsFilters";
 import AppointmentsSearch from "@/components/admin/AppointmentsSearch";
@@ -129,7 +130,7 @@ export default async function AdminAppointmentsPage({
   const pageSize = PAGE_SIZES.includes(Number(sp.pageSize)) ? Number(sp.pageSize) : 10;
   const now = new Date();
 
-  const [staffList, serviceList, { rows, total }, kpis, breakdown, todaySummary, clients, staffWithServices, servicesDetailed] = await Promise.all([
+  const [staffList, serviceList, { rows, total }, kpis, breakdown, todaySummary, clients, staffWithServices, servicesDetailed, offers] = await Promise.all([
     prisma.user.findMany({ where: { role: "STAFF" }, orderBy: { name: "asc" }, select: { id: true, name: true } }),
     prisma.service.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     getAppointments({ ...filters, page, pageSize }),
@@ -139,9 +140,11 @@ export default async function AdminAppointmentsPage({
     prisma.user.findMany({ where: { role: "CLIENT" }, orderBy: { name: "asc" }, select: { id: true, name: true, phone: true } }),
     prisma.user.findMany({ where: { role: "STAFF" }, orderBy: { name: "asc" }, select: { id: true, name: true, staffServices: { select: { serviceId: true } } } }),
     prisma.service.findMany({ where: { active: true }, orderBy: { name: "asc" }, select: { id: true, name: true, durationMin: true, price: true } }),
+    getBookableOffers(now, locale),
   ]);
   const staffForModal = staffWithServices.map((s) => ({ id: s.id, name: s.name, serviceIds: s.staffServices.map((x) => x.serviceId) }));
   const servicesForModal = servicesDetailed.map((s) => ({ id: s.id, name: s.name, durationMin: s.durationMin, price: Number(s.price) }));
+  const offersForModal = offers.map((o) => ({ id: o.id, title: o.title, bookingServiceId: o.bookingServiceId }));
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const breakdownTotal = Object.values(breakdown).reduce((a, b) => a + b, 0);
@@ -223,7 +226,7 @@ export default async function AdminAppointmentsPage({
                 />
                 <AppointmentsSearch currentQuery={sp.q ?? ""} />
                 <div className="flex shrink-0 flex-col gap-1.5">
-                  <NewAppointmentButton clients={clients} services={servicesForModal} staff={staffForModal} />
+                  <NewAppointmentButton clients={clients} services={servicesForModal} offers={offersForModal} staff={staffForModal} />
                   <a
                     href={exportHref}
                     className="inline-flex w-full items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border border-line-strong px-3 py-2 text-sm font-medium text-ink-soft transition-colors hover:bg-surface-muted hover:text-ink"

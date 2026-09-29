@@ -54,6 +54,8 @@ export const AUDIT_ACTION_META: Record<string, AuditActionMeta> = {
   STAFF_SERVICES_SET: { labelKey: "servicesUpdated", moduleKey: "staff", tone: "info" },
   TIMEOFF_CREATE: { labelKey: "timeoffCreated", moduleKey: "staff", tone: "ok" },
   TIMEOFF_DELETE: { labelKey: "timeoffDeleted", moduleKey: "staff", tone: "danger" },
+  TIMEOFF_APPROVE: { labelKey: "timeoffApproved", moduleKey: "staff", tone: "ok" },
+  TIMEOFF_REJECT: { labelKey: "timeoffRejected", moduleKey: "staff", tone: "danger" },
 
   // Klientët
   CLIENT_QUICK_CREATE: { labelKey: "created", moduleKey: "clients", tone: "ok" },

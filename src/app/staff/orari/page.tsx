@@ -219,6 +219,9 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-xs font-medium text-ink-soft">{item.reason || t("breakFallbackLabel")}</p>
                           </div>
+                          {item.timeOffStatus === "PENDING" && (
+                            <span className="shrink-0 rounded-full bg-warn-soft px-2 py-0.5 text-[10px] font-semibold text-warn">{t("pendingApprovalBadge")}</span>
+                          )}
                           <span className="shrink-0 text-[11px] text-ink-faint">{timeRangeLabel(item.start, item.end, locale)}</span>
                           {item.id && <RemoveTimeOffButton timeOffId={item.id} />}
                         </div>
@@ -284,7 +287,12 @@ export default async function StaffSchedulePage({ searchParams }: { searchParams
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 8h1a4 4 0 0 1 0 8h-1" /><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8Z" /><path d="M6 1v3M10 1v3M14 1v3" /></svg>
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-ink">{b.fromLabel} - {b.untilLabel}</p>
+                          <p className="truncate text-ink">
+                            {b.fromLabel} - {b.untilLabel}
+                            {b.status === "PENDING" && (
+                              <span className="ml-1.5 rounded-full bg-warn-soft px-1.5 py-0.5 text-[10px] font-semibold text-warn">{t("pendingApprovalBadge")}</span>
+                            )}
+                          </p>
                           <p className="truncate text-[11px] text-ink-faint">{t("breakDurationLabel", { duration: durationStr })}{b.reason ? ` · ${b.reason}` : ""}</p>
                         </div>
                         <RemoveTimeOffButton timeOffId={b.id} />
