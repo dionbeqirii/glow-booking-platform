@@ -41,8 +41,9 @@ Optional (after the core): QR check-in, deposits, maps.
 INSTALLATION INSTRUCTIONS
 ==========================
 
-Requirements: Node.js 20 or newer, npm, and a free Supabase account
-(hosted PostgreSQL — no local database install needed).
+Requirements: Node.js 22.12 or newer (required by the Vitest test suite —
+see "Running the tests" below), npm, and a free Supabase account (hosted
+PostgreSQL — no local database install needed).
 
 Step 1 — Install dependencies
 ------------------------------
@@ -76,6 +77,25 @@ Step 5 — Run the app
 
 Open http://localhost:3000 — the UI is available in Albanian, English and
 German.
+
+
+RUNNING THE TESTS
+-----------------
+The Vitest suite (validation, the queue B2 rule, and the role-authorization
+matrix) does not need a live database — it only needs the Prisma client's
+generated types, which `npm install`/`npm ci` do not build on their own:
+
+    npm run db:generate     (generates the Prisma client from prisma/schema.prisma)
+    npm test                (runs the 18 Vitest tests)
+
+From a clean clone, the full reproducible sequence is:
+
+    npm ci
+    npm run db:generate
+    npm test
+    npx tsc --noEmit
+    npm run lint
+    npm run build
 
 
 DEMO ACCOUNTS (SYNTHETIC)
@@ -115,6 +135,7 @@ npm run dev              Start the dev server
 npm run build             Production build
 npm run start             Run the production build
 npm run lint              Run ESLint
+npm test                  Run the Vitest suite (18 tests — needs db:generate first)
 npm run db:generate       Regenerate the Prisma client from the schema
 npm run db:push           Sync the schema to the database
 npm run db:migrate        Create/apply a versioned migration (dev)
